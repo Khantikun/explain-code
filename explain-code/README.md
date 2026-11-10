@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🦆 DuckVibe X-Ray | "เขียนโค้ดได้ ต้องอธิบายเป็น" (Vibe Coding Competition Edition)
 
-## Getting Started
+> **โจทย์การแข่งขัน:** *"นักเรียนเขียนโค้ดได้ (หรือใช้ AI เจนโค้ดมาได้) แต่อธิบายไม่ได้ว่าโค้ดทำงานอย่างไร"*
+> **ทางออกของเรา:** เปลี่ยนจากการอ่านคำอธิบายแห้งๆ ให้เป็น **ห้องผ่าตัดโค้ด X-Ray + ห้องสืบสวนปากเปล่ากับสารวัตรเป็ดไซเบอร์ (Voice AI) + ด่านวางยาโค้ด (Reverse Debugging)**
 
-First, run the development server:
+---
 
+## 🗄️ ต้องเตรียม Database อะไรไหม? (คำตอบสำคัญสำหรับการแข่ง!)
+
+**คำตอบสั้นๆ: ไม่ต้องตั้งค่า Database ภายนอกเลยครับ! รันปุ๊บใช้งานได้ 100% ทันที**
+
+เหตุผลสำหรับการแข่ง **Vibe Coding / Hackathon**:
+1. **ลดความเสี่ยงหน้าเวที (Zero-Failure Architecture):** ในห้องแข่งขัน เน็ตอาจช้าหรือฐานข้อมูล Cloud อาจล่ม เราจึงออกแบบระบบให้ใช้ **Browser LocalStorage Database (`duckvibe_sessions_v1`)** ร่วมกับ **JSON Teacher Report Exporter** ทำให้บันทึกคะแนนจัดอันดับ (Leaderboard) และออกไฟล์รายงานส่งอาจารย์ได้ทันทีโดยไม่ต้องง้อเซิร์ฟเวอร์!
+2. **ไม่ต้องง้อ API Key ตอนเดโม่ (แต่ต่อเพิ่มได้):** เรามี **AST Heuristic Engine** ในตัวที่วิเคราะห์โค้ดและตรวจคำตอบได้ทันทีแบบ Offline 100% และมีปุ่มให้เสียบ **Google Gemini API Key** เพิ่มได้ตลอดเวลาหากอยากโชว์ LLM สดๆ บนเวที
+3. **(ทางเลือกเสริม) ถ้ากรรมการถามเรื่องการขยายผลระดับมหาวิทยาลัย (Cloud Database):**
+   คุณสามารถตอบกรรมการได้ว่า *"เฟสต้นแบบใช้ Local-First Storage เพื่อความเร็วสูงสุด ส่วนเฟสใช้งานจริงทั้งคณะ เราเตรียม Schema สำหรับ **Supabase (PostgreSQL)** ไว้เรียบร้อยแล้ว"* (ดู SQL Schema ด้านล่างได้เลย)
+
+---
+
+## 🌟 4 ขั้นตอนความว้าวในเว็บ (4-Stage Interactive Flow)
+
+### 🧬 ขั้นตอนที่ 1: Code X-Ray & Execution Flow (เห็นภาพก่อนอธิบาย)
+- นักเรียนเลือกโค้ดตัวอย่าง หรือกด **`+ วางโค้ดของคุณเอง`**
+- กดปุ่ม **`▶ รันจำลองอัตโนมัติ`** ระบบจะไล่ไฮไลต์โค้ดทีละบรรทัด พร้อมแสดงกล่อง **RAM Variable State** ว่าตัวแปรเปลี่ยนค่าอย่างไรในแต่ละจังหวะ
+- มีเสียงพากย์ภาษาไทยอธิบายการทำงานของแต่ละบล็อก
+
+### 🎙️ ขั้นตอนที่ 2: The Rubber Duck Interrogation (ห้องสืบสวนเป็ดไซเบอร์)
+- ใช้หลักการ **Feynman Technique + Rubber Duck Debugging**
+- **สารวัตรเป็ดไซเบอร์** จะไฮไลต์บรรทัดสำคัญแล้วตั้งคำถามจี้จุด เช่น *"ทำไมบรรทัดที่ 4 ต้องใส่ `await`? ถ้าลบออกจะเกิดอะไรขึ้นกับบรรทัดที่ 5?"*
+- นักเรียนกดปุ่ม **`🎙️ เปิดไมค์พูดตอบ`** (ใช้ Web Speech API แปลงเสียงพูดภาษาไทยเป็นข้อความสดๆ) หรือพิมพ์ตอบก็ได้
+- **พิเศษสำหรับตอนแข่ง:** มีปุ่ม **`⚡ กรอกคำตอบสาธิต`** เพื่อกดปุ๊บกรอกคำตอบตัวอย่างปั๊บ ไม่เสียเวลาพิมพ์ตอนพรีเซนต์ 3 นาที!
+- เมื่อส่งคำตอบ **กราฟเรดาร์ 4 มิติ (Logic, State, Edge Case, Syntax)** จะขยับขึ้นแบบ Real-time!
+
+### 💣 ขั้นตอนที่ 3: Sabotage Lab (ด่านวางยาโค้ดพิสูจน์ความเข้าใจจริง)
+- คนที่เข้าใจโค้ดจริง ต้องรู้ว่า **"ถ้าโค้ดพัง มันพังที่บรรทัดไหน"**
+- ระบบจะแอบดัดแปลงโค้ด (Mutate Code) 1 จุดเนียนๆ (เช่น เปลี่ยน `&&` เป็น `||` หรือเปลี่ยน `<=` เป็น `<`) พร้อมแจ้งอาการบั๊กจากหน้างาน
+- นักเรียนต้องคลิกหาบรรทัดที่ถูกวางยาในโค้ดฝั่งซ้าย และวินิจฉัยสาเหตุให้ถูกต้อง
+
+### 🏆 ขั้นตอนที่ 4: Holographic Code Mastery Card & Teacher Export
+- ออกใบรับรอง **Verified Code Comprehension Certificate** พร้อมเกรด (`RANK SSS / S / A / B`)
+- กด **`💾 บันทึกคะแนนลงกระดานสถิติ`** เพื่อโชว์ตาราง Leaderboard ของห้องเรียน
+- กด **`📥 ดาวน์โหลดไฟล์ JSON ส่งอาจารย์`** เพื่อนำผลสอบปากเปล่าไปส่งอาจารย์แทนการนั่งสอบทีละคน
+
+---
+
+## 🚀 วิธีรันโปรเจกต์ทีละขั้นตอน (Step-by-Step Guide)
+
+### ขั้นตอนที่ 1: เปิด Terminal และเข้าไปที่โฟลเดอร์โปรเจกต์
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd explain-code
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### ขั้นตอนที่ 2: ติดตั้ง Dependencies (หากยังไม่ได้ติดตั้ง)
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### ขั้นตอนที่ 3: รันเซิร์ฟเวอร์สำหรับพัฒนา (Development Server)
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### ขั้นตอนที่ 4: เปิดเบราว์เซอร์
+เปิดเบราว์เซอร์ (แนะนำ **Google Chrome** หรือ **Microsoft Edge** เพื่อใช้ฟีเจอร์ไมโครโฟนและเสียงพูดภาษาไทยได้ครบถ้วน) ไปที่:
+👉 **`http://localhost:3000`**
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🎤 สคริปต์พรีเซนต์กรรมการใน 3 นาที (ให้กรรมการว้าวและอึ้ง!)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **วินาทีที่ 0:00 - 0:30 (เปิดแผลใหญ่ยุค AI):**
+   > *"สวัสดีกรรมการทุกท่านครับ ทุกวันนี้เด็กเขียนโค้ดส่งอาจารย์ได้ภายใน 10 วินาทีด้วย AI แต่พออาจารย์ถามว่า 'บรรทัดที่ 4 ทำไมต้องเขียนแบบนี้?' เด็กกลับตอบไม่ได้! เราจึงสร้าง **DuckVibe X-Ray** แพลตฟอร์มที่จะเปลี่ยนคนก๊อปโค้ด ให้เข้าใจโค้ดทะลุปรุโปร่งใน 3 ด่านครับ"*
+2. **วินาทีที่ 0:30 - 1:15 (โชว์ด่าน 1 - X-Ray ผ่าตัดโค้ด):**
+   > *(กดปุ่ม `▶ รันจำลองอัตโนมัติ`)* *"ด่านแรก แทนที่จะอ่านโค้ดแห้งๆ ระบบจะผ่าตัด X-Ray ให้เห็นเลยว่าข้อมูลไหลผ่านแต่ละบรรทัดอย่างไร และค่าตัวแปรใน RAM เปลี่ยนเป็นอะไรบ้าง"*
+3. **วินาทีที่ 1:15 - 2:00 (โชว์ด่าน 2 - เป็ดสอบปากเปล่าด้วยเสียง):**
+   > *(กดไปที่ `STEP 2 ห้องสืบสวนเป็ด` แล้วกด `🔊 ให้เป็ดอ่านคำถาม` จากนั้นกด `🎙️ เปิดไมค์พูดตอบ` หรือ `⚡ กรอกคำตอบสาธิต` แล้วกดส่ง)* *"ด่านที่สอง เราไม่ให้นักเรียนอ่านเฉยๆ แต่ให้นักเรียนพูดอธิบายให้สารวัตรเป็ด AI ฟัง! พออธิบายถูกจุด เรดาร์ความเข้าใจ 4 มิติด้านซ้ายจะพุ่งขึ้นแบบ Real-time ทันที!"*
+4. **วินาทีที่ 2:00 - 2:40 (โชว์ด่าน 3 - โหมดวางยาโค้ด):**
+   > *(กดไปที่ `STEP 3 ด่านวางยาโค้ด` คลิกบรรทัดที่ 10 แล้วเลือกคำตอบแรก)* *"และไม้ตายของเราคือ Sabotage Lab! AI จะแอบวางยาแก้โค้ดของนักเรียนเอง 1 จุด ถ้านักเรียนเข้าใจโค้ดจริง ต้องชี้ได้เลยว่าบรรทัดไหนถูกวางยาและทำไมระบบถึงพัง!"*
+5. **วินาทีที่ 2:40 - 3:00 (ปิดจบด้วยคุณค่าต่ออาจารย์):**
+   > *(กดไปที่ `STEP 4 ใบรับรอง & สถิติ`)* *"เมื่อผ่านครบ 3 ด่าน ระบบจะออกใบรับรอง Rank SSS พร้อมไฟล์รายงานให้อาจารย์ทันที ช่วยลดเวลาอาจารย์สอบปากเปล่าเด็ก 50 คนจาก 5 ชั่วโมง เหลือแค่ 5 นาทีครับ ขอบคุณครับ!"*
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## ☁️ (ทางเลือกเสริม) SQL Schema หากต้องการต่อ Supabase ในอนาคต
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+หากกรรมการถามเรื่องโครงสร้าง Database สำหรับเก็บข้อมูลนักศึกษาทั้งมหาวิทยาลัย สามารถโชว์ SQL ชุดนี้ได้เลยครับ:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```sql
+CREATE TABLE student_code_assessments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_name TEXT NOT NULL,
+  code_title TEXT NOT NULL,
+  source_code TEXT NOT NULL,
+  logic_score INT NOT NULL,
+  state_score INT NOT NULL,
+  edge_case_score INT NOT NULL,
+  syntax_score INT NOT NULL,
+  total_score INT NOT NULL,
+  mastery_rank VARCHAR(5) NOT NULL,
+  sabotage_passed BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
