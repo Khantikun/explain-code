@@ -1,1386 +1,1677 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  CODE_PRESETS,
-  CodePreset,
-  analyzeCustomCode,
-  evaluateExplanation,
-} from "./lib/codeAnalyzer";
+  TOPICS,
+  BLOCK_MODEL_CELLS,
+  BlockCellId,
+  INITIAL_CLASSROOMS,
+  INITIAL_STUDENTS,
+  INITIAL_TEACHERS,
+  ClassroomRecord,
+  StudentRecord,
+  TeacherRecord,
+  AI_USAGE_LOGS,
+  getMasteryStatus,
+  runJavaScriptReal,
+} from "./lib/curriculum";
+import { Icon, StatusCircle } from "./components/Icons";
+import { BlockModelGrid } from "./components/BlockModelGrid";
+import { PracticeArena } from "./components/PracticeArena";
+import { TeacherDashboard } from "./components/TeacherDashboard";
 
-interface SessionRecord {
-  id: string;
-  studentName: string;
-  presetTitle: string;
-  totalScore: number;
-  rank: string;
-  timestamp: string;
-  radar: {
-    logic: number;
-    state: number;
-    edgeCase: number;
-    syntax: number;
-  };
+type AppMode =
+  | "student-login"
+  | "teacher-login"
+  | "student-portal"
+  | "teacher-portal";
+
+type StudentTab = "quest" | "practice" | "learn" | "profile" | "ailog";
+
+const STORAGE_STUDENTS_KEY = "explain_code_students_v2";
+const STORAGE_ROOMS_KEY = "explain_code_rooms_v2";
+const STORAGE_TEACHERS_KEY = "explain_code_teachers_v2";
+const STORAGE_SESSION_KEY = "explain_code_auth_session_v2";
+
+interface AuthSession {
+  role: "student" | "teacher";
+  userId: string;
+  username: string;
+  roomCode?: string;
 }
 
-type Stage = "xray" | "interrogate" | "sabotage" | "mastery";
-type DuckMood = "idle" | "speaking" | "impressed" | "suspicious" | "sabotage";
+export default function ExplainCodeApp() {
+  const [appMode, setAppMode] = useState<AppMode>("student-login");
+  const [studentTab, setStudentTab] = useState<StudentTab>("quest");
+  const [authSession, setAuthSession] = useState<AuthSession | null>(null);
 
-const STORAGE_KEY = "duckvibe_sessions_v1";
+  // ข้อมูลห้องเรียน นักเรียน และครู
+  const [classrooms, setClassrooms] =
+    useState<ClassroomRecord[]>(INITIAL_CLASSROOMS);
+  const [students, setStudents] = useState<StudentRecord[]>(INITIAL_STUDENTS);
+  const [teachers, setTeachers] = useState<TeacherRecord[]>(INITIAL_TEACHERS);
 
-export default function DuckVibeApp() {
-  // Preset & Custom Code State
-  const [selectedPreset, setSelectedPreset] = useState<CodePreset>(CODE_PRESETS[0]);
-  const [customCodeInput, setCustomCodeInput] = useState<string>("");
-  const [showCustomModal, setShowCustomModal] = useState<boolean>(false);
-  const [studentName, setStudentName] = useState<string>("น้องเอ็ม (Vibe Coder)");
-  const [geminiApiKey, setGeminiApiKey] = useState<string>("");
-  const [showApiModal, setShowApiModal] = useState<boolean>(false);
+  // สถานะฟอร์มล็อกอินฝั่งนักเรียน (Role: student)
+  const [studentAuthTab, setStudentAuthTab] = useState<"login" | "register">(
+    "login"
+  );
+  const [loginNickname, setLoginNickname] = useState<string>("แมวส้ม");
+  const [loginPin, setLoginPin] = useState<string>("1234");
+  const [signupRoomCode, setSignupRoomCode] = useState<string>("ABC123");
+  const [authMessage, setAuthMessage] = useState<{
+    type: "error" | "info";
+    text: string;
+  } | null>(null);
+  const [currentStudentId, setCurrentStudentId] = useState<string>("stu-1");
 
-  // Stage Navigation
-  const [activeStage, setActiveStage] = useState<Stage>("xray");
+  // สถานะฟอร์มล็อกอินฝั่งครู (Role: teacher)
+  const [teacherAuthTab, setTeacherAuthTab] = useState<"login" | "register">(
+    "login"
+  );
+  const [teacherUsername, setTeacherUsername] = useState<string>("ครูตัวอย่าง");
+  const [teacherPassword, setTeacherPassword] = useState<string>("12345678");
+  const [teacherDisplayName, setTeacherDisplayName] = useState<string>(
+    "ครูวิทยาการคำนวณ"
+  );
+  const [teacherAuthError, setTeacherAuthError] = useState<string>("");
 
-  // Stage 1: X-Ray Execution Visualizer State
-  const [activeNodeIndex, setActiveNodeIndex] = useState<number>(0);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  // สถานะการฝึกอ่านโค้ดฝั่งนักเรียน
+  const [selectedTopicId, setSelectedTopicId] = useState<number>(1);
+  const [unlockAllDemo, setUnlockAllDemo] = useState<boolean>(false);
 
-  // Stage 2: Duck Interrogation State
-  const [currentQuestionIdx, setCurrentQuestionIdx] = useState<number>(0);
-  const [answerText, setAnswerText] = useState<string>("");
-  const [isListening, setIsListening] = useState<boolean>(false);
-  const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
-  const [duckMood, setDuckMood] = useState<DuckMood>("idle");
-  const [questionResults, setQuestionResults] = useState<
-    Record<
-      string,
-      {
-        score: number;
-        passed: boolean;
-        feedback: string;
-        studentAnswer: string;
-        mode?: string;
-      }
-    >
-  >({});
+  // สถานะทดลองรันโค้ดที่ AI เขียนในหน้าเรียนรู้
+  const [playgroundCode, setPlaygroundCode] = useState<string>(
+    `let items = [20, 35, 15];\nlet total = 0;\nfor (let i = 0; i < items.length; i++) {\n  total += items[i];\n}\nconsole.log("ผลรวม =", total);`
+  );
+  const [playgroundOutput, setPlaygroundOutput] = useState<string>("");
 
-  // Stage 3: Sabotage Lab State
-  const [selectedSabotageLine, setSelectedSabotageLine] = useState<number | null>(null);
-  const [selectedSabotageOpt, setSelectedSabotageOpt] = useState<string | null>(null);
-  const [sabotageSolved, setSabotageSolved] = useState<boolean>(false);
-
-  // Radar Scores (4 Dimensions)
-  const [radarScores, setRadarScores] = useState({
-    logic: 45,
-    state: 45,
-    edgeCase: 40,
-    syntax: 50,
-  });
-
-  // Persistent History (LocalStorage No-SQL Store)
-  const [savedSessions, setSavedSessions] = useState<SessionRecord[]>([]);
-  const [voiceEnabled, setVoiceEnabled] = useState<boolean>(true);
-
-  const playIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Load saved sessions from LocalStorage on mount
+  // โหลดข้อมูลจาก LocalStorage
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        setSavedSessions(JSON.parse(raw));
+      const savedRooms = localStorage.getItem(STORAGE_ROOMS_KEY);
+      if (savedRooms) {
+        setClassrooms(JSON.parse(savedRooms));
       } else {
-        const seed: SessionRecord[] = [
-          {
-            id: "seed-1",
-            studentName: "กิตติพงศ์ (CS ปี 3)",
-            presetTitle: "ระบบคิดเงินตะกร้าสินค้า + เช็คสต็อก (Async/Await)",
-            totalScore: 92,
-            rank: "SSS",
-            timestamp: "10 นาทีที่แล้ว",
-            radar: { logic: 95, state: 90, edgeCase: 88, syntax: 95 },
-          },
-          {
-            id: "seed-2",
-            studentName: "แพรวา (IT ปี 2)",
-            presetTitle: "ค้นหาคะแนนสอบด้วย Binary Search",
-            totalScore: 81,
-            rank: "S",
-            timestamp: "25 นาทีที่แล้ว",
-            radar: { logic: 85, state: 80, edgeCase: 75, syntax: 84 },
-          },
-        ];
-        setSavedSessions(seed);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
+        localStorage.setItem(
+          STORAGE_ROOMS_KEY,
+          JSON.stringify(INITIAL_CLASSROOMS)
+        );
+      }
+
+      const savedStudents = localStorage.getItem(STORAGE_STUDENTS_KEY);
+      if (savedStudents) {
+        setStudents(JSON.parse(savedStudents));
+      } else {
+        localStorage.setItem(
+          STORAGE_STUDENTS_KEY,
+          JSON.stringify(INITIAL_STUDENTS)
+        );
+      }
+
+      const savedTeachers = localStorage.getItem(STORAGE_TEACHERS_KEY);
+      if (savedTeachers) {
+        setTeachers(JSON.parse(savedTeachers));
+      } else {
+        localStorage.setItem(
+          STORAGE_TEACHERS_KEY,
+          JSON.stringify(INITIAL_TEACHERS)
+        );
+      }
+
+      const savedSession = localStorage.getItem(STORAGE_SESSION_KEY);
+      if (savedSession) {
+        const parsed: AuthSession = JSON.parse(savedSession);
+        setAuthSession(parsed);
+        if (parsed.role === "student") {
+          setCurrentStudentId(parsed.userId);
+          setAppMode("student-portal");
+        } else if (parsed.role === "teacher") {
+          setTeacherUsername(parsed.username);
+          setAppMode("teacher-portal");
+        }
       }
     } catch {
       // ignore storage errors
     }
   }, []);
 
-  // Auto-step X-Ray animation when playing
-  useEffect(() => {
-    if (isPlaying) {
-      playIntervalRef.current = setInterval(() => {
-        setActiveNodeIndex((prev) => {
-          if (prev + 1 >= selectedPreset.nodes.length) {
-            setIsPlaying(false);
-            return 0;
-          }
-          return prev + 1;
-        });
-      }, 1800);
-    } else if (playIntervalRef.current) {
-      clearInterval(playIntervalRef.current);
-    }
-    return () => {
-      if (playIntervalRef.current) clearInterval(playIntervalRef.current);
-    };
-  }, [isPlaying, selectedPreset.nodes.length]);
-
-  // Text-to-Speech helper for the Cyber Duck
-  const speakText = (text: string) => {
-    if (!voiceEnabled || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  const saveSessionToStorage = (session: AuthSession | null) => {
+    setAuthSession(session);
     try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = "th-TH";
-      utterance.rate = 1.05;
-      utterance.pitch = 1.1;
-      utterance.onstart = () => setDuckMood("speaking");
-      utterance.onend = () => setDuckMood("idle");
-      window.speechSynthesis.speak(utterance);
-    } catch {
-      // ignore speech errors
-    }
-  };
-
-  // Switch code preset
-  const handleSelectPreset = (preset: CodePreset) => {
-    setIsPlaying(false);
-    setSelectedPreset(preset);
-    setActiveNodeIndex(0);
-    setCurrentQuestionIdx(0);
-    setAnswerText("");
-    setQuestionResults({});
-    setSelectedSabotageLine(null);
-    setSelectedSabotageOpt(null);
-    setSabotageSolved(false);
-    setRadarScores({ logic: 45, state: 45, edgeCase: 40, syntax: 50 });
-    setActiveStage("xray");
-  };
-
-  // Handle Custom Code submission
-  const handleAnalyzeCustomCode = () => {
-    if (!customCodeInput.trim()) return;
-    const analyzed = analyzeCustomCode(customCodeInput.trim());
-    handleSelectPreset(analyzed);
-    setShowCustomModal(false);
-  };
-
-  // Web Speech API Microphone Input
-  const handleToggleMic = () => {
-    if (typeof window === "undefined") return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("เบราว์เซอร์ของคุณไม่รองรับการสั่งงานด้วยเสียง (แนะนำให้เปิดด้วย Chrome หรือ Edge ครับ)");
-      return;
-    }
-
-    if (isListening) {
-      setIsListening(false);
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = "th-TH";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => {
-      setIsListening(true);
-      setDuckMood("suspicious");
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setAnswerText((prev) => (prev ? `${prev} ${transcript}` : transcript));
-      setIsListening(false);
-      setDuckMood("idle");
-    };
-
-    recognition.onerror = () => {
-      setIsListening(false);
-      setDuckMood("idle");
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognition.start();
-  };
-
-  // Evaluate student's explanation (Hybrid: Live Gemini API if key exists + instant AST heuristic engine)
-  const handleSubmitExplanation = async () => {
-    const currentQ = selectedPreset.questions[currentQuestionIdx];
-    if (!currentQ || !answerText.trim()) return;
-
-    setIsEvaluating(true);
-    setDuckMood("suspicious");
-
-    let finalResult = evaluateExplanation(answerText, currentQ);
-    let modeUsed = "AST Heuristic Engine";
-
-    if (geminiApiKey.trim()) {
-      try {
-        const res = await fetch("/api/interrogate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            code: selectedPreset.code,
-            question: currentQ.question,
-            studentAnswer: answerText,
-            apiKey: geminiApiKey.trim(),
-          }),
-        });
-        const data = await res.json();
-        if (data.mode === "gemini-live") {
-          finalResult = {
-            score: data.score,
-            passed: data.passed,
-            matchedKeywords: [],
-            feedback: `${data.feedback} ${data.followUpTip ? `💡 (${data.followUpTip})` : ""}`,
-          };
-          modeUsed = "Gemini 2.5 Flash Live";
-        }
-      } catch {
-        // Fallback to instant engine
+      if (session) {
+        localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(session));
+      } else {
+        localStorage.removeItem(STORAGE_SESSION_KEY);
       }
-    }
-
-    setQuestionResults((prev) => ({
-      ...prev,
-      [currentQ.id]: {
-        score: finalResult.score,
-        passed: finalResult.passed,
-        feedback: finalResult.feedback,
-        studentAnswer: answerText,
-        mode: modeUsed,
-      },
-    }));
-
-    // Update 4D Radar Chart
-    setRadarScores((prev) => ({
-      ...prev,
-      [currentQ.dimension]: Math.min(100, Math.max(prev[currentQ.dimension], finalResult.score)),
-      state: Math.min(100, Math.round((prev.state + finalResult.score) / 1.8)),
-    }));
-
-    setIsEvaluating(false);
-    setDuckMood(finalResult.passed ? "impressed" : "suspicious");
-    speakText(finalResult.feedback);
-  };
-
-  // Handle Sabotage Answer
-  const handleSelectSabotageOption = (optId: string, isCorrect: boolean, feedback: string) => {
-    setSelectedSabotageOpt(optId);
-    if (isCorrect) {
-      setSabotageSolved(true);
-      setDuckMood("impressed");
-      setRadarScores((prev) => ({
-        logic: Math.min(100, prev.logic + 12),
-        state: Math.min(100, prev.state + 12),
-        edgeCase: Math.min(100, prev.edgeCase + 18),
-        syntax: Math.min(100, prev.syntax + 10),
-      }));
-      speakText("สุดยอด! คุณหาจุดที่ถูกวางยาเจอ แปลว่าเข้าใจโค้ดชุดนี้ทะลุปรุโปร่งของจริง!");
-    } else {
-      setDuckMood("sabotage");
-      speakText(feedback);
-    }
-  };
-
-  // Compute overall score & rank
-  const totalMasteryScore = Math.round(
-    (radarScores.logic + radarScores.state + radarScores.edgeCase + radarScores.syntax) / 4
-  );
-  const masteryRank =
-    totalMasteryScore >= 88
-      ? "SSS"
-      : totalMasteryScore >= 78
-      ? "S"
-      : totalMasteryScore >= 65
-      ? "A"
-      : "B";
-
-  // Save Session to LocalStorage Leaderboard
-  const handleSaveMasterySession = () => {
-    const newRecord: SessionRecord = {
-      id: "sess-" + Date.now(),
-      studentName: studentName.trim() || "นิสิตนิรนาม",
-      presetTitle: selectedPreset.title,
-      totalScore: totalMasteryScore,
-      rank: masteryRank,
-      timestamp: "เมื่อสักครู่",
-      radar: { ...radarScores },
-    };
-    const updated = [newRecord, ...savedSessions.slice(0, 9)];
-    setSavedSessions(updated);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     } catch {
       // ignore
     }
-    speakText(`บันทึกผลคะแนนระดับ ${masteryRank} ของ ${newRecord.studentName} เรียบร้อย!`);
   };
 
-  // Export JSON report for Teacher
-  const handleExportTeacherReport = () => {
-    const payload = {
-      exportedAt: new Date().toISOString(),
-      platform: "DuckVibe X-Ray (Vibe Coding Competition Edition)",
-      studentName,
-      codeTitle: selectedPreset.title,
-      totalMasteryScore,
-      masteryRank,
-      radarScores,
-      questionResults,
-      sabotageSolved,
-      allClassroomSessions: savedSessions,
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `duckvibe-report-${studentName.replace(/\s+/g, "-")}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const currentNode = selectedPreset.nodes[activeNodeIndex] || selectedPreset.nodes[0];
-  const currentQuestion =
-    selectedPreset.questions[currentQuestionIdx] || selectedPreset.questions[0];
-  const currentQResult = currentQuestion ? questionResults[currentQuestion.id] : undefined;
-
-  // Determine which line of code should be highlighted right now
-  const highlightedLine =
-    activeStage === "xray"
-      ? currentNode?.line
-      : activeStage === "interrogate"
-      ? currentQuestion?.targetLine
-      : activeStage === "sabotage"
-      ? selectedSabotageLine
-      : null;
-
-  // Build code lines (in Sabotage mode, inject mutated line!)
-  const codeLines = selectedPreset.code.split("\n").map((lineText, idx) => {
-    const lineNum = idx + 1;
-    if (activeStage === "sabotage" && lineNum === selectedPreset.sabotage.sabotagedLine) {
-      return selectedPreset.sabotage.mutatedCode;
+  const saveStudentsToStorage = (updated: StudentRecord[]) => {
+    setStudents(updated);
+    try {
+      localStorage.setItem(STORAGE_STUDENTS_KEY, JSON.stringify(updated));
+    } catch {
+      // ignore
     }
-    return lineText;
-  });
-
-  // Calculate SVG Radar polygon points
-  const getRadarPoints = () => {
-    const cx = 110;
-    const cy = 110;
-    const maxR = 80;
-    const top = `${cx},${cy - (radarScores.logic / 100) * maxR}`;
-    const right = `${cx + (radarScores.state / 100) * maxR},${cy}`;
-    const bottom = `${cx},${cy + (radarScores.edgeCase / 100) * maxR}`;
-    const left = `${cx - (radarScores.syntax / 100) * maxR},${cy}`;
-    return `${top} ${right} ${bottom} ${left}`;
   };
 
-  return (
-    <div className="min-h-screen bg-[#070913] text-slate-100 flex flex-col relative overflow-x-hidden">
-      {/* Cyberpunk Ambient Glow Background */}
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-cyan-500/15 rounded-full blur-[130px]" />
-        <div className="absolute top-1/3 -right-32 w-96 h-96 bg-fuchsia-600/15 rounded-full blur-[140px]" />
-        <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-amber-500/10 rounded-full blur-[130px]" />
-      </div>
+  const saveRoomsToStorage = (updated: ClassroomRecord[]) => {
+    setClassrooms(updated);
+    try {
+      localStorage.setItem(STORAGE_ROOMS_KEY, JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+  };
 
-      {/* Top Navigation Header */}
-      <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-[#070913]/85 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-pink-600 p-0.5 shadow-lg shadow-amber-500/20">
-              <div className="w-full h-full bg-[#0b0f1f] rounded-[14px] flex items-center justify-center text-2xl">
-                🦆
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-bold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-amber-300 via-cyan-300 to-fuchsia-400 bg-clip-text text-transparent">
-                  DuckVibe X-Ray
-                </h1>
-                <span className="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                  Vibe Coding Edition
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">
-                แก้ปัญหา &ldquo;นักเรียนเขียนโค้ดได้ แต่อธิบายไม่ได้ว่าโค้ดทำงานอย่างไร&rdquo;
-              </p>
-            </div>
+  const saveTeachersToStorage = (updated: TeacherRecord[]) => {
+    setTeachers(updated);
+    try {
+      localStorage.setItem(STORAGE_TEACHERS_KEY, JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+  };
+
+  const currentStudent =
+    students.find((s) => s.id === currentStudentId) || students[0];
+  const currentStudentRoom = classrooms.find(
+    (r) => r.roomCode === currentStudent?.roomCode
+  );
+  const activeTopic =
+    TOPICS.find((t) => t.id === selectedTopicId) || TOPICS[0];
+
+  // ล็อกอินฝั่งนักเรียนตาม Role: student (ตรวจสอบชื่อเล่นสมมติ + แฮช PIN 4 หลัก)
+  const handleStudentLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthMessage(null);
+    const nick = loginNickname.trim();
+    const pin = loginPin.trim();
+
+    if (!nick || pin.length !== 4) {
+      setAuthMessage({
+        type: "error",
+        text: "กรุณากรอกชื่อเล่นสมมติและรหัส PIN 4 หลักให้ครบถ้วน",
+      });
+      return;
+    }
+
+    if (/@/.test(nick)) {
+      setAuthMessage({
+        type: "error",
+        text: "ตามหลัก PDPA 2562 กรุณาใช้ชื่อเล่นสมมติเท่านั้น ห้ามใช้อีเมล",
+      });
+      return;
+    }
+
+    const res = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "login-student",
+        role: "student",
+        nickname: nick,
+        pin,
+      }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setAuthMessage({
+        type: "error",
+        text: data.error || "เข้าสู่ระบบไม่สำเร็จ",
+      });
+      return;
+    }
+
+    // ถ้ามาจากฐานข้อมูล Supabase โดยตรง
+    if (data.source === "supabase" && data.student) {
+      const sbStudent: StudentRecord = data.student;
+      const merged = students.some((s) => s.nickname === sbStudent.nickname)
+        ? students.map((s) =>
+            s.nickname === sbStudent.nickname ? sbStudent : s
+          )
+        : [...students, sbStudent];
+      saveStudentsToStorage(merged);
+      setCurrentStudentId(sbStudent.id);
+      saveSessionToStorage({
+        role: "student",
+        userId: sbStudent.id,
+        username: sbStudent.nickname,
+        roomCode: sbStudent.roomCode,
+      });
+      setAppMode("student-portal");
+      setStudentTab("quest");
+      return;
+    }
+
+    // ตรวจสอบกับรายชื่อนักเรียนในระบบและตรวจแฮช PIN จริง
+    const found = students.find(
+      (s) => s.nickname.toLowerCase() === nick.toLowerCase()
+    );
+
+    if (!found) {
+      setAuthMessage({
+        type: "error",
+        text: `ยังไม่มีชื่อเล่น "${nick}" ในระบบ กรุณากดแท็บ "สมัครเข้าเล่นใหม่" แล้วใส่รหัสห้องจากครู`,
+      });
+      setStudentAuthTab("register");
+      return;
+    }
+
+    if (found.pinHash !== data.pinHash) {
+      setAuthMessage({
+        type: "error",
+        text: "รหัส PIN 4 หลักไม่ถูกต้อง (บัญชีตัวอย่างใช้รหัส PIN: 1234)",
+      });
+      return;
+    }
+
+    setCurrentStudentId(found.id);
+    saveSessionToStorage({
+      role: "student",
+      userId: found.id,
+      username: found.nickname,
+      roomCode: found.roomCode,
+    });
+    setAppMode("student-portal");
+    setStudentTab("quest");
+  };
+
+  // สมัครสมาชิกนักเรียนใหม่ด้วยรหัสห้องจากครู (Role: student)
+  const handleStudentSignupWithRoom = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setAuthMessage(null);
+    const nick = loginNickname.trim();
+    const pin = loginPin.trim();
+    const code = signupRoomCode.trim().toUpperCase();
+
+    if (!nick || pin.length !== 4 || !code) {
+      setAuthMessage({
+        type: "error",
+        text: "กรุณากรอกชื่อเล่นสมมติ, PIN 4 หลัก และรหัสห้องจากครู (เช่น ABC123)",
+      });
+      return;
+    }
+
+    if (/@/.test(nick)) {
+      setAuthMessage({
+        type: "error",
+        text: "ตามหลัก PDPA 2562 กรุณาใช้ชื่อเล่นสมมติเท่านั้น ห้ามใช้อีเมล",
+      });
+      return;
+    }
+
+    const roomExists = classrooms.find((r) => r.roomCode === code);
+    if (!roomExists) {
+      setAuthMessage({
+        type: "error",
+        text: `ไม่พบรหัสห้อง ${code} (รหัสห้องที่เปิดอยู่ตอนนี้: ${classrooms
+          .map((c) => c.roomCode)
+          .join(", ")})`,
+      });
+      return;
+    }
+
+    const existing = students.find(
+      (s) => s.nickname.toLowerCase() === nick.toLowerCase()
+    );
+    if (existing) {
+      setAuthMessage({
+        type: "error",
+        text: `ชื่อเล่น "${nick}" มีในระบบแล้ว กรุณาเปลี่ยนชื่อเล่นสมมติ หรือสลับไปแท็บ "เข้าเล่น"`,
+      });
+      return;
+    }
+
+    const res = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "register-student",
+        role: "student",
+        nickname: nick,
+        pin,
+        roomCode: code,
+      }),
+    });
+    const data = await res.json();
+
+    const newStu: StudentRecord = data.student || {
+      id: "stu-" + Date.now(),
+      nickname: nick,
+      pinHash: data.pinHash,
+      role: "student",
+      roomCode: code,
+      xp: 20,
+      streak: 1,
+      completedTopics: [],
+      cellScores: {
+        T1: 55,
+        E1: 55,
+        F1: 55,
+        T2: 50,
+        E2: 50,
+        F2: 50,
+        T3: 50,
+        E3: 50,
+        F3: 50,
+        T4: 50,
+        E4: 50,
+        F4: 50,
+      },
+      badges: [],
+      history: [],
+    };
+
+    saveStudentsToStorage([...students, newStu]);
+    setCurrentStudentId(newStu.id);
+    saveSessionToStorage({
+      role: "student",
+      userId: newStu.id,
+      username: newStu.nickname,
+      roomCode: newStu.roomCode,
+    });
+    setAppMode("student-portal");
+    setStudentTab("quest");
+  };
+
+  // ล็อกอินฝั่งครูตาม Role: teacher
+  const handleTeacherLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTeacherAuthError("");
+    const uname = teacherUsername.trim();
+    const pwd = teacherPassword.trim();
+
+    if (!uname || !pwd) {
+      setTeacherAuthError("กรุณากรอกชื่อผู้ใช้และรหัสผ่านสำหรับครู");
+      return;
+    }
+
+    const res = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "login-teacher",
+        role: "teacher",
+        username: uname,
+        password: pwd,
+      }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setTeacherAuthError(data.error || "เข้าสู่ระบบครูไม่สำเร็จ");
+      return;
+    }
+
+    if (data.source === "supabase" && data.teacher) {
+      saveSessionToStorage({
+        role: "teacher",
+        userId: data.teacher.id,
+        username: data.teacher.username,
+      });
+      setAppMode("teacher-portal");
+      return;
+    }
+
+    const foundTeacher = teachers.find(
+      (t) => t.username.toLowerCase() === uname.toLowerCase()
+    );
+
+    if (!foundTeacher) {
+      setTeacherAuthError(
+        `ไม่พบบัญชีครู "${uname}" กรุณากดแท็บ "สมัครบัญชีครูใหม่" หรือใช้บัญชี "ครูตัวอย่าง"`
+      );
+      return;
+    }
+
+    if (foundTeacher.passwordHash !== data.passwordHash) {
+      setTeacherAuthError(
+        "รหัสผ่านไม่ถูกต้อง (บัญชีครูตัวอย่างใช้รหัสผ่าน: 12345678)"
+      );
+      return;
+    }
+
+    saveSessionToStorage({
+      role: "teacher",
+      userId: foundTeacher.id,
+      username: foundTeacher.username,
+    });
+    setAppMode("teacher-portal");
+  };
+
+  // สมัครบัญชีครูใหม่ (Role: teacher)
+  const handleTeacherRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTeacherAuthError("");
+    const uname = teacherUsername.trim();
+    const pwd = teacherPassword.trim();
+
+    if (!uname || pwd.length < 4) {
+      setTeacherAuthError("กรุณาตั้งชื่อผู้ใช้และรหัสผ่านอย่างน้อย 4 ตัวอักษร");
+      return;
+    }
+
+    if (teachers.some((t) => t.username.toLowerCase() === uname.toLowerCase())) {
+      setTeacherAuthError("ชื่อผู้ใช้นี้มีในระบบแล้ว กรุณาเข้าสู่ระบบ");
+      setTeacherAuthTab("login");
+      return;
+    }
+
+    const res = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "register-teacher",
+        role: "teacher",
+        username: uname,
+        password: pwd,
+        displayName: teacherDisplayName,
+      }),
+    });
+    const data = await res.json();
+
+    const newTeacher: TeacherRecord = {
+      id: "tch-" + Date.now(),
+      username: uname,
+      passwordHash: data.passwordHash,
+      displayName: teacherDisplayName.trim() || uname,
+      role: "teacher",
+    };
+
+    saveTeachersToStorage([...teachers, newTeacher]);
+    saveSessionToStorage({
+      role: "teacher",
+      userId: newTeacher.id,
+      username: newTeacher.username,
+    });
+    setAppMode("teacher-portal");
+  };
+
+  const handleLogout = () => {
+    const prevRole = authSession?.role;
+    saveSessionToStorage(null);
+    setAuthMessage(null);
+    setTeacherAuthError("");
+    setAppMode(prevRole === "teacher" ? "teacher-login" : "student-login");
+  };
+
+  // ครูสร้างห้องเรียนใหม่ (ขั้นตอนที่ 2 ของโฟลครู)
+  const handleCreateClassroom = (roomName: string): ClassroomRecord => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let code = "";
+    for (let i = 0; i < 6; i++) {
+      code += chars[Math.floor(Math.random() * chars.length)];
+    }
+    const newRoom: ClassroomRecord = {
+      roomCode: code,
+      roomName,
+      teacherUsername: teacherUsername || "ครูตัวอย่าง",
+      pinnedReviewTopicId: 1,
+      pinnedReviewNote: "เริ่มต้นฝึกอ่านโค้ดเรื่องที่ 1 ตัวแปรและการคำนวณ",
+      createdAt: "วันนี้",
+    };
+    const updated = [newRoom, ...classrooms];
+    saveRoomsToStorage(updated);
+    return newRoom;
+  };
+
+  // ครูปรับการสอน / ปักหมุดเรื่องทบทวนประจำห้อง (ขั้นตอนที่ 7 ของโฟลครู)
+  const handleUpdatePinnedReview = (
+    roomCode: string,
+    topicId: number | null,
+    note: string
+  ) => {
+    const updated = classrooms.map((r) =>
+      r.roomCode === roomCode
+        ? { ...r, pinnedReviewTopicId: topicId, pinnedReviewNote: note }
+        : r
+    );
+    saveRoomsToStorage(updated);
+  };
+
+  // เมื่อนักเรียนเล่นจบเรื่อง -> อัปเดต XP, ตรา, และคะแนน 12 ช่องของ Block Model
+  const handleCompleteTopic = (result: {
+    topicId: number;
+    earnedXp: number;
+    updatedCellScores: Partial<Record<BlockCellId, number>>;
+    badgeId: string;
+    scorePercent: number;
+  }) => {
+    const topicObj = TOPICS.find((t) => t.id === result.topicId)!;
+    const updatedStudents = students.map((stu) => {
+      if (stu.id !== currentStudent.id) return stu;
+
+      const nextCompleted = stu.completedTopics.includes(result.topicId)
+        ? stu.completedTopics
+        : [...stu.completedTopics, result.topicId];
+
+      const nextBadges = stu.badges.includes(result.badgeId)
+        ? stu.badges
+        : [...stu.badges, result.badgeId];
+
+      const nextCells = { ...stu.cellScores };
+      Object.entries(result.updatedCellScores).forEach(([cellKey, val]) => {
+        const k = cellKey as BlockCellId;
+        if (typeof val === "number") {
+          nextCells[k] = Math.max(nextCells[k] || 0, val);
+        }
+      });
+
+      const nextHistory = [
+        {
+          topicId: result.topicId,
+          topicTitle: topicObj.title,
+          scorePercent: result.scorePercent,
+          xpEarned: result.earnedXp,
+          timestamp: "เมื่อสักครู่",
+        },
+        ...stu.history,
+      ];
+
+      return {
+        ...stu,
+        xp: stu.xp + result.earnedXp,
+        completedTopics: nextCompleted,
+        badges: nextBadges,
+        cellScores: nextCells,
+        history: nextHistory,
+      };
+    });
+
+    saveStudentsToStorage(updatedStudents);
+    setStudentTab("profile");
+  };
+
+  // ตรวจสอบว่าเรื่องที่ i ปลดล็อกหรือยัง:
+  // "เรียงจากง่ายไปยาก ผ่านเรื่องก่อนหน้าจึงปลดล็อกเรื่องถัดไป บอสด่านเปิดเมื่อผ่านอย่างน้อย 4 เรื่อง"
+  const isTopicUnlocked = (topicId: number): boolean => {
+    if (unlockAllDemo) return true;
+    if (topicId === 1) return true;
+    if (topicId === 7) {
+      return currentStudent.completedTopics.length >= 4;
+    }
+    return currentStudent.completedTopics.includes(topicId - 1);
+  };
+
+  // ==================== 1. หน้าเข้าสู่ระบบแยกตาม Role: นักเรียน & ครูผู้สอน (สไตล์มินิมอล) ====================
+  if (appMode === "student-login" || appMode === "teacher-login") {
+    const isTeacherRole = appMode === "teacher-login";
+
+    return (
+      <div className="min-h-screen bg-[#eef3f1] flex flex-col">
+        {/* แถบบนมินิมอล */}
+        <header
+          className={`px-6 py-4 flex items-center justify-between transition ${
+            isTeacherRole
+              ? "bg-white border-b-2 border-[#cfe0dc] text-[#0b4f49]"
+              : "bg-[#0b4f49] text-white"
+          }`}
+        >
+          <div className="flex items-center gap-2.5 text-[20px] font-extrabold tracking-tight">
+            <Icon name="code" size={24} />
+            <span>
+              โค้ดนี้ฉันอธิบายได้ {isTeacherRole ? "· ครูผู้สอน" : "· นักเรียน"}
+            </span>
           </div>
 
-          {/* Right Controls */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 rounded-xl px-3 py-1.5">
-              <span className="text-xs text-slate-400">ชื่อผู้เข้าสอบ:</span>
-              <input
-                type="text"
-                value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
-                className="bg-transparent text-xs font-medium text-cyan-300 focus:outline-none w-32 sm:w-36"
-                placeholder="ชื่อของคุณ..."
-              />
+          <div className="flex items-center gap-2">
+            <span className="hidden sm:inline text-[13px] font-bold opacity-80">
+              สลับบทบาท (Role):
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMessage(null);
+                setTeacherAuthError("");
+                setAppMode(isTeacherRole ? "student-login" : "teacher-login");
+              }}
+              className={`px-4 py-2 rounded-xl text-[13px] font-extrabold flex items-center gap-1.5 transition cursor-pointer ${
+                isTeacherRole
+                  ? "press-teal"
+                  : "bg-white text-[#0b4f49] hover:bg-[#e3f1ee]"
+              }`}
+            >
+              <Icon name={isTeacherRole ? "user" : "users"} size={18} />
+              <span>
+                {isTeacherRole ? "ไปฝั่งนักเรียน" : "ไปฝั่งครูผู้สอน"}
+              </span>
+            </button>
+          </div>
+        </header>
+
+        <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
+          <div className="bg-white border-2 border-[#cfe0dc] rounded-[24px] p-6 sm:p-8 max-w-[470px] w-full flex flex-col gap-5 shadow-[0_12px_32px_rgba(11,79,73,0.06)]">
+            {/* แถบเลือก Role หลัก (นักเรียน / ครูผู้สอน) มินิมอลเห็นชัด */}
+            <div className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-[#eef3f1] border border-[#cfe0dc]">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMessage(null);
+                  setAppMode("student-login");
+                }}
+                className={`py-2.5 px-3 rounded-xl text-[14px] font-extrabold flex items-center justify-center gap-2 transition cursor-pointer ${
+                  !isTeacherRole
+                    ? "bg-[#0f766e] text-white shadow-sm"
+                    : "text-[#475b60] hover:text-[#1b2a2f]"
+                }`}
+              >
+                <Icon name="user" size={18} />
+                <span>Role: นักเรียน</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTeacherAuthError("");
+                  setAppMode("teacher-login");
+                }}
+                className={`py-2.5 px-3 rounded-xl text-[14px] font-extrabold flex items-center justify-center gap-2 transition cursor-pointer ${
+                  isTeacherRole
+                    ? "bg-[#0b4f49] text-white shadow-sm"
+                    : "text-[#475b60] hover:text-[#1b2a2f]"
+                }`}
+              >
+                <Icon name="users" size={18} />
+                <span>Role: ครูผู้สอน</span>
+              </button>
+            </div>
+
+            {/* ==================== ฟอร์มสำหรับ ROLE: นักเรียน ==================== */}
+            {!isTeacherRole && (
+              <>
+                <div>
+                  <h1 className="text-[26px] font-extrabold text-[#1b2a2f] tracking-tight">
+                    {studentAuthTab === "login"
+                      ? "พร้อมลุยเควสต์?"
+                      : "สมัครเข้าห้องเรียนใหม่"}
+                  </h1>
+                  <p className="text-[14px] text-[#475b60] mt-0.5">
+                    อ่านโค้ดทีละขั้น เก็บ XP และตรา แล้วดูว่าตัวเองเข้าใจโค้ดตรงไหน
+                  </p>
+                </div>
+
+                {/* ปุ่มสลับโหมด เข้าเล่น vs สมัครเข้าเล่นใหม่ */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMessage(null);
+                      setStudentAuthTab("login");
+                    }}
+                    className={`py-2.5 px-3 rounded-xl text-[14px] font-extrabold border-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                      studentAuthTab === "login"
+                        ? "bg-[#e3f1ee] border-[#0f766e] text-[#0b4f49]"
+                        : "bg-white border-[#cfe0dc] text-[#475b60]"
+                    }`}
+                  >
+                    <Icon name="play" size={16} filled={studentAuthTab === "login"} />
+                    <span>มีชื่อเล่นแล้ว (เข้าเล่น)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMessage(null);
+                      setStudentAuthTab("register");
+                    }}
+                    className={`py-2.5 px-3 rounded-xl text-[14px] font-extrabold border-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                      studentAuthTab === "register"
+                        ? "bg-[#fff4d6] border-[#f0a92e] text-[#3d2603]"
+                        : "bg-white border-[#cfe0dc] text-[#475b60]"
+                    }`}
+                  >
+                    <Icon name="user" size={16} />
+                    <span>สมัครเข้าเล่นใหม่</span>
+                  </button>
+                </div>
+
+                {authMessage && (
+                  <div
+                    className={`p-3.5 rounded-xl text-[13px] font-bold border ${
+                      authMessage.type === "error"
+                        ? "bg-[#f8d9d4] text-[#7d1d10] border-[#fca5a5]"
+                        : "bg-[#d8efdc] text-[#14532d] border-[#86efac]"
+                    }`}
+                  >
+                    {authMessage.text}
+                  </div>
+                )}
+
+                {studentAuthTab === "login" ? (
+                  <form
+                    onSubmit={handleStudentLogin}
+                    className="flex flex-col gap-4"
+                  >
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[14px] font-extrabold text-[#1b2a2f]">
+                          ชื่อเล่นสมมติ
+                        </label>
+                        <span className="text-[12px] font-semibold text-[#475b60]">
+                          ห้ามใช้ชื่อจริงหรืออีเมล (PDPA)
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        value={loginNickname}
+                        onChange={(e) => setLoginNickname(e.target.value)}
+                        placeholder="เช่น แมวส้ม"
+                        className="w-full px-4 py-3.5 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[16px] font-bold text-[#1b2a2f] focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[14px] font-extrabold text-[#1b2a2f]">
+                        รหัส PIN 4 หลัก
+                      </label>
+                      <input
+                        type="password"
+                        maxLength={4}
+                        value={loginPin}
+                        onChange={(e) => setLoginPin(e.target.value)}
+                        placeholder="••••"
+                        className="w-full px-4 py-3.5 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[16px] font-bold text-[#1b2a2f] tracking-widest focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="press-teal w-full py-4 rounded-2xl text-[18px] font-extrabold flex items-center justify-center gap-2.5 cursor-pointer mt-1"
+                    >
+                      <Icon name="play" size={22} filled />
+                      <span>เริ่มเล่นเลย</span>
+                    </button>
+                  </form>
+                ) : (
+                  <form
+                    onSubmit={handleStudentSignupWithRoom}
+                    className="flex flex-col gap-4"
+                  >
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[14px] font-extrabold text-[#1b2a2f]">
+                        1. ตั้งชื่อเล่นสมมติของคุณ (PDPA)
+                      </label>
+                      <input
+                        type="text"
+                        value={loginNickname}
+                        onChange={(e) => setLoginNickname(e.target.value)}
+                        placeholder="เช่น เสือน้อย, โลมาสีฟ้า"
+                        className="w-full px-4 py-3 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[16px] font-bold text-[#1b2a2f] focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[14px] font-extrabold text-[#1b2a2f]">
+                          2. ตั้งรหัส PIN 4 หลัก
+                        </label>
+                        <input
+                          type="password"
+                          maxLength={4}
+                          value={loginPin}
+                          onChange={(e) => setLoginPin(e.target.value)}
+                          placeholder="••••"
+                          className="w-full px-4 py-3 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[16px] font-bold text-[#1b2a2f] tracking-widest focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[14px] font-extrabold text-[#1b2a2f]">
+                          3. รหัสห้องจากครู
+                        </label>
+                        <input
+                          type="text"
+                          value={signupRoomCode}
+                          onChange={(e) => setSignupRoomCode(e.target.value)}
+                          placeholder="เช่น ABC123"
+                          className="w-full px-4 py-3 rounded-xl bg-[#fff4d6]/60 border-2 border-[#f0a92e] font-code font-extrabold text-[16px] text-[#3d2603] focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="press-gold w-full py-4 rounded-2xl text-[18px] font-extrabold flex items-center justify-center gap-2.5 cursor-pointer mt-1"
+                    >
+                      <Icon name="user" size={22} />
+                      <span>สมัครเข้าเล่นทันที</span>
+                    </button>
+                  </form>
+                )}
+
+                {/* แถบเลือกบัญชีตัวอย่างคลิกเดียวเข้าเล่น */}
+                <div className="pt-2 border-t border-[#cfe0dc] flex flex-wrap items-center justify-center gap-1.5 text-[12px] text-[#475b60]">
+                  <span className="font-bold">บัญชีนักเรียนตัวอย่าง (PIN 1234):</span>
+                  {students.slice(0, 4).map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => {
+                        setStudentAuthTab("login");
+                        setLoginNickname(s.nickname);
+                        setLoginPin("1234");
+                      }}
+                      className={`px-2.5 py-1 rounded-lg font-extrabold transition cursor-pointer ${
+                        loginNickname === s.nickname &&
+                        studentAuthTab === "login"
+                          ? "bg-[#0b4f49] text-white"
+                          : "bg-[#e3f1ee] text-[#0b4f49] hover:bg-[#cfe0dc]"
+                      }`}
+                    >
+                      {s.nickname}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* ==================== ฟอร์มสำหรับ ROLE: ครูผู้สอน ==================== */}
+            {isTeacherRole && (
+              <>
+                <div>
+                  <h1 className="text-[24px] font-extrabold text-[#1b2a2f]">
+                    {teacherAuthTab === "login"
+                      ? "เข้าสู่ระบบสำหรับครู"
+                      : "สมัครบัญชีครูผู้สอนใหม่"}
+                  </h1>
+                  <p className="text-[13px] font-semibold text-[#475b60] mt-0.5">
+                    สร้างห้องเรียน ดูแผนที่ Block Model เฉลี่ยทั้งห้อง และปรับการสอน
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTeacherAuthError("");
+                      setTeacherAuthTab("login");
+                    }}
+                    className={`py-2.5 px-3 rounded-xl text-[14px] font-extrabold border-2 transition cursor-pointer ${
+                      teacherAuthTab === "login"
+                        ? "bg-[#e3f1ee] border-[#0f766e] text-[#0b4f49]"
+                        : "bg-white border-[#cfe0dc] text-[#475b60]"
+                    }`}
+                  >
+                    เข้าสู่ระบบครู
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTeacherAuthError("");
+                      setTeacherAuthTab("register");
+                    }}
+                    className={`py-2.5 px-3 rounded-xl text-[14px] font-extrabold border-2 transition cursor-pointer ${
+                      teacherAuthTab === "register"
+                        ? "bg-[#fff4d6] border-[#f0a92e] text-[#3d2603]"
+                        : "bg-white border-[#cfe0dc] text-[#475b60]"
+                    }`}
+                  >
+                    สมัครบัญชีครูใหม่
+                  </button>
+                </div>
+
+                {teacherAuthError && (
+                  <div className="p-3 rounded-xl bg-[#f8d9d4] text-[#7d1d10] border border-[#fca5a5] text-[13px] font-bold">
+                    {teacherAuthError}
+                  </div>
+                )}
+
+                <form
+                  onSubmit={
+                    teacherAuthTab === "login"
+                      ? handleTeacherLogin
+                      : handleTeacherRegister
+                  }
+                  className="flex flex-col gap-4"
+                >
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[14px] font-extrabold text-[#1b2a2f]">
+                      ชื่อผู้ใช้ (ครู)
+                    </label>
+                    <input
+                      type="text"
+                      value={teacherUsername}
+                      onChange={(e) => setTeacherUsername(e.target.value)}
+                      placeholder="เช่น ครูตัวอย่าง"
+                      className="w-full px-4 py-3 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[15px] font-bold text-[#1b2a2f] focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                    />
+                  </div>
+
+                  {teacherAuthTab === "register" && (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[14px] font-extrabold text-[#1b2a2f]">
+                        ชื่อที่แสดงในระบบ
+                      </label>
+                      <input
+                        type="text"
+                        value={teacherDisplayName}
+                        onChange={(e) => setTeacherDisplayName(e.target.value)}
+                        placeholder="เช่น ครูสมศรี (วิทยาการคำนวณ)"
+                        className="w-full px-4 py-3 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[15px] font-bold text-[#1b2a2f] focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[14px] font-extrabold text-[#1b2a2f]">
+                      รหัสผ่าน
+                    </label>
+                    <input
+                      type="password"
+                      value={teacherPassword}
+                      onChange={(e) => setTeacherPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[15px] font-bold text-[#1b2a2f] focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className={`w-full py-4 rounded-2xl text-[17px] font-extrabold flex items-center justify-center gap-2 cursor-pointer mt-1 ${
+                      teacherAuthTab === "login" ? "press-teal" : "press-gold"
+                    }`}
+                  >
+                    <Icon name="users" size={20} />
+                    <span>
+                      {teacherAuthTab === "login"
+                        ? "เข้าสู่ระบบสำหรับครู"
+                        : "สร้างบัญชีครูและเข้าใช้งาน"}
+                    </span>
+                  </button>
+                </form>
+
+                <p className="text-[12px] font-semibold text-[#475b60] leading-relaxed text-center">
+                  หน้านี้แสดงเฉพาะชื่อเล่นสมมติและคะแนน ไม่แสดงข้อมูลส่วนบุคคลจริงของนักเรียน (บัญชีทดสอบ: <strong>ครูตัวอย่าง</strong> / รหัสผ่าน <strong>12345678</strong>)
+                </p>
+              </>
+            )}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ==================== 3. แดชบอร์ดฝั่งครู (เฉพาะ Role: teacher) ====================
+  if (appMode === "teacher-portal") {
+    return (
+      <TeacherDashboard
+        teacherUsername={teacherUsername}
+        classrooms={classrooms}
+        students={students}
+        onCreateClassroom={handleCreateClassroom}
+        onUpdatePinnedReview={handleUpdatePinnedReview}
+        onLogout={handleLogout}
+        onSwitchToStudentView={() => {
+          saveSessionToStorage(null);
+          setAppMode("student-login");
+        }}
+      />
+    );
+  }
+
+  // ==================== 4. ระบบฝั่งนักเรียน (เฉพาะ Role: student) ====================
+  const studentLevel = Math.floor(currentStudent.xp / 100) + 1;
+  const studentAvgMastery = Math.round(
+    Object.values(currentStudent.cellScores).reduce((a, b) => a + b, 0) / 12
+  );
+
+  const sortedStudentCells = [...BLOCK_MODEL_CELLS].sort(
+    (a, b) =>
+      (currentStudent.cellScores[b.id] ?? 0) -
+      (currentStudent.cellScores[a.id] ?? 0)
+  );
+  const strongStudentCells = sortedStudentCells.filter(
+    (c) => (currentStudent.cellScores[c.id] ?? 0) >= 80
+  );
+  const reviewStudentCells = sortedStudentCells
+    .filter((c) => (currentStudent.cellScores[c.id] ?? 0) < 60)
+    .reverse();
+
+  return (
+    <div className="min-h-screen bg-[#eef3f1] text-[#1b2a2f] flex flex-col">
+      {/* แถบบนสีเขียวเข้ม #0b4f49 ตาม Design System */}
+      <header className="bg-[#0b4f49] text-white sticky top-0 z-30">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setStudentTab("quest")}
+              className="text-[20px] font-extrabold tracking-tight flex items-center gap-2 cursor-pointer"
+            >
+              <Icon name="code" size={24} />
+              <span>โค้ดนี้ฉันอธิบายได้</span>
+            </button>
+            <span className="px-2.5 py-0.5 rounded-full bg-[#0f766e] border border-white/20 text-[12px] font-extrabold">
+              นักเรียน: {currentStudent.nickname} (ห้อง {currentStudent.roomCode})
+            </span>
+          </div>
+
+          {/* เมนูนำทางฝั่งนักเรียน */}
+          <nav className="flex items-center gap-1.5 flex-wrap">
+            {[
+              { id: "quest" as StudentTab, label: "เส้นทางเควสต์", icon: "route" as const },
+              { id: "practice" as StudentTab, label: "ฝึกอ่านโค้ด", icon: "play" as const },
+              { id: "learn" as StudentTab, label: "Block Model", icon: "book" as const },
+              { id: "profile" as StudentTab, label: "โปรไฟล์", icon: "user" as const },
+              { id: "ailog" as StudentTab, label: "บันทึก AI", icon: "clipboard" as const },
+            ].map((tab) => {
+              const active = studentTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setStudentTab(tab.id)}
+                  className={`px-3 py-1.5 rounded-xl text-[13px] font-extrabold flex items-center gap-1.5 transition cursor-pointer ${
+                    active
+                      ? "bg-[#f6b73c] text-[#3d2603] shadow-[0_2px_0_#b97a0c]"
+                      : "bg-white/10 hover:bg-white/20 text-white"
+                  }`}
+                >
+                  <Icon name={tab.icon} size={17} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* แถบ XP, สตรีค และปุ่มออกจากระบบ */}
+          <div className="flex items-center gap-2">
+            <div className="px-3 py-1 rounded-xl bg-[#fff4d6] text-[#3d2603] text-[13px] font-extrabold flex items-center gap-1.5">
+              <Icon name="star" size={16} filled />
+              <span>
+                Lv.{studentLevel} · {currentStudent.xp} XP
+              </span>
+            </div>
+
+            <div
+              className="px-2.5 py-1 rounded-xl bg-white/15 text-[#f6b73c] text-[13px] font-extrabold flex items-center gap-1"
+              title="สตรีคการฝึกต่อเนื่อง"
+            >
+              <Icon name="flame" size={16} filled />
+              <span>{currentStudent.streak}</span>
             </div>
 
             <button
-              onClick={() => setVoiceEnabled(!voiceEnabled)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition cursor-pointer ${
-                voiceEnabled
-                  ? "bg-amber-500/15 border-amber-500/40 text-amber-300"
-                  : "bg-slate-900 border-slate-800 text-slate-400"
-              }`}
-              title="เปิด/ปิดเสียงพากย์สารวัตรเป็ด"
+              type="button"
+              onClick={handleLogout}
+              className="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-[12px] font-extrabold flex items-center gap-1.5 cursor-pointer"
+              title="ออกจากระบบหรือสลับบทบาท"
             >
-              {voiceEnabled ? "🔊 เสียงเป็ด: เปิด" : "🔇 เสียงเป็ด: ปิด"}
-            </button>
-
-            <button
-              onClick={() => setShowCustomModal(true)}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 transition cursor-pointer"
-            >
-              + วางโค้ดของคุณเอง
-            </button>
-
-            <button
-              onClick={() => setShowApiModal(true)}
-              className="px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition cursor-pointer"
-            >
-              {geminiApiKey ? "🟢 Gemini API เชื่อมแล้ว" : "⚙️ ตั้งค่า AI Key"}
+              <Icon name="logout" size={16} />
+              <span>ออกจากระบบ</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content Container */}
-      <main className="relative z-10 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex-1 flex flex-col gap-6">
-        {/* Preset Selector & 4-Step Mission Progress Bar */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center bg-slate-900/60 border border-slate-800/90 rounded-2xl p-4 backdrop-blur-md">
-          {/* Code Preset Pills */}
-          <div className="lg:col-span-5 flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-slate-400">
-              1. เลือกโจทย์โค้ดที่ต้องการผ่าตัด (หรือวางโค้ดสด):
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {CODE_PRESETS.map((preset) => {
-                const isSelected = selectedPreset.id === preset.id;
-                return (
-                  <button
-                    key={preset.id}
-                    onClick={() => handleSelectPreset(preset)}
-                    className={`px-3 py-2 rounded-xl text-xs font-medium transition flex items-center gap-2 cursor-pointer ${
-                      isSelected
-                        ? "bg-gradient-to-r from-cyan-500/25 to-blue-600/25 text-cyan-200 border border-cyan-400/50 shadow-sm shadow-cyan-500/20"
-                        : "bg-slate-950/70 hover:bg-slate-800/80 text-slate-400 border border-slate-800"
-                    }`}
-                  >
-                    <span>{preset.id === "async-cart" ? "🛒" : "🔍"}</span>
-                    <span className="truncate max-w-[190px]">{preset.title}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 4 Interactive Stages */}
-          <div className="lg:col-span-7 flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-slate-400">
-              2. ขั้นตอนเปลี่ยน &ldquo;คนก๊อปโค้ด&rdquo; ให้เป็น &ldquo;คนเข้าใจโค้ดจริง&rdquo;:
-            </span>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {[
-                {
-                  id: "xray" as Stage,
-                  step: "STEP 1",
-                  title: "🧬 ผ่าตัด X-Ray",
-                  sub: "เห็นข้อมูลไหลจริง",
-                },
-                {
-                  id: "interrogate" as Stage,
-                  step: "STEP 2",
-                  title: "🦆 ห้องสืบสวนเป็ด",
-                  sub: "สอบปากเปล่าไมค์สด",
-                },
-                {
-                  id: "sabotage" as Stage,
-                  step: "STEP 3",
-                  title: "💣 ด่านวางยาโค้ด",
-                  sub: "จับผิดโค้ดที่ถูกบิด",
-                },
-                {
-                  id: "mastery" as Stage,
-                  step: "STEP 4",
-                  title: "🏆 ใบรับรอง & สถิติ",
-                  sub: `คะแนนรวม: ${totalMasteryScore}%`,
-                },
-              ].map((st) => {
-                const active = activeStage === st.id;
-                return (
-                  <button
-                    key={st.id}
-                    onClick={() => {
-                      setIsPlaying(false);
-                      setActiveStage(st.id);
-                    }}
-                    className={`p-2.5 rounded-xl border text-left transition cursor-pointer ${
-                      active
-                        ? "bg-gradient-to-br from-amber-500/20 via-cyan-500/15 to-fuchsia-500/20 border-cyan-400/60 shadow-lg shadow-cyan-500/10"
-                        : "bg-slate-950/60 hover:bg-slate-900 border-slate-800/80 text-slate-400"
-                    }`}
-                  >
-                    <div className="text-[10px] font-bold tracking-wider text-cyan-400">
-                      {st.step}
-                    </div>
-                    <div className="text-xs sm:text-sm font-bold text-slate-100 mt-0.5">
-                      {st.title}
-                    </div>
-                    <div className="text-[11px] text-slate-400 truncate">{st.sub}</div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Core Split Workspace: Left = Live Code X-Ray Editor | Right = Interactive Stage Arena */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* LEFT PANEL: Live Code Inspector + Cyber Duck Radar */}
-          <div className="lg:col-span-5 flex flex-col gap-5">
-            {/* Code Viewer Card */}
-            <div className="bg-slate-900/75 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
-              <div className="px-4 py-3 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-rose-500/80" />
-                  <span className="w-3 h-3 rounded-full bg-amber-400/80" />
-                  <span className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                  <span className="ml-2 text-xs font-mono text-slate-300 font-semibold">
-                    {selectedPreset.title}
-                  </span>
+      <main className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 flex-1 flex flex-col gap-6">
+        {/* ==================== TAB 1: เส้นทางเควสต์ (หน้าแรกนักเรียน สไตล์มินิมอล ปุ่มเล่นชัดเจน) ==================== */}
+        {studentTab === "quest" && (
+          <div className="flex flex-col gap-6">
+            {/* การ์ดเควสต์ประจำวัน + คำแนะนำทบทวนจากครู (ปุ่มกดเล่นเด่นชัด) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+              <div className="lg:col-span-7 bg-[#fff4d6] border-2 border-[#f0a92e] rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-[#f6b73c] border-2 border-[#b97a0c] text-[#3d2603] flex items-center justify-center shrink-0">
+                    <Icon name="target" size={24} />
+                  </div>
+                  <div>
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#3d2603] text-[#fff4d6] text-[11px] font-extrabold">
+                      เควสต์ประจำวัน · โบนัส +30 XP
+                    </span>
+                    <h3 className="text-[18px] font-extrabold text-[#3d2603] mt-1">
+                      ฝึกอ่านโค้ดและตอบคำถามช่องการทำงานจริง (E1–E4)
+                    </h3>
+                    <p className="text-[13px] font-semibold text-[#5c3704] mt-0.5">
+                      สะสม XP จากความเข้าใจโดยตรง ไม่คิดคะแนนจากความเร็ว
+                    </p>
+                  </div>
                 </div>
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-cyan-300">
-                  {selectedPreset.language}
-                </span>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextTopicId =
+                      TOPICS.find(
+                        (t) => !currentStudent.completedTopics.includes(t.id)
+                      )?.id || 1;
+                    setSelectedTopicId(nextTopicId);
+                    setStudentTab("practice");
+                  }}
+                  className="press-teal px-6 py-3.5 rounded-xl text-[15px] font-extrabold flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                >
+                  <Icon name="play" size={18} filled />
+                  <span>เริ่มเล่นเควสต์วันนี้</span>
+                </button>
               </div>
 
-              {activeStage === "sabotage" && (
-                <div className="bg-rose-500/15 border-b border-rose-500/30 px-4 py-2 text-xs text-rose-200 flex items-center justify-between">
-                  <span>⚠️ โหมดวางยา: มีโค้ด 1 บรรทัดถูกแอบดัดแปลง คลิกบรรทัดที่น่าสงสัย!</span>
-                  <span className="font-mono text-[11px] bg-rose-500/30 px-2 py-0.5 rounded">
-                    MUTATION ACTIVE
-                  </span>
+              {/* การ์ดเรื่องที่ครูปักหมุดให้ทบทวนประจำห้อง */}
+              <div className="lg:col-span-5 bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 flex flex-col justify-between gap-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="text-[12px] font-extrabold text-[#0f766e]">
+                      คำแนะนำจากครู ({currentStudentRoom?.roomName || currentStudent.roomCode})
+                    </span>
+                    <h4 className="text-[16px] font-extrabold text-[#1b2a2f] mt-0.5">
+                      {TOPICS.find(
+                        (t) => t.id === currentStudentRoom?.pinnedReviewTopicId
+                      )?.title || "เรื่องที่ 4 · วนซ้ำ while"}
+                    </h4>
+                  </div>
+                  <Icon name="bulb" size={22} className="text-[#f0a92e] shrink-0" />
                 </div>
-              )}
+                <p className="text-[13px] text-[#475b60]">
+                  {currentStudentRoom?.pinnedReviewNote ||
+                    "ฝึกเดินโค้ดดูค่าตัวแปรและเงื่อนไขการหยุดลูป"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTopicId(
+                      currentStudentRoom?.pinnedReviewTopicId || 4
+                    );
+                    setStudentTab("practice");
+                  }}
+                  className="press-secondary w-full py-2.5 rounded-xl text-[14px] font-extrabold flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Icon name="play" size={16} filled />
+                  <span>เข้าเล่นเรื่องที่ครูแนะนำ</span>
+                </button>
+              </div>
+            </div>
 
-              <div className="p-3 sm:p-4 font-mono text-xs sm:text-sm overflow-x-auto space-y-1">
-                {codeLines.map((line, index) => {
-                  const lineNumber = index + 1;
-                  const isHighlighted = highlightedLine === lineNumber;
-                  const isSabotageTarget =
-                    activeStage === "sabotage" &&
-                    lineNumber === selectedPreset.sabotage.sabotagedLine;
+            {/* เส้นทางเควสต์ 7 เรื่อง (ชุดโค้ดแยกตามเรื่อง 7 เรื่อง ดีไซน์มินิมอล ปุ่มเล่นเต็มการ์ด) */}
+            <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 sm:p-6 flex flex-col gap-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-[24px] font-extrabold text-[#1b2a2f]">
+                    เส้นทางเควสต์ 7 เรื่อง
+                  </h2>
+                  <p className="text-[14px] font-semibold text-[#475b60]">
+                    ผ่านแล้ว {currentStudent.completedTopics.length}/7 เรื่อง · บอสด่านเปิดเมื่อผ่านอย่างน้อย 4 เรื่อง
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setUnlockAllDemo(!unlockAllDemo)}
+                  className={`px-4 py-2 rounded-xl text-[13px] font-extrabold border-2 transition cursor-pointer ${
+                    unlockAllDemo
+                      ? "bg-[#d8efdc] border-[#14532d] text-[#14532d]"
+                      : "press-secondary"
+                  }`}
+                >
+                  {unlockAllDemo
+                    ? "✓ ปลดล็อกทุกเรื่องแล้ว"
+                    : "ปลดล็อกทุกเรื่อง (โหมดสาธิต)"}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {TOPICS.map((topic) => {
+                  const isPassed = currentStudent.completedTopics.includes(
+                    topic.id
+                  );
+                  const unlocked = isTopicUnlocked(topic.id);
+                  const isBoss = Boolean(topic.isBoss);
 
                   return (
                     <div
-                      key={lineNumber}
-                      onClick={() => {
-                        if (activeStage === "sabotage") {
-                          setSelectedSabotageLine(lineNumber);
-                        } else if (activeStage === "xray") {
-                          const foundIdx = selectedPreset.nodes.findIndex(
-                            (n) => n.line === lineNumber
-                          );
-                          if (foundIdx >= 0) setActiveNodeIndex(foundIdx);
-                        }
-                      }}
-                      className={`group flex items-start gap-3 px-3 py-1.5 rounded-lg transition cursor-pointer ${
-                        isHighlighted
-                          ? activeStage === "sabotage"
-                            ? "bg-rose-500/25 border border-rose-400/60 text-rose-100 shadow-sm"
-                            : "bg-cyan-500/20 border border-cyan-400/60 text-cyan-100 shadow-sm"
-                          : "hover:bg-slate-800/60 text-slate-300 border border-transparent"
+                      key={topic.id}
+                      className={`rounded-2xl border-2 p-5 flex flex-col justify-between gap-4 transition ${
+                        isBoss
+                          ? unlocked
+                            ? "bg-[#6d3fc0]/5 border-[#6d3fc0] md:col-span-2 lg:col-span-3"
+                            : "bg-[#eef3f1] border-[#cfe0dc] md:col-span-2 lg:col-span-3 opacity-85"
+                          : isPassed
+                          ? "bg-[#f4faf8] border-[#0f766e]"
+                          : unlocked
+                          ? "bg-white border-[#f0a92e] shadow-sm"
+                          : "bg-[#eef3f1] border-[#cfe0dc] opacity-80"
                       }`}
                     >
-                      <span
-                        className={`w-6 text-right select-none text-xs ${
-                          isHighlighted ? "text-cyan-300 font-bold" : "text-slate-600"
-                        }`}
-                      >
-                        {lineNumber}
-                      </span>
-                      <pre className="flex-1 whitespace-pre-wrap break-all">{line || " "}</pre>
-                      {isHighlighted && (
-                        <span className="text-[10px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-400/20 text-cyan-300">
-                          {activeStage === "xray"
-                            ? "⚡ กำลังทำงาน"
-                            : activeStage === "interrogate"
-                            ? "🦆 เป็ดถามจุดนี้"
-                            : isSabotageTarget
-                            ? "🎯 จุดต้องสงสัย"
-                            : "🔍 ตรวจสอบ"}
+                      <div className="flex items-start gap-3.5">
+                        <StatusCircle
+                          variant={
+                            isBoss
+                              ? unlocked
+                                ? "boss"
+                                : "locked"
+                              : isPassed
+                              ? "passed"
+                              : unlocked
+                              ? "current"
+                              : "locked"
+                          }
+                          size="md"
+                          label={topic.title}
+                        />
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-[12px] font-extrabold ${
+                                isBoss
+                                  ? "bg-[#6d3fc0] text-white"
+                                  : isPassed
+                                  ? "bg-[#d8efdc] text-[#14532d]"
+                                  : unlocked
+                                  ? "bg-[#fff4d6] text-[#3d2603]"
+                                  : "bg-[#d8e3e0] text-[#475b60]"
+                              }`}
+                            >
+                              {isPassed
+                                ? "ผ่านแล้ว"
+                                : unlocked
+                                ? isBoss
+                                  ? "บอสด่านพร้อมลุย!"
+                                  : "พร้อมเข้าเล่น"
+                                : isBoss
+                                ? `ล็อก (ผ่านแล้ว ${currentStudent.completedTopics.length}/4 เรื่อง)`
+                                : "ล็อก"}
+                            </span>
+
+                            <span className="text-[12px] font-bold text-[#475b60]">
+                              ช่อง{" "}
+                              {topic.questions.map((q) => q.cellId).join(", ")}
+                            </span>
+                          </div>
+
+                          <h3 className="text-[18px] font-extrabold text-[#1b2a2f] mt-1.5">
+                            {topic.title}
+                          </h3>
+                          <p className="text-[14px] text-[#475b60] mt-0.5">
+                            {topic.subtitle}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#cfe0dc]">
+                        <span className="text-[13px] font-extrabold text-[#0b4f49] flex items-center gap-1.5">
+                          <Icon name="shield" size={16} />
+                          <span>ตรา: {topic.badgeReward.name}</span>
                         </span>
-                      )}
+
+                        <button
+                          type="button"
+                          disabled={!unlocked}
+                          onClick={() => {
+                            setSelectedTopicId(topic.id);
+                            setStudentTab("practice");
+                          }}
+                          className={`px-5 py-2.5 rounded-xl text-[15px] font-extrabold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                            isBoss
+                              ? "press-boss"
+                              : isPassed
+                              ? "press-secondary"
+                              : "press-teal"
+                          }`}
+                        >
+                          <Icon
+                            name={unlocked ? "play" : "lock"}
+                            size={18}
+                            filled={unlocked}
+                          />
+                          <span>
+                            {isPassed
+                              ? "เล่นซ้ำ"
+                              : unlocked
+                              ? "เริ่มเล่นด่านนี้"
+                              : "ยังไม่ปลดล็อก"}
+                          </span>
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Real-time 4D Understanding Radar & Cyber Duck Status */}
-            <div className="bg-slate-900/75 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center gap-4">
-              {/* Animated SVG Cyber Duck Avatar */}
-              <div className="flex flex-col items-center text-center w-full sm:w-44 shrink-0">
-                <div className="relative w-28 h-28 flex items-center justify-center">
-                  <div
-                    className={`absolute inset-0 rounded-full blur-xl transition-all duration-500 ${
-                      duckMood === "impressed"
-                        ? "bg-emerald-500/30 scale-110"
-                        : duckMood === "sabotage"
-                        ? "bg-rose-500/35 scale-110"
-                        : duckMood === "speaking"
-                        ? "bg-amber-400/35 scale-105 animate-pulse"
-                        : "bg-cyan-500/20"
-                    }`}
-                  />
-                  <svg
-                    viewBox="0 0 120 120"
-                    className="w-24 h-24 relative z-10 drop-shadow-[0_8px_16px_rgba(0,0,0,0.5)]"
-                  >
-                    {/* Duck Body */}
-                    <ellipse cx="60" cy="82" rx="34" ry="24" fill="#fbbf24" />
-                    {/* Duck Head */}
-                    <circle cx="60" cy="46" r="24" fill="#f59e0b" />
-                    {/* Detective Cyber Visor */}
-                    <rect
-                      x="38"
-                      y="34"
-                      width="44"
-                      height="13"
-                      rx="6"
-                      fill="#0f172a"
-                      stroke="#22d3ee"
-                      strokeWidth="2.5"
-                    />
-                    {/* Visor Glowing Eyes */}
-                    <circle
-                      cx="50"
-                      cy="40.5"
-                      r="3.5"
-                      fill={
-                        duckMood === "sabotage"
-                          ? "#f43f5e"
-                          : duckMood === "impressed"
-                          ? "#34d399"
-                          : "#22d3ee"
-                      }
-                    />
-                    <circle
-                      cx="70"
-                      cy="40.5"
-                      r="3.5"
-                      fill={
-                        duckMood === "sabotage"
-                          ? "#f43f5e"
-                          : duckMood === "impressed"
-                          ? "#34d399"
-                          : "#22d3ee"
-                      }
-                    />
-                    {/* Duck Beak (opens when speaking) */}
-                    {duckMood === "speaking" ? (
-                      <ellipse cx="60" cy="56" rx="14" ry="7" fill="#ea580c" />
-                    ) : (
-                      <path
-                        d="M46 53 Q60 62 74 53 Q60 57 46 53 Z"
-                        fill="#ea580c"
-                        stroke="#c2410c"
-                        strokeWidth="2"
-                      />
-                    )}
-                    {/* Detective Cyber Hat */}
-                    <path d="M32 28 L88 28 L76 14 L44 14 Z" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" />
-                  </svg>
+        {/* ==================== TAB 2: หน้าฝึกอ่านโค้ด (PRIMM 4 ขั้น) ==================== */}
+        {studentTab === "practice" && (
+          <PracticeArena
+            key={activeTopic.id}
+            topic={activeTopic}
+            onBackToMap={() => setStudentTab("quest")}
+            onCompleteTopic={handleCompleteTopic}
+          />
+        )}
+
+        {/* ==================== TAB 3: หน้าอธิบาย Block Model 12 ช่อง & ทดลองรันโค้ดจริง ==================== */}
+        {studentTab === "learn" && (
+          <div className="flex flex-col gap-6">
+            <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-6 flex flex-col gap-4">
+              <h2 className="text-[24px] font-extrabold text-[#1b2a2f] flex items-center gap-2">
+                <Icon name="book" size={24} className="text-[#0f766e]" />
+                <span>รู้จัก Block Model 12 ช่อง และวิธีเรียน 4 ขั้น (PRIMM)</span>
+              </h2>
+              <p className="text-[15px] text-[#475b60]">
+                เวลาเราสั่ง AI ให้เขียนโค้ดให้ การจะบอกว่าเรา &ldquo;เข้าใจโค้ดนั้นจริง&rdquo; ไม่ใช่แค่อ่านออกทีละคำ แต่ต้องเข้าใจครบทั้ง <strong>3 มิติ</strong> ในทุกระดับของโค้ด ตั้งแต่บรรทัดเดี่ยวไปจนถึงภาพรวมทั้งโปรแกรม รวมเป็น <strong>12 ช่องของ Block Model</strong>
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-1">
+                <div className="p-4 rounded-xl bg-[#e3f1ee] border border-[#0f766e]/40">
+                  <div className="text-[15px] font-extrabold text-[#0b4f49]">
+                    มิติที่ 1 · โครงสร้างโค้ด (Text Surface: T1–T4)
+                  </div>
+                  <p className="text-[14px] text-[#1b2a2f] mt-1">
+                    อ่านไวยากรณ์ เครื่องหมาย ขอบเขตบล็อก `if/else`, ลูป `for/while` และการเชื่อมโยงพารามิเตอร์ออกอย่างถูกต้อง
+                  </p>
                 </div>
-                <span className="text-xs font-bold text-amber-300 mt-1">
-                  สารวัตรเป็ดไซเบอร์ (AI)
-                </span>
-                <span className="text-[11px] text-slate-400">
-                  {duckMood === "impressed"
-                    ? "🤩 ประทับใจในคำอธิบาย!"
-                    : duckMood === "suspicious"
-                    ? "🧐 กำลังจับผิดตรรกะของคุณ..."
-                    : duckMood === "sabotage"
-                    ? "😈 โหมดวางยาโค้ดทำงาน!"
-                    : "🎙️ พร้อมฟังคุณอธิบายโค้ด"}
-                </span>
-              </div>
-
-              {/* 4D Understanding Radar SVG */}
-              <div className="flex-1 flex flex-col items-center">
-                <div className="text-xs font-semibold text-slate-300 mb-1 flex items-center gap-2">
-                  <span>เรดาร์วัดความเข้าใจโค้ด 4 มิติ</span>
-                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-cyan-500/20 text-cyan-300">
-                    Rank {masteryRank} ({totalMasteryScore}%)
-                  </span>
+                <div className="p-4 rounded-xl bg-[#fff4d6] border border-[#f0a92e]">
+                  <div className="text-[15px] font-extrabold text-[#3d2603]">
+                    มิติที่ 2 · การทำงานเมื่อรันจริง (Execution: E1–E4)
+                  </div>
+                  <p className="text-[14px] text-[#3d2603] mt-1">
+                    แกะรอยได้ว่าเมื่อรันจริง โค้ดเดินไปบรรทัดไหนบ้าง ค่าตัวแปรเปลี่ยนเป็นเท่าไหร่ และพิมพ์ผลลัพธ์อะไรออกมา
+                  </p>
                 </div>
-                <svg viewBox="0 0 220 220" className="w-44 h-44">
-                  {/* Background Grid Diamonds */}
-                  {[0.25, 0.5, 0.75, 1].map((scale, i) => {
-                    const r = 80 * scale;
-                    return (
-                      <polygon
-                        key={i}
-                        points={`110,${110 - r} ${110 + r},110 110,${110 + r} ${110 - r},110`}
-                        fill="none"
-                        stroke="#1e293b"
-                        strokeWidth="1.5"
-                      />
-                    );
-                  })}
-                  {/* Axes */}
-                  <line x1="110" y1="30" x2="110" y2="190" stroke="#334155" strokeWidth="1" />
-                  <line x1="30" y1="110" x2="190" y2="110" stroke="#334155" strokeWidth="1" />
-
-                  {/* Dynamic Student Score Polygon */}
-                  <polygon
-                    points={getRadarPoints()}
-                    fill="rgba(34, 211, 238, 0.28)"
-                    stroke="#22d3ee"
-                    strokeWidth="2.5"
-                  />
-
-                  {/* Labels */}
-                  <text x="110" y="18" textAnchor="middle" fill="#94a3b8" fontSize="10">
-                    Logic ({radarScores.logic}%)
-                  </text>
-                  <text x="208" y="113" textAnchor="end" fill="#94a3b8" fontSize="10">
-                    State ({radarScores.state}%)
-                  </text>
-                  <text x="110" y="208" textAnchor="middle" fill="#94a3b8" fontSize="10">
-                    Edge Case ({radarScores.edgeCase}%)
-                  </text>
-                  <text x="12" y="113" textAnchor="start" fill="#94a3b8" fontSize="10">
-                    Syntax ({radarScores.syntax}%)
-                  </text>
-                </svg>
+                <div className="p-4 rounded-xl bg-[#d8efdc] border border-[#86efac]">
+                  <div className="text-[15px] font-extrabold text-[#14532d]">
+                    มิติที่ 3 · หน้าที่และเป้าหมาย (Function: F1–F4)
+                  </div>
+                  <p className="text-[14px] text-[#14532d] mt-1">
+                    อธิบายได้ว่าแต่ละบรรทัด แต่ละบล็อก และทั้งโปรแกรมมีไว้ทำไม แก้ปัญหาอะไร และตรวจจับบั๊กที่ขัดกับเป้าหมายได้
+                  </p>
+                </div>
               </div>
             </div>
+
+            <BlockModelGrid
+              cellScores={currentStudent.cellScores}
+              title="สำรวจทั้ง 12 ช่องของ Block Model (คลิกที่ช่องเพื่อดูตัวอย่างคำถามและไปฝึก)"
+              onSelectTopic={(topicId) => {
+                setSelectedTopicId(topicId);
+                setStudentTab("practice");
+              }}
+            />
+
+            {/* กล่องทดลองวางโค้ด JavaScript จาก AI เพื่อรันจริง */}
+            <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-6 flex flex-col gap-4">
+              <div>
+                <h3 className="text-[18px] font-extrabold text-[#1b2a2f] flex items-center gap-2">
+                  <Icon name="code" size={20} className="text-[#0f766e]" />
+                  <span>ห้องทดลองรันโค้ด JavaScript จริง (ตรวจสอบโค้ดที่ AI เขียนให้)</span>
+                </h3>
+                <p className="text-[13px] font-semibold text-[#475b60]">
+                  วางโค้ด JavaScript ที่คุณได้มาจาก AI แล้วกดรันจริงเพื่อดูผลลัพธ์จาก console.log โดยไม่ใช้การเดา
+                </p>
+              </div>
+
+              <textarea
+                rows={6}
+                value={playgroundCode}
+                onChange={(e) => setPlaygroundCode(e.target.value)}
+                className="w-full p-4 rounded-xl bg-[#eef3f1] border-2 border-[#b6c9c5] font-code font-bold text-[#1b2a2f]"
+              />
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const res = runJavaScriptReal(playgroundCode);
+                    setPlaygroundOutput(
+                      res.success
+                        ? res.finalOutput || "(โค้ดทำงานสำเร็จแต่ไม่มีคำสั่ง console.log)"
+                        : `ข้อผิดพลาด: ${res.error}`
+                    );
+                  }}
+                  className="press-teal px-5 py-2.5 rounded-xl text-[14px] font-extrabold flex items-center gap-2 cursor-pointer"
+                >
+                  <Icon name="play" size={18} />
+                  <span>รันโค้ดจริง</span>
+                </button>
+              </div>
+
+              {playgroundOutput && (
+                <div className="p-4 rounded-xl bg-[#d8efdc] border-2 border-[#86efac] text-[#14532d]">
+                  <div className="text-[13px] font-extrabold">ผลลัพธ์จากการรันโค้ดจริง:</div>
+                  <pre className="font-code font-extrabold text-[16px] mt-1">
+                    {playgroundOutput}
+                  </pre>
+                </div>
+              )}
+            </div>
           </div>
+        )}
 
-          {/* RIGHT PANEL: Active Stage Interactive Arena */}
-          <div className="lg:col-span-7 flex flex-col gap-5">
-            {/* ==================== STAGE 1: CODE X-RAY VISUALIZER ==================== */}
-            {activeStage === "xray" && (
-              <div className="bg-slate-900/75 border border-slate-800 rounded-2xl p-5 sm:p-6 flex flex-col gap-5 shadow-2xl">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">
-                      STEP 1 • CODE X-RAY & DATA FLOW
-                    </span>
-                    <h2 className="text-lg sm:text-xl font-bold text-white mt-0.5">
-                      ผ่าตัดการทำงานของโค้ดทีละจังหวะ (Step-by-Step Execution)
+        {/* ==================== TAB 4: โปรไฟล์นักเรียน (ตามโฟลขั้นที่ 7) ==================== */}
+        {studentTab === "profile" && (
+          <div className="flex flex-col gap-6">
+            {/* การ์ดข้อมูลสรุปนักเรียน */}
+            <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <StatusCircle variant="badge" size="lg" label="โปรไฟล์นักเรียน" />
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-[24px] font-extrabold text-[#1b2a2f]">
+                      โปรไฟล์ของ {currentStudent.nickname}
                     </h2>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      กดปุ่มจำลองการรันเพื่อดูว่าตัวแปรเปลี่ยนค่าอย่างไรในแต่ละบรรทัดก่อนไปสอบปากเปล่ากับเป็ด!
+                    <span className="px-3 py-0.5 rounded-full bg-[#e3f1ee] text-[#0b4f49] text-[13px] font-extrabold">
+                      รหัสห้อง {currentStudent.roomCode}
+                    </span>
+                  </div>
+                  <p className="text-[14px] font-semibold text-[#475b60] mt-0.5">
+                    เลเวล {studentLevel} · สะสม {currentStudent.xp} XP · ผ่านแล้ว{" "}
+                    {currentStudent.completedTopics.length}/7 เรื่อง · ความเข้าใจเฉลี่ย{" "}
+                    {studentAvgMastery}% ({getMasteryStatus(studentAvgMastery).label})
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setStudentTab("quest")}
+                className="press-teal px-4 py-2.5 rounded-xl text-[14px] font-extrabold flex items-center gap-2 cursor-pointer"
+              >
+                <Icon name="route" size={18} />
+                <span>ไปฝึกเรื่องถัดไป</span>
+              </button>
+            </div>
+
+            {/* สรุปด้านที่เก่ง & ด้านที่ควรทบทวน */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-[#d8efdc] border-2 border-[#86efac] rounded-2xl p-5 text-[#14532d]">
+                <div className="flex items-center gap-2 font-extrabold text-[16px]">
+                  <Icon name="check" size={20} />
+                  <span>ด้านที่เก่ง (เข้าใจ 80% ขึ้นไป)</span>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {strongStudentCells.length > 0 ? (
+                    strongStudentCells.slice(0, 4).map((c) => (
+                      <div
+                        key={c.id}
+                        className="p-2.5 rounded-xl bg-white/80 flex items-center justify-between text-[14px] font-bold"
+                      >
+                        <span>
+                          ช่อง {c.id} · {c.shortTitle}
+                        </span>
+                        <span className="font-extrabold">
+                          {currentStudent.cellScores[c.id]}%
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-[14px]">
+                      ฝึกทำโจทย์เพิ่มเพื่อปลดล็อกช่องที่เก่งเกิน 80%!
                     </p>
-                  </div>
-
-                  {/* Playback Controls */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setIsPlaying(false);
-                        setActiveNodeIndex((prev) => Math.max(0, prev - 1));
-                      }}
-                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold transition cursor-pointer"
-                    >
-                      ⏮ ก่อนหน้า
-                    </button>
-                    <button
-                      onClick={() => setIsPlaying(!isPlaying)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                        isPlaying
-                          ? "bg-amber-500 text-slate-950"
-                          : "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25"
-                      }`}
-                    >
-                      {isPlaying ? "⏸ หยุดชั่วคราว" : "▶ รันจำลองอัตโนมัติ"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsPlaying(false);
-                        setActiveNodeIndex((prev) =>
-                          prev + 1 < selectedPreset.nodes.length ? prev + 1 : 0
-                        );
-                      }}
-                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold transition cursor-pointer"
-                    >
-                      ถัดไป ⏭
-                    </button>
-                  </div>
-                </div>
-
-                {/* Interactive Flowchart Nodes */}
-                <div className="grid grid-cols-1 gap-2.5">
-                  {selectedPreset.nodes.map((node, idx) => {
-                    const isCurrent = idx === activeNodeIndex;
-                    const isPassed = idx < activeNodeIndex;
-
-                    const badgeColor =
-                      node.type === "async"
-                        ? "bg-purple-500/20 text-purple-300 border-purple-500/40"
-                        : node.type === "condition"
-                        ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                        : node.type === "loop"
-                        ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
-                        : node.type === "output"
-                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                        : "bg-cyan-500/20 text-cyan-300 border-cyan-500/40";
-
-                    return (
-                      <div
-                        key={node.id}
-                        onClick={() => {
-                          setIsPlaying(false);
-                          setActiveNodeIndex(idx);
-                          speakText(node.explanation);
-                        }}
-                        className={`p-3.5 rounded-xl border transition cursor-pointer flex flex-col gap-2 ${
-                          isCurrent
-                            ? "bg-cyan-950/40 border-cyan-400 shadow-lg shadow-cyan-500/10 scale-[1.01]"
-                            : isPassed
-                            ? "bg-slate-950/60 border-slate-800/80 opacity-80"
-                            : "bg-slate-950/40 border-slate-800/60 opacity-60 hover:opacity-100"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2.5">
-                            <span
-                              className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${
-                                isCurrent
-                                  ? "bg-cyan-400 text-slate-950"
-                                  : "bg-slate-800 text-slate-400"
-                              }`}
-                            >
-                              {idx + 1}
-                            </span>
-                            <span className="font-bold text-sm text-slate-100">{node.label}</span>
-                            <span
-                              className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded border ${badgeColor}`}
-                            >
-                              บรรทัด {node.line} • {node.type}
-                            </span>
-                          </div>
-                          {isCurrent && (
-                            <span className="text-xs font-semibold text-cyan-300 animate-pulse">
-                              ● ข้อมูลกำลังไหลผ่านจุดนี้
-                            </span>
-                          )}
-                        </div>
-
-                        {isCurrent && (
-                          <div className="mt-1 pt-2 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-                            <div className="sm:col-span-7 text-xs text-slate-300 leading-relaxed">
-                              💡 <strong className="text-cyan-300">สิ่งที่เกิดขึ้นจริง:</strong>{" "}
-                              {node.explanation}
-                            </div>
-                            <div className="sm:col-span-5 bg-slate-950/90 border border-slate-800 rounded-lg p-2.5 font-mono text-[11px]">
-                              <div className="text-[10px] text-slate-400 mb-1 uppercase">
-                                📦 ค่าตัวแปรในหน่วยความจำ (RAM State):
-                              </div>
-                              {Object.entries(node.variableState).map(([k, v]) => (
-                                <div key={k} className="flex justify-between gap-2 text-cyan-200">
-                                  <span className="text-slate-400">{k}:</span>
-                                  <span className="font-semibold truncate">{v}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Next Step CTA */}
-                <div className="pt-2 flex justify-end">
-                  <button
-                    onClick={() => {
-                      setIsPlaying(false);
-                      setActiveStage("interrogate");
-                      speakText(selectedPreset.questions[0]?.question || "พร้อมสอบปากเปล่าหรือยัง");
-                    }}
-                    className="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-amber-400 via-orange-500 to-pink-600 text-slate-950 shadow-lg shadow-amber-500/20 hover:brightness-110 transition cursor-pointer"
-                  >
-                    เข้าใจ Flow แล้ว! ไปด่านที่ 2: สอบปากเปล่ากับสารวัตรเป็ด 🦆 ➔
-                  </button>
+                  )}
                 </div>
               </div>
-            )}
 
-            {/* ==================== STAGE 2: AI RUBBER DUCK INTERROGATION ==================== */}
-            {activeStage === "interrogate" && currentQuestion && (
-              <div className="bg-slate-900/75 border border-slate-800 rounded-2xl p-5 sm:p-6 flex flex-col gap-5 shadow-2xl">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-4">
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
-                      STEP 2 • THE RUBBER DUCK INTERROGATION
-                    </span>
-                    <h2 className="text-lg sm:text-xl font-bold text-white mt-0.5">
-                      ห้องสืบสวนปากเปล่า: อธิบายให้เป็ดฟังว่าบรรทัดนี้ทำงานอย่างไร!
-                    </h2>
-                  </div>
-
-                  {/* Question Selector Pills */}
-                  <div className="flex items-center gap-1.5">
-                    {selectedPreset.questions.map((q, idx) => {
-                      const done = Boolean(questionResults[q.id]);
-                      return (
+              <div className="bg-[#f8d9d4] border-2 border-[#fca5a5] rounded-2xl p-5 text-[#7d1d10]">
+                <div className="flex items-center gap-2 font-extrabold text-[16px]">
+                  <Icon name="bulb" size={20} />
+                  <span>ด้านที่ควรทบทวนเพิ่มเติม</span>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {reviewStudentCells.length > 0 ? (
+                    reviewStudentCells.slice(0, 4).map((c) => (
+                      <div
+                        key={c.id}
+                        className="p-2.5 rounded-xl bg-white/85 flex items-center justify-between gap-2 text-[14px] font-bold"
+                      >
+                        <span>
+                          ช่อง {c.id} · {c.shortTitle} ({currentStudent.cellScores[c.id]}%)
+                        </span>
                         <button
-                          key={q.id}
+                          type="button"
                           onClick={() => {
-                            setCurrentQuestionIdx(idx);
-                            setAnswerText(questionResults[q.id]?.studentAnswer || "");
-                            speakText(q.question);
+                            setSelectedTopicId(c.relatedTopicId);
+                            setStudentTab("practice");
                           }}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                            idx === currentQuestionIdx
-                              ? "bg-amber-400 text-slate-950"
-                              : done
-                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                              : "bg-slate-800 text-slate-400"
-                          }`}
+                          className="px-2.5 py-1 rounded-lg bg-[#7d1d10] text-white text-[12px] font-extrabold cursor-pointer"
                         >
-                          ข้อที่ {idx + 1} {done ? "✓" : ""}
+                          ฝึกทบทวน →
                         </button>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-[14px] font-bold">
+                      ยอดเยี่ยมมาก! คุณผ่านเกณฑ์ความเข้าใจเกิน 60% ทุกช่องแล้ว
+                    </p>
+                  )}
                 </div>
-
-                {/* Question Bubble from Cyber Duck */}
-                <div className="bg-gradient-to-br from-amber-500/15 via-slate-900 to-slate-900 border border-amber-500/40 rounded-2xl p-4 sm:p-5 relative">
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                      🎯 เป้าหมายสืบสวน: บรรทัดที่ {currentQuestion.targetLine} (
-                      {currentQuestion.dimensionLabel})
-                    </span>
-                    <button
-                      onClick={() => speakText(currentQuestion.question)}
-                      className="text-xs text-amber-300 hover:underline cursor-pointer"
-                    >
-                      🔊 ให้เป็ดอ่านคำถามซ้ำ
-                    </button>
-                  </div>
-                  <p className="text-base sm:text-lg font-bold text-slate-100 leading-snug">
-                    &ldquo;{currentQuestion.question}&rdquo;
-                  </p>
-                  <p className="text-xs text-slate-400 mt-2">
-                    💡 <strong>คำใบ้จากเป็ด:</strong> {currentQuestion.hint}
-                  </p>
-                </div>
-
-                {/* Student Voice / Text Input Box */}
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <label className="text-xs font-semibold text-slate-300">
-                      คำอธิบายของคุณ (พูดใส่ไมค์ หรือพิมพ์ด้วยภาษาของคุณเอง):
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setAnswerText(currentQuestion.modelAnswer)}
-                        className="text-[11px] px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 transition cursor-pointer"
-                        title="ปุ่มช่วยสาธิตตอนแข่ง: กรอกคำตอบตัวอย่างทันที"
-                      >
-                        ⚡ กรอกคำตอบสาธิต (สำหรับโชว์กรรมการ)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleToggleMic}
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                          isListening
-                            ? "bg-rose-500 text-white animate-pulse"
-                            : "bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40"
-                        }`}
-                      >
-                        {isListening ? "🔴 กำลังฟังเสียงพูด..." : "🎙️ เปิดไมค์พูดตอบ"}
-                      </button>
-                    </div>
-                  </div>
-
-                  <textarea
-                    rows={4}
-                    value={answerText}
-                    onChange={(e) => setAnswerText(e.target.value)}
-                    placeholder="อธิบายด้วยภาษามนุษย์ได้เลย เช่น ถ้าเอา await ออก ตัวแปรจะได้ค่าเป็น Promise ทำให้เช็คเงื่อนไขผิด..."
-                    className="w-full rounded-xl bg-slate-950/90 border border-slate-700 focus:border-cyan-400 focus:outline-none p-3.5 text-sm text-slate-100 placeholder:text-slate-600"
-                  />
-
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <button
-                      onClick={handleSubmitExplanation}
-                      disabled={isEvaluating || !answerText.trim()}
-                      className="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-cyan-400 to-blue-600 text-slate-950 shadow-lg shadow-cyan-500/20 hover:brightness-110 disabled:opacity-40 transition cursor-pointer"
-                    >
-                      {isEvaluating
-                        ? "⏳ สารวัตรเป็ดกำลังวิเคราะห์ตรรกะ..."
-                        : "✅ ส่งคำอธิบายให้เป็ดตรวจ"}
-                    </button>
-
-                    <button
-                      onClick={() => setActiveStage("sabotage")}
-                      className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition cursor-pointer"
-                    >
-                      ข้ามไปด่านที่ 3: โหมดวางยาโค้ด 💣 ➔
-                    </button>
-                  </div>
-                </div>
-
-                {/* Evaluation Result Card */}
-                {currentQResult && (
-                  <div
-                    className={`p-4 rounded-xl border ${
-                      currentQResult.passed
-                        ? "bg-emerald-950/30 border-emerald-500/50 text-emerald-100"
-                        : "bg-amber-950/30 border-amber-500/50 text-amber-100"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-bold">
-                        ผลประเมินความเข้าใจ: {currentQResult.score}/100 คะแนน
-                      </span>
-                      <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-900/80 text-slate-300">
-                        Engine: {currentQResult.mode}
-                      </span>
-                    </div>
-                    <p className="text-xs sm:text-sm leading-relaxed">{currentQResult.feedback}</p>
-                    <div className="mt-3 pt-2.5 border-t border-white/10 text-xs text-slate-300">
-                      <strong className="text-cyan-300">แนวคิดมาตรฐาน (Mental Model):</strong>{" "}
-                      {currentQuestion.modelAnswer}
-                    </div>
-                  </div>
-                )}
               </div>
-            )}
+            </div>
 
-            {/* ==================== STAGE 3: SABOTAGE LAB (FIND THE MUTANT BUG) ==================== */}
-            {activeStage === "sabotage" && (
-              <div className="bg-slate-900/75 border border-rose-500/40 rounded-2xl p-5 sm:p-6 flex flex-col gap-5 shadow-2xl">
-                <div className="border-b border-slate-800 pb-4">
-                  <span className="text-xs font-bold uppercase tracking-wider text-rose-400">
-                    STEP 3 • SABOTAGE LAB (REVERSE DEBUGGING)
-                  </span>
-                  <h2 className="text-lg sm:text-xl font-bold text-white mt-0.5">
-                    ด่านวางยาโค้ด: ถ้าคุณเข้าใจโค้ดจริง ต้องรู้ว่าบรรทัดไหนถูกแอบดัดแปลง!
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    AI ได้แอบแก้ไขโค้ดฝั่งซ้ายไป 1 จุดจนเกิดบั๊กร้ายแรง อ่านอาการพังด้านล่างแล้ววินิจฉัยสาเหตุที่แท้จริง
-                  </p>
-                </div>
+            {/* แผนที่ความเข้าใจ 12 ช่องของนักเรียน */}
+            <BlockModelGrid
+              cellScores={currentStudent.cellScores}
+              title={`แผนที่ความเข้าใจ 12 ช่องของ ${currentStudent.nickname}`}
+              onSelectTopic={(topicId) => {
+                setSelectedTopicId(topicId);
+                setStudentTab("practice");
+              }}
+            />
 
-                {/* Production Bug Symptom Alert */}
-                <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-500/50 text-rose-100">
-                  <div className="text-xs font-bold uppercase tracking-wider text-rose-300 mb-1">
-                    อาการบั๊กที่เกิดขึ้นจริง (Production Incident):
-                  </div>
-                  <p className="text-sm sm:text-base font-semibold">
-                    {selectedPreset.sabotage.symptom}
-                  </p>
-                </div>
-
-                {/* Code Diff Hint if line clicked */}
-                <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 text-xs flex items-center justify-between">
-                  <div>
-                    <span className="text-slate-400">บรรทัดที่คุณคลิกตรวจสอบในโค้ดฝั่งซ้าย: </span>
-                    {selectedSabotageLine ? (
-                      <span
-                        className={`font-bold ${
-                          selectedSabotageLine === selectedPreset.sabotage.sabotagedLine
-                            ? "text-emerald-400"
-                            : "text-amber-300"
-                        }`}
-                      >
-                        บรรทัดที่ {selectedSabotageLine}{" "}
-                        {selectedSabotageLine === selectedPreset.sabotage.sabotagedLine
-                          ? "(🎯 เจอจุดที่ถูกวางยาแล้ว!)"
-                          : "(ยังไม่ใช่วายร้ายตัวจริง ลองดูบรรทัดอื่น)"}
-                      </span>
-                    ) : (
-                      <span className="text-cyan-300">
-                        ลองคลิกบรรทัดที่น่าสงสัยในหน้าต่างโค้ดด้านซ้ายได้เลย!
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Diagnosis Options */}
-                <div className="flex flex-col gap-2.5">
-                  <span className="text-xs font-semibold text-slate-300">
-                    เลือกคำอธิบายสาเหตุของบั๊กที่ถูกต้องที่สุด:
-                  </span>
-                  {selectedPreset.sabotage.options.map((opt) => {
-                    const isPicked = selectedSabotageOpt === opt.id;
+            {/* ตราที่ได้รับ (Badges) และประวัติการเล่น */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+              <div className="lg:col-span-6 bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 flex flex-col gap-3">
+                <h3 className="text-[17px] font-extrabold text-[#1b2a2f] flex items-center gap-2">
+                  <Icon name="shield" size={20} className="text-[#0f766e]" />
+                  <span>ตราความสำเร็จที่ได้รับ ({currentStudent.badges.length}/7)</span>
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {TOPICS.map((t) => {
+                    const unlocked = currentStudent.badges.includes(
+                      t.badgeReward.id
+                    );
                     return (
-                      <button
-                        key={opt.id}
-                        onClick={() =>
-                          handleSelectSabotageOption(opt.id, opt.isCorrect, opt.feedback)
-                        }
-                        className={`p-4 rounded-xl border text-left transition cursor-pointer ${
-                          isPicked
-                            ? opt.isCorrect
-                              ? "bg-emerald-950/50 border-emerald-400 text-emerald-100"
-                              : "bg-rose-950/50 border-rose-400 text-rose-100"
-                            : "bg-slate-950/70 hover:bg-slate-900 border-slate-800 text-slate-200"
+                      <div
+                        key={t.badgeReward.id}
+                        className={`p-3 rounded-xl border flex items-center gap-3 ${
+                          unlocked
+                            ? "bg-[#e3f1ee] border-[#0f766e] text-[#0b4f49]"
+                            : "bg-[#eef3f1] border-[#cfe0dc] text-[#475b60] opacity-65"
                         }`}
                       >
-                        <div className="text-xs sm:text-sm font-semibold">{opt.text}</div>
-                        {isPicked && (
-                          <div className="mt-2 pt-2 border-t border-white/10 text-xs">
-                            {opt.feedback}
+                        <StatusCircle
+                          variant={unlocked ? "badge" : "locked"}
+                          size="sm"
+                          label={t.badgeReward.name}
+                        />
+                        <div className="min-w-0">
+                          <div className="text-[14px] font-extrabold truncate">
+                            {t.badgeReward.name}
                           </div>
-                        )}
-                      </button>
+                          <div className="text-[12px] truncate">
+                            {t.badgeReward.description}
+                          </div>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
-
-                {sabotageSolved && (
-                  <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-400/50 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-bold text-emerald-300">
-                        🎉 ภารกิจสำเร็จ! คุณซ่อมโค้ดที่ถูกวางยาได้สำเร็จ!
-                      </div>
-                      <div className="text-xs text-slate-300">
-                        โค้ดเดิมที่ถูกต้องคือ:{" "}
-                        <code className="text-cyan-300 font-mono">
-                          {selectedPreset.sabotage.originalCode.trim()}
-                        </code>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setActiveStage("mastery")}
-                      className="px-5 py-2.5 rounded-xl font-bold text-xs bg-emerald-400 text-slate-950 hover:brightness-110 transition cursor-pointer"
-                    >
-                      รับใบรับรอง Code Mastery Card 🏆 ➔
-                    </button>
-                  </div>
-                )}
               </div>
-            )}
 
-            {/* ==================== STAGE 4: HOLOGRAPHIC MASTERY CARD & LEADERBOARD ==================== */}
-            {activeStage === "mastery" && (
-              <div className="bg-slate-900/75 border border-slate-800 rounded-2xl p-5 sm:p-6 flex flex-col gap-6 shadow-2xl">
-                {/* Holographic Mastery Card */}
-                <div className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-cyan-950/80 via-slate-900 to-fuchsia-950/80 border border-cyan-400/50 shadow-xl">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <span className="text-[11px] font-mono uppercase tracking-widest px-2.5 py-1 rounded-full bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">
-                        VERIFIED CODE COMPREHENSION CERTIFICATE
-                      </span>
-                      <h2 className="text-2xl font-extrabold text-white mt-2">{studentName}</h2>
-                      <p className="text-xs text-cyan-200 mt-0.5">
-                        ผ่านการพิสูจน์ความเข้าใจโค้ด: <strong>{selectedPreset.title}</strong>
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs text-slate-400 uppercase">ระดับความเข้าใจ</div>
-                      <div className="text-4xl font-black bg-gradient-to-r from-amber-300 via-cyan-300 to-fuchsia-400 bg-clip-text text-transparent">
-                        RANK {masteryRank}
-                      </div>
-                      <div className="text-xs font-bold text-emerald-300">
-                        คะแนนรวม {totalMasteryScore}/100
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 4 Pillar Bars */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
-                    {[
-                      { label: "Logic & Flow", val: radarScores.logic },
-                      { label: "Data State", val: radarScores.state },
-                      { label: "Edge Cases", val: radarScores.edgeCase },
-                      { label: "Syntax Pattern", val: radarScores.syntax },
-                    ].map((stat) => (
+              <div className="lg:col-span-6 bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 flex flex-col gap-3">
+                <h3 className="text-[17px] font-extrabold text-[#1b2a2f] flex items-center gap-2">
+                  <Icon name="chart" size={20} className="text-[#0f766e]" />
+                  <span>ประวัติการฝึกอ่านโค้ดล่าสุด</span>
+                </h3>
+                {currentStudent.history.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {currentStudent.history.map((h, i) => (
                       <div
-                        key={stat.label}
-                        className="bg-slate-950/70 border border-slate-800 rounded-xl p-3"
+                        key={i}
+                        className="p-3 rounded-xl bg-[#eef3f1] border border-[#cfe0dc] flex items-center justify-between gap-2"
                       >
-                        <div className="text-[11px] text-slate-400">{stat.label}</div>
-                        <div className="text-lg font-bold text-cyan-300">{stat.val}%</div>
-                        <div className="w-full h-1.5 bg-slate-800 rounded-full mt-1.5 overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-cyan-400 to-fuchsia-400"
-                            style={{ width: `${stat.val}%` }}
-                          />
+                        <div>
+                          <div className="text-[14px] font-extrabold text-[#1b2a2f]">
+                            {h.topicTitle}
+                          </div>
+                          <div className="text-[12px] text-[#475b60]">
+                            {h.timestamp} · ความเข้าใจ {h.scorePercent}%
+                          </div>
                         </div>
+                        <span className="px-2.5 py-1 rounded-lg bg-[#fff4d6] text-[#3d2603] border border-[#f0a92e] text-[13px] font-extrabold">
+                          +{h.xpEarned} XP
+                        </span>
                       </div>
                     ))}
                   </div>
-
-                  <div className="flex flex-wrap items-center justify-between gap-3 mt-6 pt-4 border-t border-white/10">
-                    <button
-                      onClick={handleSaveMasterySession}
-                      className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-400 text-slate-950 hover:brightness-110 transition cursor-pointer"
-                    >
-                      💾 บันทึกคะแนนลงกระดานสถิติ (LocalStorage DB)
-                    </button>
-                    <button
-                      onClick={handleExportTeacherReport}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-400/40 transition cursor-pointer"
-                    >
-                      📥 ดาวน์โหลดไฟล์ JSON ส่งอาจารย์
-                    </button>
-                  </div>
-                </div>
-
-                {/* Classroom Leaderboard Table */}
-                <div>
-                  <h3 className="text-sm font-bold text-slate-200 mb-2.5 flex items-center justify-between">
-                    <span>📊 กระดานสถิติความเข้าใจโค้ดของห้องเรียน (ไม่ต้องตั้งเซิร์ฟเวอร์ DB)</span>
-                    <span className="text-[11px] font-normal text-slate-400">
-                      เก็บข้อมูลอัตโนมัติใน Browser LocalStorage
-                    </span>
-                  </h3>
-                  <div className="overflow-x-auto rounded-xl border border-slate-800">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
-                        <tr>
-                          <th className="py-2.5 px-3">ผู้เรียน</th>
-                          <th className="py-2.5 px-3">โจทย์โค้ด</th>
-                          <th className="py-2.5 px-3">คะแนน</th>
-                          <th className="py-2.5 px-3">Rank</th>
-                          <th className="py-2.5 px-3">เวลา</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/70 bg-slate-900/40">
-                        {savedSessions.map((s) => (
-                          <tr key={s.id} className="hover:bg-slate-800/40">
-                            <td className="py-2.5 px-3 font-semibold text-slate-200">
-                              {s.studentName}
-                            </td>
-                            <td className="py-2.5 px-3 text-slate-400 truncate max-w-[180px]">
-                              {s.presetTitle}
-                            </td>
-                            <td className="py-2.5 px-3 font-mono text-cyan-300 font-bold">
-                              {s.totalScore}%
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <span className="px-2 py-0.5 rounded font-bold bg-amber-400/20 text-amber-300">
-                                {s.rank}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3 text-slate-500">{s.timestamp}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                ) : (
+                  <p className="text-[14px] text-[#475b60]">
+                    ยังไม่มีประวัติการเล่น เริ่มฝึกเรื่องที่ 1 ในหน้าเส้นทางเควสต์ได้เลย!
+                  </p>
+                )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* ==================== TAB 5: บันทึกการใช้ AI (≥ 5 Prompts ตามเกณฑ์ส่งงานหน้า 1) ==================== */}
+        {studentTab === "ailog" && (
+          <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-6 flex flex-col gap-5">
+            <div>
+              <span className="px-3 py-1 rounded-full bg-[#e3f1ee] text-[#0b4f49] text-[12px] font-extrabold">
+                รายการส่งงาน · บันทึกการใช้ AI (AI Log ≥ 5 Prompts)
+              </span>
+              <h2 className="text-[22px] font-extrabold text-[#1b2a2f] mt-2">
+                บันทึกการใช้ AI พัฒนาโปรเจกต์ &ldquo;โค้ดนี้ฉันอธิบายได้&rdquo;
+              </h2>
+              <p className="text-[14px] text-[#475b60]">
+                แสดงรายการ Prompt ที่ใช้จริง ปัญหาที่พบจากผลลัพธ์ของ AI และวิธีที่ทีมปรับปรุงแก้ไขด้วยตัวเองตามหลักการที่ต้องรักษา
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {AI_USAGE_LOGS.map((log) => (
+                <div
+                  key={log.id}
+                  className="p-4 rounded-2xl bg-[#eef3f1] border-2 border-[#cfe0dc] flex flex-col gap-2.5"
+                >
+                  <div className="text-[16px] font-extrabold text-[#0b4f49]">
+                    {log.promptTitle}
+                  </div>
+                  <div className="p-3 rounded-xl bg-white border border-[#cfe0dc] text-[14px]">
+                    <strong className="text-[#0f766e]">Prompt ที่สั่ง AI: </strong>
+                    {log.promptText}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[13px]">
+                    <div className="p-3 rounded-xl bg-[#f8d9d4] text-[#7d1d10]">
+                      <strong>ปัญหาที่พบจากโค้ด/เนื้อหาที่ AI สร้าง:</strong>
+                      <p className="mt-0.5">{log.problemFound}</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[#d8efdc] text-[#14532d]">
+                      <strong>วิธีที่ทีมปรับแก้และพัฒนาต่อ:</strong>
+                      <p className="mt-0.5">{log.solutionApplied}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
-
-      {/* Modal: Paste Custom Code */}
-      {showCustomModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-xl w-full p-6 flex flex-col gap-4 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white">
-                ✨ วางโค้ดของคุณเองเพื่อให้ระบบผ่าตัด X-Ray สด
-              </h3>
-              <button
-                onClick={() => setShowCustomModal(false)}
-                className="text-slate-400 hover:text-white text-sm cursor-pointer"
-              >
-                ✕ ปิด
-              </button>
-            </div>
-            <p className="text-xs text-slate-400">
-              วางโค้ดภาษาใดก็ได้ (JS, TS, Python, C, Java) ระบบจะสร้าง X-Ray Flow, คำถามสืบสวนจากเป็ด และด่านวางยาให้อัตโนมัติทันที!
-            </p>
-            <textarea
-              rows={8}
-              value={customCodeInput}
-              onChange={(e) => setCustomCodeInput(e.target.value)}
-              placeholder={`function calculateGrade(score) {\n  if (score >= 80) return "A";\n  if (score >= 50) return "Pass";\n  return "Fail";\n}`}
-              className="w-full rounded-xl bg-slate-950 border border-slate-700 p-3 font-mono text-xs text-cyan-200 focus:outline-none focus:border-cyan-400"
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowCustomModal(false)}
-                className="px-4 py-2 rounded-xl text-xs bg-slate-800 text-slate-300 cursor-pointer"
-              >
-                ยกเลิก
-              </button>
-              <button
-                onClick={handleAnalyzeCustomCode}
-                className="px-5 py-2 rounded-xl text-xs font-bold bg-cyan-400 text-slate-950 cursor-pointer"
-              >
-                🧬 เริ่มผ่าตัดโค้ดชุดนี้ทันที
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Optional Gemini API Key */}
-      {showApiModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 flex flex-col gap-4 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-white">
-                ⚙️ ตั้งค่า Gemini API Key (ทางเลือกเสริม)
-              </h3>
-              <button
-                onClick={() => setShowApiModal(false)}
-                className="text-slate-400 hover:text-white text-sm cursor-pointer"
-              >
-                ✕ ปิด
-              </button>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              เว็บนี้ทำงานได้ <strong>100% ทันทีโดยไม่ต้องมี API Key</strong> ด้วยระบบ AST Heuristic Engine ในตัวเครื่อง (ปลอดภัยแม้เน็ตในห้องแข่งหลุด!) แต่ถ้าต้องการให้ Gemini 2.5 Flash ช่วยตรวจคำตอบแบบสดๆ สามารถใส่ API Key ด้านล่างได้เลยครับ
-            </p>
-            <input
-              type="password"
-              value={geminiApiKey}
-              onChange={(e) => setGeminiApiKey(e.target.value)}
-              placeholder="AIzaSy..."
-              className="w-full rounded-xl bg-slate-950 border border-slate-700 p-3 font-mono text-xs text-cyan-300 focus:outline-none focus:border-cyan-400"
-            />
-            <div className="flex justify-end">
-              <button
-                onClick={() => setShowApiModal(false)}
-                className="px-5 py-2 rounded-xl text-xs font-bold bg-cyan-400 text-slate-950 cursor-pointer"
-              >
-                บันทึกการตั้งค่า
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

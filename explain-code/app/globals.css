@@ -1,26 +1,124 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* เขียวหลัก (แบรนด์ การกระทำหลัก ผ่านแล้ว) */
+  --teal-900: #0b4f49;
+  --teal-800: #0b5e57;
+  --teal-700: #0f766e;
+  --teal-shadow: #09504a;
+  --teal-50: #e3f1ee;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* ทอง (XP เควสต์ปัจจุบัน รางวัล) */
+  --gold-500: #f0a92e;
+  --gold-400: #f6b73c;
+  --gold-shadow: #b97a0c;
+  --gold-50: #fff4d6;
+  --gold-ink: #3d2603;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* ม่วง (บอสด่านเท่านั้น) */
+  --boss-600: #6d3fc0;
+  --boss-700: #52299e;
+  --boss-shadow: #3f1f7d;
+
+  /* กลางและพื้นหลัง */
+  --bg: #eef3f1;
+  --surface: #ffffff;
+  --line: #cfe0dc;
+  --line-strong: #b6c9c5;
+  --locked: #d8e3e0;
+  --ink: #1b2a2f;
+  --muted: #475b60;
+
+  /* สถานะความเข้าใจ (ใช้คู่กับข้อความเสมอ ไม่ใช้สีอย่างเดียว) */
+  --good-bg: #d8efdc;
+  --good-ink: #14532d;
+  --mid-bg: #fbeacb;
+  --mid-ink: #5c3704;
+  --low-bg: #f8d9d4;
+  --low-ink: #7d1d10;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-noto-thai), "Noto Sans Thai", sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+code,
+pre,
+.font-code {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 16px;
+}
+
+/* ปุ่มสไตล์มินิมอล คอนทราสต์ชัด กดง่าย (Tactile Minimal Buttons) */
+.press-teal {
+  background-color: #0f766e !important;
+  border: 2px solid #0b5e57 !important;
+  box-shadow: 0 4px 0 #09504a;
+  color: #ffffff !important;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease;
+}
+.press-teal:hover:not(:disabled) {
+  background-color: #0b5e57 !important;
+}
+.press-teal:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #09504a;
+}
+
+.press-gold {
+  background-color: #f6b73c !important;
+  border: 2px solid #b97a0c !important;
+  box-shadow: 0 4px 0 #b97a0c;
+  color: #3d2603 !important;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease;
+}
+.press-gold:hover:not(:disabled) {
+  background-color: #f0a92e !important;
+}
+.press-gold:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #b97a0c;
+}
+
+.press-boss {
+  background-color: #6d3fc0 !important;
+  border: 2px solid #52299e !important;
+  box-shadow: 0 4px 0 #3f1f7d;
+  color: #ffffff !important;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease;
+}
+.press-boss:hover:not(:disabled) {
+  background-color: #52299e !important;
+}
+.press-boss:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #3f1f7d;
+}
+
+.press-secondary {
+  background-color: #e3f1ee !important;
+  border: 2px solid #0f766e !important;
+  box-shadow: 0 3px 0 #0b5e57;
+  color: #0b4f49 !important;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease;
+}
+.press-secondary:hover:not(:disabled) {
+  background-color: #cfe0dc !important;
+}
+.press-secondary:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #0b5e57;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff;
+  }
 }
