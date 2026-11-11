@@ -961,7 +961,7 @@ export default function ExplainCodeApp() {
 
           {/* การ์ด 2 ใบเป็นทางเลือกหลัก: "การเรียนรู้" และ "อธิบายโค้ด" */}
           <section className="grid grid-cols-1 gap-6 md:grid-cols-2 mb-14">
-            {/* การ์ดที่ 1: การเรียนรู้ */}
+            {/* การ์ดที่ 1: การเรียนรู้ (รวมเควสต์ PRIMM & คอร์สเรียน) */}
             <div className="group relative flex flex-col justify-between rounded-3xl border-2 border-[#d8d1c5] bg-white p-7 sm:p-8 shadow-xs transition-all hover:border-[#2a4d3e] hover:shadow-md">
               <div>
                 <div className="flex items-center justify-between mb-5">
@@ -969,29 +969,29 @@ export default function ExplainCodeApp() {
                     <Icon name="book" className="h-7 w-7" />
                   </div>
                   <span className="rounded-full bg-[#e8f0ec] px-3 py-1 text-xs font-bold text-[#2a4d3e]">
-                    ทางเลือกที่ 1 · คอร์ส &amp; บทเรียน
+                    ทางเลือกที่ 1 · เควสต์ PRIMM &amp; คอร์สเรียน
                   </span>
                 </div>
 
                 <h2 className="text-2xl font-extrabold text-[#1e1e1c]">
-                  การเรียนรู้ (Learning)
+                  การเรียนรู้ (Learning &amp; Quests)
                 </h2>
                 <p className="mt-2.5 text-sm leading-relaxed text-[#524f49]">
-                  ศึกษาคอร์สและบทเรียนที่ครูผู้สอนจัดเตรียมไว้ ครอบคลุมตั้งแต่ตัวแปร เงื่อนไข ลูป ไปจนถึงการจับบั๊กจากโค้ด AI พร้อมตัวอย่างโค้ดที่กดรันได้จริงและแบบทดสอบท้ายบทเรียน
+                  ฝึกทำเควสต์อ่านโค้ด 4 ขั้น (PRIMM) ทั้ง 7 ด่าน วัดความเข้าใจด้วยตาราง Block Model 12 ช่อง พร้อมศึกษาคอร์สและบทเรียนที่ครูผู้สอนจัดเตรียมไว้ในพื้นที่เดียว
                 </p>
 
                 <ul className="mt-5 space-y-2 text-xs font-semibold text-[#3d3b36]">
                   <li className="flex items-center gap-2">
                     <span className="text-[#2a4d3e]">✓</span>
-                    ดูคอร์สที่เผยแพร่แล้วทั้งหมดและเข้าร่วมด้วยรหัสห้องเรียน
+                    ตะลุยเส้นทางเควสต์อ่านโค้ด 7 เรื่อง (PRIMM) และสะสม XP / ตราเกียรติยศ
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="text-[#2a4d3e]">✓</span>
-                    บันทึกประวัติการเรียนอัตโนมัติ และกดเรียนต่อจากบทที่ค้างไว้ได้ทันที
+                    วัดความเข้าใจเชิงลึกด้วยแผนที่ Block Model 12 ช่อง (Text · Execution · Function)
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="text-[#2a4d3e]">✓</span>
-                    ฝึกทำเควสต์อ่านโค้ด 4 ขั้น (PRIMM) และวัดผลด้วย Block Model 12 ช่อง
+                    เรียนคอร์สเสริมจากครูผู้สอน เข้าร่วมด้วยรหัสห้องเรียน และบันทึกความคืบหน้าอัตโนมัติ
                   </li>
                 </ul>
               </div>
@@ -1001,16 +1001,9 @@ export default function ExplainCodeApp() {
                   href="/courses"
                   className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#2a4d3e] px-5 py-3.5 text-sm font-bold text-white shadow-xs hover:bg-[#1f3b2f] transition-colors"
                 >
-                  <Icon name="book" className="h-4 w-4" />
-                  <span>เข้าสู่โหมดการเรียนรู้ (ดูคอร์ส) →</span>
+                  <Icon name="play" className="h-4 w-4" filled />
+                  <span>เข้าสู่การเรียนรู้และฝึกเควสต์ →</span>
                 </Link>
-                <button
-                  type="button"
-                  onClick={openClassicPortal}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-4 py-3.5 text-xs font-bold text-[#2a4d3e] hover:bg-[#f2efe8] transition-colors cursor-pointer"
-                >
-                  <span>ฝึกเควสต์ PRIMM</span>
-                </button>
               </div>
             </div>
 
