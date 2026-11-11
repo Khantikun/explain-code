@@ -39,6 +39,32 @@ export const INITIAL_COURSES: Course[] = [
     created_at: "2026-11-10T09:00:00.000Z",
     updated_at: "2026-11-10T09:00:00.000Z",
   },
+  {
+    id: "course-python-fundamentals",
+    teacher_id: "tch-1",
+    teacher_name: "ดร.นภา วิทยาการข้อมูล",
+    title: "พื้นฐาน Python สำหรับการอ่านโค้ด AI และวิเคราะห์ข้อมูล",
+    description:
+      "เข้าใจโครงสร้างการย่อหน้า (Indentation), เงื่อนไข if/elif/else, ลูป for ... in range() และการจัดการ List ในภาษา Python",
+    join_code: "PY2026",
+    level: "beginner",
+    is_published: true,
+    created_at: "2026-11-10T10:00:00.000Z",
+    updated_at: "2026-11-10T10:00:00.000Z",
+  },
+  {
+    id: "course-sql-fundamentals",
+    teacher_id: "tch-1",
+    teacher_name: "อ.กิตติ ระบบฐานข้อมูล",
+    title: "การอ่านและตรวจสอบคำสั่ง SQL สำหรับดึงข้อมูลเชิงลึก",
+    description:
+      "ฝึกแกะลำดับการทำงานจริงของ SELECT, FROM, WHERE, GROUP BY, HAVING และ ORDER BY เพื่อให้ตรวจคำสั่ง SQL ที่ AI สร้างได้อย่างแม่นยำ",
+    join_code: "SQL2026",
+    level: "beginner",
+    is_published: true,
+    created_at: "2026-11-10T11:00:00.000Z",
+    updated_at: "2026-11-10T11:00:00.000Z",
+  },
 ];
 
 export const INITIAL_LESSONS: Lesson[] = [
@@ -193,6 +219,139 @@ console.log("ค่าเฉลี่ย =", average);`,
     created_at: "2026-11-10T09:10:00.000Z",
     updated_at: "2026-11-10T09:10:00.000Z",
   },
+  {
+    id: "lesson-py-1",
+    course_id: "course-python-fundamentals",
+    title: "บทที่ 1: โครงสร้างการย่อหน้า (Indentation) และ if / elif / else ใน Python",
+    content_md: `### จุดเด่นของ Python ที่ต้องสังเกตเวลาอ่านโค้ด
+ในภาษา Python จะไม่ใช้เครื่องหมายปีกกา \`{ }\` เพื่อแบ่งขอบเขตบล็อกคำสั่ง แต่ใช้ **เครื่องหมายโคลอน (\`:\`)** คู่กับ **การย่อหน้า (Indentation)**
+
+- ทุกบรรทัดที่ย่อหน้าเข้ามาในระดับเดียวกัน คือคำสั่งที่อยู่ในบล็อกเดียวกัน
+- ใช้ \`elif\` แทนคำว่า \`else if\`
+- ใช้ \`print(...)\` เพื่อแสดงผลออกทางหน้าจอ`,
+    code_example: `score = 82
+if score >= 80:
+    grade = "A"
+elif score >= 70:
+    grade = "B"
+else:
+    grade = "C"
+print("เกรดที่ได้ =", grade)`,
+    programming_language: "python",
+    external_url: "https://docs.python.org/3/tutorial/controlflow.html",
+    video_url: null,
+    quiz_questions: [
+      {
+        id: "q-py-1-1",
+        question: "ในภาษา Python สิ่งใดใช้กำหนดขอบเขตว่าคำสั่งบรรทัดนั้นอยู่ในบล็อก if?",
+        options: [
+          "การย่อหน้า (Indentation) ใต้บรรทัดที่ลงท้ายด้วยเครื่องหมาย :",
+          "เครื่องหมายปีกกา { }",
+          "เครื่องหมายอัฒภาค (Semicolon ;)",
+          "คำสั่ง end if",
+        ],
+        correctIndex: 0,
+        explanation: "Python ใช้การย่อหน้า (Indentation) เพื่อระบุขอบเขตบล็อกคำสั่ง",
+      },
+    ],
+    order_index: 1,
+    is_published: true,
+    created_at: "2026-11-10T10:10:00.000Z",
+    updated_at: "2026-11-10T10:10:00.000Z",
+  },
+  {
+    id: "lesson-py-2",
+    course_id: "course-python-fundamentals",
+    title: "บทที่ 2: การวนซ้ำด้วย for ... in range() และข้อควรระวังเรื่องขอบเขต",
+    content_md: `### ระวังบั๊กจาก range(start, stop)
+เวลาสั่ง AI เขียนลูปใน Python มักจะเจอคำสั่ง \`range(start, stop)\`
+- **จุดสำคัญ**: \`range(1, 5)\` จะสร้างตัวเลข \`1, 2, 3, 4\` เท่านั้น (**ไม่รวมเลข 5!**)
+- หากต้องการวนตั้งแต่ 1 ถึง 5 ต้องเขียน \`range(1, 6)\``,
+    code_example: `total = 0
+for i in range(1, 5):
+    total += i * 10
+print("ผลรวม =", total)`,
+    programming_language: "python",
+    external_url: null,
+    video_url: null,
+    quiz_questions: [
+      {
+        id: "q-py-2-1",
+        question: "คำสั่ง range(1, 5) จะวนลูปทั้งหมดกี่รอบ?",
+        options: ["4 รอบ (i = 1, 2, 3, 4)", "5 รอบ (i = 1 ถึง 5)", "6 รอบ", "3 รอบ"],
+        correctIndex: 0,
+        explanation: "เพราะค่า stop (5) จะไม่ถูกรวม จึงวนเฉพาะ 1, 2, 3, 4 รวม 4 รอบ",
+      },
+    ],
+    order_index: 2,
+    is_published: true,
+    created_at: "2026-11-10T10:20:00.000Z",
+    updated_at: "2026-11-10T10:20:00.000Z",
+  },
+  {
+    id: "lesson-sql-1",
+    course_id: "course-sql-fundamentals",
+    title: "บทที่ 1: ลำดับการทำงานจริงของ SELECT, FROM, WHERE และ ORDER BY",
+    content_md: `### เวลาอ่าน SQL อย่าอ่านจากบนลงล่างอย่างเดียว!
+แม้เราจะเขียน \`SELECT\` ไว้บรรทัดแรก แต่เวลาฐานข้อมูลทำงานจริง มันจะประมวลผลตามลำดับนี้:
+1. **\`FROM\`**: ไปดึงตารางข้อมูลตั้งต้นมาก่อน
+2. **\`WHERE\`**: กรองเฉพาะแถวที่ตรงเงื่อนไข
+3. **\`SELECT\`**: เลือกเฉพาะคอลัมน์ที่ต้องการแสดงผล
+4. **\`ORDER BY\`**: เรียงลำดับผลลัพธ์จากน้อยไปมาก (\`ASC\`) หรือมากไปน้อย (\`DESC\`)`,
+    code_example: `SELECT name, price
+FROM products
+WHERE price >= 500
+ORDER BY price DESC;`,
+    programming_language: "sql",
+    external_url: "https://www.postgresql.org/docs/current/tutorial-select.html",
+    video_url: null,
+    quiz_questions: [
+      {
+        id: "q-sql-1-1",
+        question: "ในคำสั่ง SQL ข้างต้น ส่วนใดถูกประมวลผลเพื่อคัดแถวข้อมูลออกก่อนจะนำมาเรียงลำดับ?",
+        options: ["WHERE price >= 500", "SELECT name, price", "ORDER BY price DESC", "ASC"],
+        correctIndex: 0,
+        explanation: "ฐานข้อมูลจะดึงตารางจาก FROM แล้วกรองแถวด้วย WHERE ก่อนจะเลือกคอลัมน์และเรียงลำดับ",
+      },
+    ],
+    order_index: 1,
+    is_published: true,
+    created_at: "2026-11-10T11:10:00.000Z",
+    updated_at: "2026-11-10T11:10:00.000Z",
+  },
+  {
+    id: "lesson-sql-2",
+    course_id: "course-sql-fundamentals",
+    title: "บทที่ 2: การจัดกลุ่มข้อมูลด้วย GROUP BY และการกรองกลุ่มด้วย HAVING",
+    content_md: `### ความต่างของ WHERE กับ HAVING ที่ AI มักเขียนสลับกัน
+- **\`WHERE\`**: ใช้กรองข้อมูล **รายแถว** ก่อนการจัดกลุ่ม \`GROUP BY\`
+- **\`HAVING\`**: ใช้กรองข้อมูล **ระดับกลุ่ม** หลังจากทำ \`GROUP BY\` และคำนวณฟังก์ชันรวมผล เช่น \`SUM()\`, \`COUNT()\`, \`AVG()\` แล้ว`,
+    code_example: `SELECT category, COUNT(*) AS item_count, SUM(price) AS total_price
+FROM products
+GROUP BY category
+HAVING SUM(price) >= 1000;`,
+    programming_language: "sql",
+    external_url: null,
+    video_url: null,
+    quiz_questions: [
+      {
+        id: "q-sql-2-1",
+        question: "หากต้องการกรองเฉพาะหมวดหมู่ที่มียอดรวม SUM(price) ตั้งแต่ 1000 ขึ้นไป ต้องใช้คำสั่งใด?",
+        options: [
+          "HAVING SUM(price) >= 1000",
+          "WHERE SUM(price) >= 1000",
+          "ORDER BY SUM(price) >= 1000",
+          "GROUP BY SUM(price)",
+        ],
+        correctIndex: 0,
+        explanation: "การกรองด้วยฟังก์ชันรวมผล (Aggregate Function) หลัง GROUP BY ต้องใช้ HAVING เสมอ",
+      },
+    ],
+    order_index: 2,
+    is_published: true,
+    created_at: "2026-11-10T11:20:00.000Z",
+    updated_at: "2026-11-10T11:20:00.000Z",
+  },
 ];
 
 // ============================================================================
@@ -207,7 +366,16 @@ export function loadLocalCourses(): Course[] {
       localStorage.setItem(LMS_COURSES_STORAGE_KEY, JSON.stringify(INITIAL_COURSES));
       return INITIAL_COURSES;
     }
-    return JSON.parse(raw);
+    const parsed: Course[] = JSON.parse(raw);
+    const missing = INITIAL_COURSES.filter(
+      (ic) => !parsed.some((p) => p.id === ic.id)
+    );
+    if (missing.length > 0) {
+      const merged = [...parsed, ...missing];
+      localStorage.setItem(LMS_COURSES_STORAGE_KEY, JSON.stringify(merged));
+      return merged;
+    }
+    return parsed;
   } catch {
     return INITIAL_COURSES;
   }
@@ -230,7 +398,16 @@ export function loadLocalLessons(): Lesson[] {
       localStorage.setItem(LMS_LESSONS_STORAGE_KEY, JSON.stringify(INITIAL_LESSONS));
       return INITIAL_LESSONS;
     }
-    return JSON.parse(raw);
+    const parsed: Lesson[] = JSON.parse(raw);
+    const missing = INITIAL_LESSONS.filter(
+      (il) => !parsed.some((p) => p.id === il.id)
+    );
+    if (missing.length > 0) {
+      const merged = [...parsed, ...missing];
+      localStorage.setItem(LMS_LESSONS_STORAGE_KEY, JSON.stringify(merged));
+      return merged;
+    }
+    return parsed;
   } catch {
     return INITIAL_LESSONS;
   }

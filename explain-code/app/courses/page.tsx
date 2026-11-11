@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   SiteHeader,
   getClientSession,
@@ -21,8 +21,13 @@ import {
   StudentRecord,
   AI_USAGE_LOGS,
   getMasteryStatus,
-  runJavaScriptReal,
 } from "../lib/curriculum";
+import {
+  LANGUAGE_TRACKS,
+  LearningLanguage,
+  getTopicsByLanguage,
+  runCodeByLanguage,
+} from "../lib/language-tracks";
 import { Course, Enrollment, Lesson } from "../lib/supabase";
 import {
   loadLocalCourses,
@@ -54,8 +59,51 @@ function formatAttemptTimestamp(isoStr?: string): string {
   }
 }
 
-export default function CoursesPage() {
+function isCourseForLanguage(
+  course: Course,
+  courseLessons: Lesson[],
+  lang: LearningLanguage
+): boolean {
+  const titleUpper = `${course.title} ${course.description} ${course.join_code}`.toUpperCase();
+  if (lang === "python") {
+    return (
+      course.id.includes("python") ||
+      titleUpper.includes("PYTHON") ||
+      course.join_code.toUpperCase().startsWith("PY") ||
+      courseLessons.some((l) => l.programming_language.toLowerCase() === "python")
+    );
+  }
+  if (lang === "sql") {
+    return (
+      course.id.includes("sql") ||
+      titleUpper.includes("SQL") ||
+      course.join_code.toUpperCase().startsWith("SQL") ||
+      courseLessons.some((l) => l.programming_language.toLowerCase() === "sql")
+    );
+  }
+  // javascript (default for courses that are not python/sql)
+  const isPyOrSql =
+    course.id.includes("python") ||
+    course.id.includes("sql") ||
+    titleUpper.includes("PYTHON") ||
+    titleUpper.includes("SQL") ||
+    courseLessons.some((l) =>
+      ["python", "sql"].includes(l.programming_language.toLowerCase())
+    );
+  return !isPyOrSql;
+}
+
+function CoursesContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const langParam = searchParams.get("lang") as LearningLanguage | null;
+
+  const [selectedLanguage, setSelectedLanguage] =
+    useState<LearningLanguage | null>(
+      langParam && ["javascript", "python", "sql"].includes(langParam)
+        ? langParam
+        : null
+    );
   const [session, setSession] = useState<ClientAuthSession | null>(null);
   const [activeTab, setActiveTab] = useState<LearningTab>("quest");
 
@@ -67,9 +115,9 @@ export default function CoursesPage() {
   const [selectedTopicId, setSelectedTopicId] = useState<number>(1);
   const [unlockAllDemo, setUnlockAllDemo] = useState<boolean>(false);
 
-  // ห้องทดลองรันโค้ด JavaScript จริง
+  // ห้องทดลองรันโค้ดตามภาษาที่เลือก
   const [playgroundCode, setPlaygroundCode] = useState<string>(
-    `let items = [20, 35, 15];\nlet total = 0;\nfor (let i = 0; i < items.length; i++) {\n  total += items[i];\n}\nconsole.log("ผลรวม =", total);`
+    LANGUAGE_TRACKS[0].defaultPlaygroundCode
   );
   const [playgroundOutput, setPlaygroundOutput] = useState<string>("");
 
@@ -82,6 +130,45 @@ export default function CoursesPage() {
     type: "error" | "success";
     text: string;
   } | null>(null);
+
+  // ซิงค์ URL query param ?lang=... กับ state
+  useEffect(() => {
+    if (langParam && ["javascript", "python", "sql"].includes(langParam)) {
+      setSelectedLanguage(langParam);
+      const track = LANGUAGE_TRACKS.find((t) => t.id === langParam);
+      const langTopics = getTopicsByLanguage(langParam);
+      if (track) {
+        setPlaygroundCode(track.defaultPlaygroundCode);
+        setPlaygroundOutput("");
+      }
+      if (langTopics.length > 0) {
+        setSelectedTopicId(langTopics[0].id);
+      }
+    } else {
+      setSelectedLanguage(null);
+    }
+  }, [langParam]);
+
+  const handleSelectLanguage = (lang: LearningLanguage) => {
+    const track = LANGUAGE_TRACKS.find((t) => t.id === lang);
+    const langTopics = getTopicsByLanguage(lang);
+    setSelectedLanguage(lang);
+    setActiveTab("quest");
+    if (track) {
+      setPlaygroundCode(track.defaultPlaygroundCode);
+      setPlaygroundOutput("");
+    }
+    if (langTopics.length > 0) {
+      setSelectedTopicId(langTopics[0].id);
+    }
+    router.push(`/courses?lang=${lang}`);
+  };
+
+  const handleBackToLanguagePicker = () => {
+    setSelectedLanguage(null);
+    setActiveTab("quest");
+    router.push("/courses");
+  };
 
   const saveStudentsToStorage = (updated: StudentRecord[]) => {
     setStudents(updated);
@@ -172,6 +259,19 @@ export default function CoursesPage() {
     const current = getClientSession();
     setSession(current);
 
+    const handleAuthChange = () => {
+      const updatedSession = getClientSession();
+      setSession(updatedSession);
+      if (!updatedSession) {
+        setActiveTab((prev) => (prev === "profile" ? "quest" : prev));
+      } else if (updatedSession.role === "student" && updatedSession.userId) {
+        setCurrentStudentId(updatedSession.userId);
+      }
+    };
+
+    window.addEventListener("explain-code-auth-change", handleAuthChange);
+    window.addEventListener("storage", handleAuthChange);
+
     try {
       const savedRooms = localStorage.getItem(STORAGE_ROOMS_KEY);
       if (savedRooms) {
@@ -255,6 +355,11 @@ export default function CoursesPage() {
     };
 
     void syncFromServer();
+
+    return () => {
+      window.removeEventListener("explain-code-auth-change", handleAuthChange);
+      window.removeEventListener("storage", handleAuthChange);
+    };
   }, [syncStudentData]);
 
   // ข้อมูลนักเรียนปัจจุบันสำหรับระบบเควสต์
@@ -288,11 +393,17 @@ export default function CoursesPage() {
         }
       : students[0]);
 
+  const currentLanguage: LearningLanguage = selectedLanguage || "javascript";
+  const currentTrackMeta =
+    LANGUAGE_TRACKS.find((t) => t.id === currentLanguage) || LANGUAGE_TRACKS[0];
+  const currentLanguageTopics = getTopicsByLanguage(currentLanguage);
+
   const currentStudentRoom = classrooms.find(
     (r) => r.roomCode === currentStudent.roomCode
   );
   const activeTopic =
-    TOPICS.find((t) => t.id === selectedTopicId) || TOPICS[0];
+    currentLanguageTopics.find((t) => t.id === selectedTopicId) ||
+    currentLanguageTopics[0];
 
   const studentLevel = Math.floor(currentStudent.xp / 100) + 1;
   const studentAvgMastery = Math.round(
@@ -311,16 +422,19 @@ export default function CoursesPage() {
     .filter((c) => (currentStudent.cellScores[c.id] ?? 0) < 60)
     .reverse();
 
-  const isTopicUnlocked = (topicId: number): boolean => {
+  const isTopicUnlocked = (topicId: number, idx: number): boolean => {
     if (unlockAllDemo) return true;
-    if (topicId === 1) return true;
+    if (idx === 0) return true;
     if (topicId === 7) {
       return currentStudent.completedTopics.length >= 4;
     }
-    return currentStudent.completedTopics.includes(topicId - 1);
+    const prevTopic = currentLanguageTopics[idx - 1];
+    return prevTopic
+      ? currentStudent.completedTopics.includes(prevTopic.id)
+      : true;
   };
 
-  // เมื่อผู้เรียนเล่นจบด่านเควสต์ -> อัปเดต XP, ตราความสำเร็จ และคะแนน Block Model 12 ช่อง
+  // เมื่อผู้เรียนเล่นจบด่านเควสต์
   const handleCompleteTopic = (result: {
     topicId: number;
     earnedXp: number;
@@ -342,7 +456,7 @@ export default function CoursesPage() {
       feedback: string;
     };
   }) => {
-    const topicObj = TOPICS.find((t) => t.id === result.topicId);
+    const topicObj = currentLanguageTopics.find((t) => t.id === result.topicId);
     const currentStudentSnapshot = currentStudent;
 
     const nextCompleted = currentStudentSnapshot.completedTopics.includes(
@@ -365,7 +479,9 @@ export default function CoursesPage() {
 
     const newHistoryItem = {
       topicId: result.topicId,
-      topicTitle: topicObj?.title || `เรื่องที่ ${result.topicId}`,
+      topicTitle:
+        topicObj?.title ||
+        `${currentTrackMeta.name} เรื่องที่ ${result.topicId}`,
       scorePercent: result.scorePercent,
       xpEarned: result.earnedXp,
       timestamp: "เมื่อสักครู่",
@@ -387,6 +503,15 @@ export default function CoursesPage() {
     );
     if (!updatedStudents.some((stu) => stu.id === currentStudentSnapshot.id)) {
       updatedStudents.push(optimisticStudent);
+    }
+
+    if (!session) {
+      router.push(
+        `/login?redirect=${encodeURIComponent(
+          `/courses?lang=${currentLanguage}`
+        )}`
+      );
+      return;
     }
 
     saveStudentsToStorage(updatedStudents);
@@ -418,6 +543,12 @@ export default function CoursesPage() {
   };
 
   const publishedCourses = courses.filter((c) => c.is_published);
+  const languageFilteredCourses = publishedCourses.filter((c) => {
+    const cLessons = lessons.filter(
+      (l) => l.course_id === c.id && l.is_published
+    );
+    return isCourseForLanguage(c, cLessons, currentLanguage);
+  });
 
   const handleEnrollCourse = async (course: Course) => {
     if (!session) {
@@ -480,7 +611,7 @@ export default function CoursesPage() {
     if (!matched) {
       setJoinMsg({
         type: "error",
-        text: `ไม่พบคอร์สที่เผยแพร่แล้วสำหรับรหัส "${cleanCode}" (ตัวอย่างรหัสคอร์ส: JS2026 หรือ AI2026)`,
+        text: `ไม่พบคอร์สที่เผยแพร่แล้วสำหรับรหัส "${cleanCode}" (ตัวอย่างรหัสคอร์ส: JS2026, PY2026 หรือ SQL2026)`,
       });
       return;
     }
@@ -492,35 +623,254 @@ export default function CoursesPage() {
     await handleEnrollCourse(matched);
   };
 
+  // ==========================================================================
+  // ขั้นตอนที่ 1: หน้าเลือกภาษาที่ต้องการเรียนรู้ (แสดงเมื่อยังไม่ได้เลือกภาษา)
+  // ==========================================================================
+  if (!selectedLanguage) {
+    return (
+      <div className="min-h-screen bg-[#eef3f1] text-[#1b2a2f] flex flex-col">
+        <SiteHeader />
+
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-12 flex flex-col gap-8">
+          {/* Header แนะนำการเลือกภาษา */}
+          <section className="text-center max-w-3xl mx-auto">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#b6c9c5] bg-white px-4 py-1.5 text-xs font-extrabold text-[#0b4f49] shadow-2xs">
+              <Icon name="code" className="h-4 w-4 text-[#0f766e]" />
+              ขั้นตอนที่ 1 · เลือกภาษาโปรแกรมที่คุณต้องการเรียนรู้
+            </span>
+            <h1 className="mt-3.5 text-3xl sm:text-4xl font-extrabold tracking-tight text-[#14221e]">
+              วันนี้คุณอยากฝึกอ่านและแกะโค้ดภาษาอะไร?
+            </h1>
+            <p className="mt-2.5 text-sm sm:text-base text-[#475b60]">
+              แต่ละภาษามีโครงสร้างไวยากรณ์ ประเภทการใช้งาน เควสต์ฝึกอ่านโค้ด 4 ขั้น (PRIMM) และคอร์สเรียนที่แยกออกจากกันอย่างชัดเจน เลือกภาษาที่สนใจเพื่อเข้าสู่เนื้อหาของภาษานั้นได้เลย
+            </p>
+          </section>
+
+          {/* การ์ดเลือกภาษาหลัก 3 ภาษา (JavaScript / Python / SQL) แยกตามประเภท */}
+          <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {LANGUAGE_TRACKS.map((track) => {
+              const trackTopics = getTopicsByLanguage(track.id);
+              const trackCourses = publishedCourses.filter((c) => {
+                const cLessons = lessons.filter(
+                  (l) => l.course_id === c.id && l.is_published
+                );
+                return isCourseForLanguage(c, cLessons, track.id);
+              });
+
+              return (
+                <div
+                  key={track.id}
+                  className="group rounded-3xl border-2 border-[#cfe0dc] bg-white p-6 sm:p-7 shadow-xs hover:border-[#0f766e] hover:shadow-md transition-all flex flex-col justify-between gap-6"
+                >
+                  <div className="flex flex-col gap-4">
+                    {/* หมวดหมู่และป้ายชื่อภาษา */}
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span
+                        className="rounded-full px-3 py-1 text-xs font-extrabold"
+                        style={{
+                          backgroundColor: track.bgTint,
+                          color: track.accentColor,
+                        }}
+                      >
+                        {track.shortBadge}
+                      </span>
+                      <span className="text-xs font-bold text-[#475b60]">
+                        {trackTopics.length} ด่านเควสต์ · {trackCourses.length}{" "}
+                        คอร์สเรียน
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-xs font-extrabold text-[#0f766e]">
+                        {track.categoryLabel}
+                      </span>
+                      <h2 className="mt-1 text-2xl font-extrabold text-[#14221e]">
+                        ภาษา {track.name}
+                      </h2>
+                      <p className="mt-1 text-xs font-bold text-[#1b2a2f]">
+                        {track.tagline}
+                      </p>
+                      <p className="mt-2 text-xs leading-relaxed text-[#475b60]">
+                        {track.description}
+                      </p>
+                    </div>
+
+                    {/* ตัวอย่างหน้าตาโค้ดของภาษานั้น */}
+                    <div className="rounded-2xl bg-[#14221e] p-3.5 text-xs text-[#e3f1ee] font-code overflow-x-auto border border-[#0b4f49]">
+                      <div className="text-[10px] font-sans font-bold text-[#f6b73c] mb-1.5">
+                        ตัวอย่างโค้ดที่จะได้ฝึกในหมวด {track.name}:
+                      </div>
+                      <pre className="text-[12px] leading-relaxed">
+                        {track.sampleCodePreview}
+                      </pre>
+                    </div>
+
+                    {/* เนื้อหาหลักที่แยกตามแต่ละภาษา */}
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-extrabold text-[#14221e]">
+                        เนื้อหาหลักในหมวด {track.name}:
+                      </p>
+                      <ul className="space-y-1.5 text-xs font-semibold text-[#3d4d48]">
+                        {track.highlights.map((item, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="text-[#0f766e] font-extrabold">
+                              ✓
+                            </span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSelectLanguage(track.id)}
+                    className="liquid-glass-primary-btn liquid-press w-full rounded-2xl py-3.5 px-5 text-sm font-extrabold flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Icon name="play" className="h-4 w-4" filled />
+                    <span>เข้าสู่การเรียนรู้ภาษา {track.name} →</span>
+                  </button>
+                </div>
+              );
+            })}
+          </section>
+
+          {/* กล่องกรอกรหัสคอร์ส/รหัสห้องเรียนโดยตรง */}
+          <section className="rounded-3xl border-2 border-[#cfe0dc] bg-white p-6 sm:p-7 shadow-xs flex flex-col md:flex-row items-center justify-between gap-6">
+            <div>
+              <h3 className="text-lg font-extrabold text-[#14221e]">
+                มีรหัสคอร์สเรียนจากครูผู้สอนอยู่แล้วใช่ไหม?
+              </h3>
+              <p className="text-xs sm:text-sm text-[#475b60] mt-0.5">
+                กรอกรหัสคอร์ส (เช่น <code className="font-bold">JS2026</code>,{" "}
+                <code className="font-bold">PY2026</code>, หรือ{" "}
+                <code className="font-bold">SQL2026</code>) เพื่อเข้าสู่บทเรียนของภาษานั้นได้ทันที
+              </p>
+            </div>
+
+            <form
+              onSubmit={handleJoinByCode}
+              className="flex w-full md:w-auto flex-col gap-1.5"
+            >
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={joinCodeInput}
+                  onChange={(e) =>
+                    setJoinCodeInput(e.target.value.toUpperCase())
+                  }
+                  placeholder="กรอกรหัส เช่น PY2026"
+                  className="w-full md:w-52 rounded-xl border-2 border-[#b6c9c5] bg-[#f8fbfa] px-3.5 py-2.5 text-xs font-mono font-bold uppercase text-[#1b2a2f] focus:border-[#0f766e] focus:outline-hidden"
+                />
+                <button
+                  type="submit"
+                  className="press-teal rounded-xl px-4 py-2.5 text-xs font-extrabold text-white cursor-pointer shrink-0"
+                >
+                  เข้าร่วมทันที
+                </button>
+              </div>
+              {joinMsg && (
+                <p
+                  className={`text-xs font-bold ${
+                    joinMsg.type === "error"
+                      ? "text-[#991b1b]"
+                      : "text-[#14532d]"
+                  }`}
+                >
+                  {joinMsg.text}
+                </p>
+              )}
+            </form>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
+  // ==========================================================================
+  // ขั้นตอนที่ 2: หน้าการเรียนรู้และฝึกเควสต์แยกตามภาษาที่เลือกแล้ว
+  // ==========================================================================
   return (
     <div className="min-h-screen bg-[#eef3f1] text-[#1b2a2f] flex flex-col">
       <SiteHeader />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 flex flex-col gap-6">
+        {/* แถบแสดงภาษาที่กำลังเรียนอยู่ + ปุ่มสลับเปลี่ยนภาษา */}
+        <div className="rounded-2xl border-2 border-[#0f766e]/35 bg-gradient-to-r from-[#042b28] via-[#063834] to-[#0b4f49] p-4 sm:p-5 text-white shadow-sm flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <button
+              type="button"
+              onClick={handleBackToLanguagePicker}
+              className="rounded-xl bg-white/15 hover:bg-white/25 border border-white/30 px-3.5 py-2 text-xs font-extrabold text-white flex items-center gap-1.5 cursor-pointer transition"
+            >
+              <span>← เลือกภาษาอื่น</span>
+            </button>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="rounded-full bg-[#f6b73c] px-2.5 py-0.5 text-[11px] font-extrabold text-[#3d2603]">
+                  {currentTrackMeta.shortBadge}
+                </span>
+                <span className="text-xs font-bold text-[#cfe0dc]">
+                  {currentTrackMeta.categoryLabel}
+                </span>
+              </div>
+              <h1 className="text-lg sm:text-xl font-extrabold text-white mt-0.5">
+                หมวดการเรียนรู้ภาษา {currentTrackMeta.name}
+              </h1>
+            </div>
+          </div>
+
+          {/* ปุ่มสลับภาษาด่วน */}
+          <div className="flex items-center gap-1.5 rounded-xl bg-black/25 p-1 border border-white/15">
+            {LANGUAGE_TRACKS.map((t) => {
+              const isCurrent = t.id === currentLanguage;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => handleSelectLanguage(t.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold cursor-pointer transition ${
+                    isCurrent
+                      ? "bg-[#f6b73c] text-[#3d2603] shadow-2xs"
+                      : "text-white/85 hover:text-white hover:bg-white/10"
+                  }`}
+                >
+                  {t.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* แถบควบคุมหมวดการเรียนรู้ (จัดกึ่งกลาง) & สถานะ XP/สตรีคของผู้เรียน */}
         <div className="rounded-2xl border-2 border-[#cfe0dc] bg-white p-4 sm:p-5 shadow-xs flex flex-col items-center gap-3.5">
           <div className="flex items-center justify-center gap-2 flex-wrap w-full">
             {[
               {
                 id: "quest" as LearningTab,
-                label: "เส้นทางเควสต์ & คอร์สเรียน",
+                label: `เควสต์ & คอร์ส ${currentTrackMeta.name}`,
                 icon: "route" as const,
               },
               {
                 id: "practice" as LearningTab,
-                label: "ฝึกอ่านโค้ด (PRIMM)",
+                label: `ฝึกอ่านโค้ด ${currentTrackMeta.name} (PRIMM)`,
                 icon: "play" as const,
               },
               {
                 id: "learn" as LearningTab,
-                label: "Block Model 12 ช่อง",
+                label: `Block Model & ทดลองรัน ${currentTrackMeta.name}`,
                 icon: "book" as const,
               },
-              {
-                id: "profile" as LearningTab,
-                label: "โปรไฟล์ & ผลการฝึก",
-                icon: "user" as const,
-              },
+              ...(session
+                ? [
+                    {
+                      id: "profile" as LearningTab,
+                      label: "โปรไฟล์ & ผลการฝึก",
+                      icon: "user" as const,
+                    },
+                  ]
+                : []),
               {
                 id: "ailog" as LearningTab,
                 label: "บันทึก AI",
@@ -546,31 +896,51 @@ export default function CoursesPage() {
             })}
           </div>
 
-          {/* แถบแสดง XP, เลเวล และสตรีค (จัดกึ่งกลางด้านล่างเมนูย่อย) */}
+          {/* แถบแสดง XP, เลเวล และสตรีค (เฉพาะเมื่อเข้าสู่ระบบแล้ว) หรือปุ่มแจ้งเตือนให้ล็อกอิน */}
           <div className="flex items-center justify-center gap-2 flex-wrap border-t border-[#e3f1ee] pt-3 w-full">
-            <span className="px-3 py-1 rounded-xl bg-[#e3f1ee] text-[#0b4f49] text-xs font-extrabold">
-              ผู้เรียน: {currentStudent.nickname}
-            </span>
-            <div className="px-3 py-1 rounded-xl bg-[#fff4d6] border border-[#f0a92e] text-[#3d2603] text-xs font-extrabold flex items-center gap-1.5">
-              <Icon name="star" size={15} filled />
-              <span>
-                Lv.{studentLevel} · {currentStudent.xp} XP
-              </span>
-            </div>
-            <div
-              className="px-2.5 py-1 rounded-xl bg-[#0b4f49] text-[#f6b73c] text-xs font-extrabold flex items-center gap-1"
-              title="สตรีคการฝึกต่อเนื่อง"
-            >
-              <Icon name="flame" size={15} filled />
-              <span>{currentStudent.streak} วัน</span>
-            </div>
+            {session ? (
+              <>
+                <span className="px-3 py-1 rounded-xl bg-[#e3f1ee] text-[#0b4f49] text-xs font-extrabold">
+                  ผู้เรียน: {currentStudent.nickname}
+                </span>
+                <div className="px-3 py-1 rounded-xl bg-[#fff4d6] border border-[#f0a92e] text-[#3d2603] text-xs font-extrabold flex items-center gap-1.5">
+                  <Icon name="star" size={15} filled />
+                  <span>
+                    Lv.{studentLevel} · {currentStudent.xp} XP
+                  </span>
+                </div>
+                <div
+                  className="px-2.5 py-1 rounded-xl bg-[#0b4f49] text-[#f6b73c] text-xs font-extrabold flex items-center gap-1"
+                  title="สตรีคการฝึกต่อเนื่อง"
+                >
+                  <Icon name="flame" size={15} filled />
+                  <span>{currentStudent.streak} วัน</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-wrap items-center justify-center gap-2.5 text-xs">
+                <span className="font-bold text-[#475b60]">
+                  โหมดผู้เยี่ยมชม: คุณสามารถทดลองเรียนและฝึกเควสต์{" "}
+                  {currentTrackMeta.name} ได้ฟรี แต่ต้องเข้าสู่ระบบเพื่อดูโปรไฟล์และบันทึกผลการฝึก
+                </span>
+                <Link
+                  href={`/login?redirect=${encodeURIComponent(
+                    `/courses?lang=${currentLanguage}`
+                  )}`}
+                  className="liquid-glass-primary-btn liquid-press inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-extrabold"
+                >
+                  <Icon name="user" className="h-3.5 w-3.5" />
+                  <span>เข้าสู่ระบบเพื่อดูโปรไฟล์ &amp; ผลการฝึก</span>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ==================== TAB 1: เส้นทางเควสต์ 7 เรื่อง & คอร์สเรียนจากครู ==================== */}
+        {/* ==================== TAB 1: เส้นทางเควสต์ & คอร์สเรียนตามภาษาที่เลือก ==================== */}
         {activeTab === "quest" && (
           <div className="flex flex-col gap-6">
-            {/* การ์ดเควสต์ประจำวัน + คำแนะนำทบทวนจากครู */}
+            {/* การ์ดเควสต์ประจำวัน + คำแนะนำเฉพาะภาษา */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               <div className="lg:col-span-7 bg-[#fff4d6] border-2 border-[#f0a92e] rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-start gap-3.5">
@@ -579,13 +949,13 @@ export default function CoursesPage() {
                   </div>
                   <div>
                     <span className="px-2.5 py-0.5 rounded-full bg-[#3d2603] text-[#fff4d6] text-[11px] font-extrabold">
-                      เควสต์ประจำวัน · โบนัส +30 XP
+                      เควสต์ {currentTrackMeta.name} ประจำวัน · โบนัส +30 XP
                     </span>
                     <h3 className="text-[18px] font-extrabold text-[#3d2603] mt-1">
-                      ฝึกอ่านโค้ดและตอบคำถามช่องการทำงานจริง (E1–E4)
+                      ฝึกแกะโค้ดภาษา {currentTrackMeta.name} ทีละบรรทัดตามหลัก PRIMM
                     </h3>
                     <p className="text-[13px] font-semibold text-[#5c3704] mt-0.5">
-                      สะสม XP จากความเข้าใจโดยตรง ไม่คิดคะแนนจากความเร็ว
+                      {currentTrackMeta.tagline}
                     </p>
                   </div>
                 </div>
@@ -593,32 +963,34 @@ export default function CoursesPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    const nextTopicId =
-                      TOPICS.find(
+                    const nextTopic =
+                      currentLanguageTopics.find(
                         (t) => !currentStudent.completedTopics.includes(t.id)
-                      )?.id || 1;
-                    setSelectedTopicId(nextTopicId);
+                      ) || currentLanguageTopics[0];
+                    setSelectedTopicId(nextTopic.id);
                     setActiveTab("practice");
                   }}
                   className="press-teal px-6 py-3.5 rounded-xl text-[15px] font-extrabold flex items-center justify-center gap-2 cursor-pointer shrink-0"
                 >
                   <Icon name="play" size={18} filled />
-                  <span>เริ่มเล่นเควสต์วันนี้</span>
+                  <span>เริ่มเล่นเควสต์ {currentTrackMeta.name}</span>
                 </button>
               </div>
 
-              {/* การ์ดเรื่องที่ครูปักหมุดให้ทบทวนประจำห้อง */}
+              {/* การ์ดเรื่องแนะนำของภาษานี้ */}
               <div className="lg:col-span-5 bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 flex flex-col justify-between gap-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <span className="text-[12px] font-extrabold text-[#0f766e]">
-                      คำแนะนำจากครู (
+                      ด่านแนะนำสำหรับหมวด {currentTrackMeta.name} (
                       {currentStudentRoom?.roomName || currentStudent.roomCode})
                     </span>
                     <h4 className="text-[16px] font-extrabold text-[#1b2a2f] mt-0.5">
-                      {TOPICS.find(
-                        (t) => t.id === currentStudentRoom?.pinnedReviewTopicId
-                      )?.title || "เรื่องที่ 4 · วนซ้ำ while"}
+                      {
+                        (
+                          currentLanguageTopics[1] || currentLanguageTopics[0]
+                        )?.title
+                      }
                     </h4>
                   </div>
                   <Icon
@@ -628,35 +1000,44 @@ export default function CoursesPage() {
                   />
                 </div>
                 <p className="text-[13px] text-[#475b60]">
-                  {currentStudentRoom?.pinnedReviewNote ||
-                    "ฝึกเดินโค้ดดูค่าตัวแปรและเงื่อนไขการหยุดลูป"}
+                  {
+                    (currentLanguageTopics[1] || currentLanguageTopics[0])
+                      ?.subtitle
+                  }
                 </p>
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedTopicId(
-                      currentStudentRoom?.pinnedReviewTopicId || 4
-                    );
+                    const recTopic =
+                      currentLanguageTopics[1] || currentLanguageTopics[0];
+                    setSelectedTopicId(recTopic.id);
                     setActiveTab("practice");
                   }}
                   className="press-secondary w-full py-2.5 rounded-xl text-[14px] font-extrabold flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Icon name="play" size={16} filled />
-                  <span>เข้าเล่นเรื่องที่ครูแนะนำ</span>
+                  <span>เข้าฝึกด่านแนะนำของ {currentTrackMeta.name}</span>
                 </button>
               </div>
             </div>
 
-            {/* เส้นทางเควสต์ 7 เรื่อง (PRIMM & Block Model) */}
+            {/* เส้นทางเควสต์ของภาษาที่เลือก */}
             <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 sm:p-6 flex flex-col gap-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="text-[22px] sm:text-[24px] font-extrabold text-[#1b2a2f]">
-                    เส้นทางเควสต์อ่านโค้ด 7 เรื่อง (PRIMM)
+                    เส้นทางเควสต์ภาษา {currentTrackMeta.name} (
+                    {currentLanguageTopics.length} ด่าน)
                   </h2>
                   <p className="text-[14px] font-semibold text-[#475b60]">
-                    ผ่านแล้ว {currentStudent.completedTopics.length}/7 เรื่อง ·
-                    บอสด่านเปิดเมื่อผ่านอย่างน้อย 4 เรื่อง
+                    ผ่านแล้ว{" "}
+                    {
+                      currentLanguageTopics.filter((t) =>
+                        currentStudent.completedTopics.includes(t.id)
+                      ).length
+                    }
+                    /{currentLanguageTopics.length} ด่านในหมวด{" "}
+                    {currentTrackMeta.name}
                   </p>
                 </div>
 
@@ -670,17 +1051,17 @@ export default function CoursesPage() {
                   }`}
                 >
                   {unlockAllDemo
-                    ? "✓ ปลดล็อกทุกเรื่องแล้ว"
-                    : "ปลดล็อกทุกเรื่อง (โหมดสาธิต)"}
+                    ? "✓ ปลดล็อกทุกด่านแล้ว"
+                    : "ปลดล็อกทุกด่าน (โหมดสาธิต)"}
                 </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {TOPICS.map((topic) => {
+                {currentLanguageTopics.map((topic, idx) => {
                   const isPassed = currentStudent.completedTopics.includes(
                     topic.id
                   );
-                  const unlocked = isTopicUnlocked(topic.id);
+                  const unlocked = isTopicUnlocked(topic.id, idx);
                   const isBoss = Boolean(topic.isBoss);
 
                   return (
@@ -734,8 +1115,6 @@ export default function CoursesPage() {
                                 ? isBoss
                                   ? "บอสด่านพร้อมลุย!"
                                   : "พร้อมเข้าเล่น"
-                                : isBoss
-                                ? `ล็อก (ผ่านแล้ว ${currentStudent.completedTopics.length}/4 เรื่อง)`
                                 : "ล็อก"}
                             </span>
 
@@ -795,34 +1174,21 @@ export default function CoursesPage() {
               </div>
             </div>
 
-            {/* ส่วนคอร์สและบทเรียนจากครูผู้สอน (Open Courses) ในหน้าเดียวกัน */}
+            {/* คอร์สและบทเรียนของภาษาที่เลือก */}
             <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 sm:p-6 flex flex-col gap-6">
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-center">
                 <div className="lg:col-span-7">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e3f1ee] px-3 py-1 text-xs font-extrabold text-[#0b4f49]">
                     <Icon name="book" className="h-3.5 w-3.5" />
-                    คอร์สและบทเรียนเสริมจากครูผู้สอน (Open Courses)
+                    คอร์สและบทเรียนภาษา {currentTrackMeta.name}
                   </span>
                   <h2 className="mt-2 text-[22px] sm:text-[24px] font-extrabold text-[#1b2a2f]">
-                    คลังคอร์สและบทเรียนประกอบการฝึก
+                    คลังบทเรียนประกอบการฝึกภาษา {currentTrackMeta.name}
                   </h2>
                   <p className="mt-1 text-sm text-[#475b60]">
-                    เลือกอ่านเนื้อหาบทเรียน ตัวอย่างโค้ด และทำแบบทดสอบท้ายบท หรือกรอกรหัสคอร์สจากครูผู้สอนเพื่อบันทึกความคืบหน้า
+                    ศึกษาเนื้อหาบทเรียน ตัวอย่างโค้ด และแบบทดสอบท้ายบทของภาษา{" "}
+                    {currentTrackMeta.name} โดยเฉพาะ
                   </p>
-                  {session?.role === "student" && (
-                    <div className="mt-3">
-                      <Link
-                        href="/my-learning"
-                        className="inline-flex items-center gap-2 rounded-xl bg-[#e3f1ee] px-4 py-2 text-xs font-extrabold text-[#0b4f49] hover:bg-[#cfe0dc] transition-colors"
-                      >
-                        <Icon name="award" className="h-4 w-4" />
-                        <span>
-                          ไปที่หน้า &ldquo;การเรียนของฉัน&rdquo; (ดูความคืบหน้า
-                          &amp; เรียนต่อ) →
-                        </span>
-                      </Link>
-                    </div>
-                  )}
                 </div>
 
                 <div className="lg:col-span-5">
@@ -831,7 +1197,7 @@ export default function CoursesPage() {
                     className="rounded-xl border-2 border-[#cfe0dc] bg-[#eef3f1] p-4"
                   >
                     <label className="block text-xs font-extrabold text-[#1b2a2f] mb-1.5">
-                      มีรหัสคอร์ส / รหัสห้องเรียนจากครูใช่ไหม?
+                      เข้าร่วมด้วยรหัสคอร์ส / รหัสห้องเรียน:
                     </label>
                     <div className="flex gap-2">
                       <input
@@ -840,7 +1206,13 @@ export default function CoursesPage() {
                         onChange={(e) =>
                           setJoinCodeInput(e.target.value.toUpperCase())
                         }
-                        placeholder="กรอกรหัส เช่น JS2026"
+                        placeholder={
+                          currentLanguage === "python"
+                            ? "เช่น PY2026"
+                            : currentLanguage === "sql"
+                            ? "เช่น SQL2026"
+                            : "เช่น JS2026"
+                        }
                         className="flex-1 rounded-xl border-2 border-[#b6c9c5] bg-white px-3.5 py-2 text-xs font-mono font-bold uppercase text-[#1b2a2f] focus:border-[#0f766e] focus:outline-hidden"
                       />
                       <button
@@ -866,7 +1238,7 @@ export default function CoursesPage() {
               </div>
 
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                {publishedCourses.map((course) => {
+                {languageFilteredCourses.map((course) => {
                   const courseLessons = lessons.filter(
                     (l) => l.course_id === course.id && l.is_published
                   );
@@ -941,10 +1313,11 @@ export default function CoursesPage() {
         )}
 
         {/* ==================== TAB 2: หน้าฝึกอ่านโค้ด (PRIMM 4 ขั้น) ==================== */}
-        {activeTab === "practice" && (
+        {activeTab === "practice" && activeTopic && (
           <PracticeArena
-            key={activeTopic.id}
+            key={`${currentLanguage}-${activeTopic.id}`}
             topic={activeTopic}
+            language={currentLanguage}
             currentStudent={currentStudent}
             studentId={currentStudent?.id}
             onBackToMap={() => setActiveTab("quest")}
@@ -952,22 +1325,22 @@ export default function CoursesPage() {
           />
         )}
 
-        {/* ==================== TAB 3: ตาราง Block Model 12 ช่อง & ห้องทดลองรันโค้ด ==================== */}
+        {/* ==================== TAB 3: ตาราง Block Model 12 ช่อง & ห้องทดลองรันโค้ดตามภาษา ==================== */}
         {activeTab === "learn" && (
           <div className="flex flex-col gap-6">
             <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-6 flex flex-col gap-4">
               <h2 className="text-[24px] font-extrabold text-[#1b2a2f] flex items-center gap-2">
                 <Icon name="book" size={24} className="text-[#0f766e]" />
                 <span>
-                  รู้จัก Block Model 12 ช่อง และวิธีเรียน 4 ขั้น (PRIMM)
+                  รู้จัก Block Model 12 ช่อง สำหรับการอ่านโค้ดภาษา{" "}
+                  {currentTrackMeta.name}
                 </span>
               </h2>
               <p className="text-[15px] text-[#475b60]">
-                เวลาเราสั่ง AI ให้เขียนโค้ดให้ การจะบอกว่าเรา
-                &ldquo;เข้าใจโค้ดนั้นจริง&rdquo; ไม่ใช่แค่อ่านออกทีละคำ
-                แต่ต้องเข้าใจครบทั้ง <strong>3 มิติ</strong> ในทุกระดับของโค้ด
-                ตั้งแต่บรรทัดเดี่ยวไปจนถึงภาพรวมทั้งโปรแกรม รวมเป็น{" "}
-                <strong>12 ช่องของ Block Model</strong>
+                เวลาเราสั่ง AI ให้เขียนโค้ดภาษา{" "}
+                <strong>{currentTrackMeta.name}</strong> การจะบอกว่าเรา
+                &ldquo;เข้าใจโค้ดนั้นจริง&rdquo; ต้องเข้าใจครบทั้ง{" "}
+                <strong>3 มิติ</strong> ตั้งแต่คำสั่งเดี่ยวไปจนถึงภาพรวมทั้งโปรแกรม
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-1">
@@ -976,8 +1349,11 @@ export default function CoursesPage() {
                     มิติที่ 1 · โครงสร้างโค้ด (Text Surface: T1–T4)
                   </div>
                   <p className="text-[14px] text-[#1b2a2f] mt-1">
-                    อ่านไวยากรณ์ เครื่องหมาย ขอบเขตบล็อก `if/else`, ลูป
-                    `for/while` และการเชื่อมโยงพารามิเตอร์ออกอย่างถูกต้อง
+                    {currentLanguage === "python"
+                      ? "อ่านการย่อหน้า (Indentation), เครื่องหมายโคลอน (:), if/elif/else และขอบเขต range() ออกอย่างถูกต้อง"
+                      : currentLanguage === "sql"
+                      ? "อ่านโครงสร้างคำสั่ง SELECT, FROM, WHERE, GROUP BY, HAVING และ ORDER BY ออกอย่างชัดเจน"
+                      : "อ่านไวยากรณ์ เครื่องหมาย ขอบเขตปีกกา if/else, ลูป for/while และการส่งพารามิเตอร์ออกอย่างถูกต้อง"}
                   </p>
                 </div>
                 <div className="p-4 rounded-xl bg-[#fff4d6] border border-[#f0a92e]">
@@ -985,8 +1361,9 @@ export default function CoursesPage() {
                     มิติที่ 2 · การทำงานเมื่อรันจริง (Execution: E1–E4)
                   </div>
                   <p className="text-[14px] text-[#3d2603] mt-1">
-                    แกะรอยได้ว่าเมื่อรันจริง โค้ดเดินไปบรรทัดไหนบ้าง
-                    ค่าตัวแปรเปลี่ยนเป็นเท่าไหร่ และพิมพ์ผลลัพธ์อะไรออกมา
+                    {currentLanguage === "sql"
+                      ? "แกะรอยลำดับการประมวลผลจริงของฐานข้อมูล (FROM -> WHERE -> GROUP BY -> HAVING -> SELECT -> ORDER BY)"
+                      : "แกะรอยได้ว่าเมื่อรันจริง โค้ดเดินไปบรรทัดไหนบ้าง ค่าตัวแปรเปลี่ยนเป็นเท่าไหร่ และแสดงผลลัพธ์อะไรออกมา"}
                   </p>
                 </div>
                 <div className="p-4 rounded-xl bg-[#d8efdc] border border-[#86efac]">
@@ -994,8 +1371,8 @@ export default function CoursesPage() {
                     มิติที่ 3 · หน้าที่และเป้าหมาย (Function: F1–F4)
                   </div>
                   <p className="text-[14px] text-[#14532d] mt-1">
-                    อธิบายได้ว่าแต่ละบรรทัด แต่ละบล็อก และทั้งโปรแกรมมีไว้ทำไม
-                    แก้ปัญหาอะไร และตรวจจับบั๊กที่ขัดกับเป้าหมายได้
+                    อธิบายได้ว่าแต่ละส่วนของโค้ด {currentTrackMeta.name}{" "}
+                    มีไว้ทำไม แก้ปัญหาอะไร และตรวจจับบั๊กที่ขัดกับเป้าหมายได้
                   </p>
                 </div>
               </div>
@@ -1003,9 +1380,12 @@ export default function CoursesPage() {
 
             <BlockModelGrid
               cellScores={currentStudent.cellScores}
-              title="สำรวจทั้ง 12 ช่องของ Block Model (คลิกที่ช่องเพื่อดูตัวอย่างคำถามและไปฝึก)"
+              title={`สำรวจทั้ง 12 ช่องของ Block Model (หมวดภาษา ${currentTrackMeta.name})`}
               onSelectTopic={(topicId) => {
-                setSelectedTopicId(topicId);
+                const target =
+                  currentLanguageTopics.find((t) => t.id === topicId) ||
+                  currentLanguageTopics[0];
+                setSelectedTopicId(target.id);
                 setActiveTab("practice");
               }}
             />
@@ -1015,12 +1395,11 @@ export default function CoursesPage() {
                 <h3 className="text-[18px] font-extrabold text-[#1b2a2f] flex items-center gap-2">
                   <Icon name="code" size={20} className="text-[#0f766e]" />
                   <span>
-                    ห้องทดลองรันโค้ด JavaScript จริง (ตรวจสอบโค้ดที่ AI เขียนให้)
+                    ห้องทดลองรันโค้ดภาษา {currentTrackMeta.name} (ตรวจสอบผลลัพธ์จริง)
                   </span>
                 </h3>
                 <p className="text-[13px] font-semibold text-[#475b60]">
-                  วางโค้ด JavaScript ที่คุณได้มาจาก AI
-                  แล้วกดรันจริงเพื่อดูผลลัพธ์จาก console.log โดยไม่ใช้การเดา
+                  {currentTrackMeta.playgroundDescription}
                 </p>
               </div>
 
@@ -1035,25 +1414,27 @@ export default function CoursesPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    const res = runJavaScriptReal(playgroundCode);
+                    const res = runCodeByLanguage(
+                      playgroundCode,
+                      currentLanguage
+                    );
                     setPlaygroundOutput(
                       res.success
-                        ? res.finalOutput ||
-                            "(โค้ดทำงานสำเร็จแต่ไม่มีคำสั่ง console.log)"
+                        ? res.finalOutput || "(โค้ดทำงานสำเร็จแต่ไม่มีข้อความแสดงผล)"
                         : `ข้อผิดพลาด: ${res.error}`
                     );
                   }}
                   className="press-teal px-5 py-2.5 rounded-xl text-[14px] font-extrabold flex items-center gap-2 cursor-pointer"
                 >
                   <Icon name="play" size={18} />
-                  <span>รันโค้ดจริง</span>
+                  <span>รันโค้ด {currentTrackMeta.name}</span>
                 </button>
               </div>
 
               {playgroundOutput && (
                 <div className="p-4 rounded-xl bg-[#d8efdc] border-2 border-[#86efac] text-[#14532d]">
                   <div className="text-[13px] font-extrabold">
-                    ผลลัพธ์จากการรันโค้ดจริง:
+                    ผลลัพธ์จากการรันโค้ด {currentTrackMeta.name}:
                   </div>
                   <pre className="font-code font-extrabold text-[16px] mt-1">
                     {playgroundOutput}
@@ -1064,8 +1445,8 @@ export default function CoursesPage() {
           </div>
         )}
 
-        {/* ==================== TAB 4: โปรไฟล์ & ผลการฝึกของนักเรียน ==================== */}
-        {activeTab === "profile" && (
+        {/* ==================== TAB 4: โปรไฟล์ & ผลการฝึกของนักเรียน (ต้องเข้าสู่ระบบก่อน) ==================== */}
+        {activeTab === "profile" && session && (
           <div className="flex flex-col gap-6">
             <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
@@ -1085,9 +1466,8 @@ export default function CoursesPage() {
                   </div>
                   <p className="text-[14px] font-semibold text-[#475b60] mt-0.5">
                     เลเวล {studentLevel} · สะสม {currentStudent.xp} XP ·
-                    ต่อเนื่อง {currentStudent.streak} วัน · ผ่านแล้ว{" "}
-                    {currentStudent.completedTopics.length}/7 เรื่อง ·
-                    ความเข้าใจเฉลี่ย {studentAvgMastery}% (
+                    ต่อเนื่อง {currentStudent.streak} วัน · ความเข้าใจเฉลี่ย{" "}
+                    {studentAvgMastery}% (
                     {getMasteryStatus(studentAvgMastery).label})
                   </p>
                 </div>
@@ -1100,7 +1480,7 @@ export default function CoursesPage() {
                   className="press-teal px-4 py-2.5 rounded-xl text-[14px] font-extrabold flex items-center gap-2 cursor-pointer"
                 >
                   <Icon name="route" size={18} />
-                  <span>ไปฝึกเควสต์ถัดไป</span>
+                  <span>ไปฝึกเควสต์ {currentTrackMeta.name} ต่อ</span>
                 </button>
               </div>
             </div>
@@ -1153,7 +1533,11 @@ export default function CoursesPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            setSelectedTopicId(c.relatedTopicId);
+                            const target =
+                              currentLanguageTopics.find(
+                                (t) => t.id === c.relatedTopicId
+                              ) || currentLanguageTopics[0];
+                            setSelectedTopicId(target.id);
                             setActiveTab("practice");
                           }}
                           className="px-2.5 py-1 rounded-lg bg-[#7d1d10] text-white text-[12px] font-extrabold cursor-pointer"
@@ -1175,7 +1559,10 @@ export default function CoursesPage() {
               cellScores={currentStudent.cellScores}
               title={`แผนที่ความเข้าใจ 12 ช่องของ ${currentStudent.nickname}`}
               onSelectTopic={(topicId) => {
-                setSelectedTopicId(topicId);
+                const target =
+                  currentLanguageTopics.find((t) => t.id === topicId) ||
+                  currentLanguageTopics[0];
+                setSelectedTopicId(target.id);
                 setActiveTab("practice");
               }}
             />
@@ -1185,11 +1572,17 @@ export default function CoursesPage() {
                 <h3 className="text-[17px] font-extrabold text-[#1b2a2f] flex items-center gap-2">
                   <Icon name="shield" size={20} className="text-[#0f766e]" />
                   <span>
-                    ตราความสำเร็จที่ได้รับ ({currentStudent.badges.length}/7)
+                    ตราความสำเร็จหมวด {currentTrackMeta.name} (
+                    {
+                      currentLanguageTopics.filter((t) =>
+                        currentStudent.badges.includes(t.badgeReward.id)
+                      ).length
+                    }
+                    /{currentLanguageTopics.length})
                   </span>
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {TOPICS.map((t) => {
+                  {currentLanguageTopics.map((t) => {
                     const unlocked = currentStudent.badges.includes(
                       t.badgeReward.id
                     );
@@ -1249,8 +1642,7 @@ export default function CoursesPage() {
                   </div>
                 ) : (
                   <p className="text-[14px] text-[#475b60]">
-                    ยังไม่มีประวัติการเล่น เริ่มฝึกเรื่องที่ 1
-                    ในหน้าเส้นทางเควสต์ได้เลย!
+                    ยังไม่มีประวัติการเล่น เริ่มฝึกด่านที่ 1 ในหน้าเส้นทางเควสต์ได้เลย!
                   </p>
                 )}
               </div>
@@ -1306,5 +1698,19 @@ export default function CoursesPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function CoursesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#eef3f1] p-8 text-center text-sm font-bold text-[#0b4f49]">
+          กำลังโหลดหน้าเลือกภาษาและเนื้อหาการเรียนรู้...
+        </div>
+      }
+    >
+      <CoursesContent />
+    </Suspense>
   );
 }
