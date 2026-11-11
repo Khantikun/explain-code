@@ -1060,6 +1060,55 @@ export default function ExplainCodeApp() {
             </div>
           </section>
 
+          {/* แบนเนอร์พิเศษ: ดันเจี้ยนอ่านโค้ด สไตล์พิกเซล (Dungeon Crawler) */}
+          <section className="mb-14 rounded-3xl border-2 border-[#5c5470] bg-[#1c1b2b] p-7 sm:p-9 text-[#f4efe6] shadow-lg relative overflow-hidden">
+            <div className="absolute top-2 right-4 text-7xl opacity-5 select-none pointer-events-none font-mono font-black text-[#f6c945]">
+              PIXEL RPG
+            </div>
+            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="space-y-3 max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-[#5a2d91] px-3 py-1 text-xs font-bold text-[#ffe27a]">
+                    ✨ โหมดเกมการเรียนรู้ใหม่ · Pixel Dungeon Crawler
+                  </span>
+                  <span className="rounded-full bg-[#2fbf71]/20 border border-[#2fbf71]/50 px-2.5 py-0.5 text-[11px] font-bold text-[#2fbf71]">
+                    เล่นได้ทันที
+                  </span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#f6c945]">
+                  🏰 ดันเจี้ยนอ่านโค้ด: ตะลุยเขาวงกตพิกเซล ปราบมอนสเตอร์ด้วยคำถาม
+                </h2>
+                <p className="text-xs sm:text-sm leading-relaxed text-[#9a93ad]">
+                  เปลี่ยนการฝึกอ่านโค้ดให้เป็นการผจญภัยแนว RPG พิกเซลมุมมอง Top-down!
+                  1 คอร์ส = 1 ดันเจี้ยน, 1 บทเรียน = 1 ห้อง เดินสำรวจ ตอบคำถาม Block Model เพื่อโจมตีมอนสเตอร์
+                  ไขปริศนาเติมโค้ด และปราบบอสท้ายคอร์สเพื่อรับเหรียญรางวัลและตราเกียรติยศ
+                </p>
+                <div className="flex flex-wrap items-center gap-4 text-xs text-[#e8e1cf]">
+                  <span>❤️ 3 หัวใจต่อรอบ</span>
+                  <span>⚔️ มอนสเตอร์และปริศนาโค้ด</span>
+                  <span>🧙 เลือกตัวละครได้ 4 คลาส</span>
+                  <span>🎮 มีโหมดทดลองเล่นฟรี</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row md:flex-col gap-3 w-full md:w-auto shrink-0">
+                <Link
+                  href="/dungeon"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#f6c945] px-6 py-4 text-sm font-black text-[#120f1c] shadow-md hover:bg-[#ffe27a] transition-all hover:scale-102"
+                >
+                  <Icon name="gamepad" className="h-5 w-5" />
+                  <span>เข้าสู่โหมดดันเจี้ยน →</span>
+                </Link>
+                <Link
+                  href="/dungeon/trial"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-[#5c5470] bg-[#252238] px-4 py-2.5 text-xs font-bold text-[#f4efe6] hover:bg-[#322c4a] transition-colors"
+                >
+                  <span>ลองเล่นห้องทดลอง (Guest)</span>
+                </Link>
+              </div>
+            </div>
+          </section>
+
           {/* แนะนำการใช้งานเว็บไซต์ 3 ขั้นตอน */}
           <section className="rounded-3xl border border-[#e5dfd3] bg-white p-7 sm:p-9 shadow-xs">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-6">

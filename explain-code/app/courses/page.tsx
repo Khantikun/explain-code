@@ -1288,7 +1288,14 @@ function CoursesContent() {
                           <span>{courseLessons.length} บทเรียน</span>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link
+                            href={`/dungeon/${course.id}`}
+                            className="press-secondary rounded-xl px-3 py-2 text-xs font-extrabold flex items-center gap-1.5 text-[#5a2d91] border-[#d8c7ed] hover:border-[#9b5de5] hover:bg-[#f6f0fd]"
+                            title="เล่นคอร์สนี้ในโหมด Dungeon Crawler พิกเซล"
+                          >
+                            <span>⚔️ ดันเจี้ยน</span>
+                          </Link>
                           <Link
                             href={`/courses/${course.id}`}
                             className="press-secondary rounded-xl px-3.5 py-2 text-xs font-extrabold"

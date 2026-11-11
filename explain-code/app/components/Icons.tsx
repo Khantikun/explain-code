@@ -31,7 +31,9 @@ export type IconName =
   | "award"
   | "alert"
   | "menu"
-  | "chevron-down";
+  | "chevron-down"
+  | "gamepad"
+  | "sword";
 
 interface IconProps {
   name: IconName;
@@ -300,6 +302,25 @@ export function Icon({ name, size = 24, filled = false, className = "" }: IconPr
       return (
         <svg {...common}>
           <path d="m6 9 6 6 6-6" />
+        </svg>
+      );
+    case "gamepad":
+      return (
+        <svg {...common}>
+          <line x1="6" x2="10" y1="12" y2="12" />
+          <line x1="8" x2="8" y1="10" y2="14" />
+          <line x1="15" x2="15.01" y1="13" y2="13" />
+          <line x1="18" x2="18.01" y1="11" y2="11" />
+          <rect width="20" height="12" x="2" y="6" rx="2" />
+        </svg>
+      );
+    case "sword":
+      return (
+        <svg {...common}>
+          <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" />
+          <line x1="13" x2="19" y1="19" y2="13" />
+          <line x1="16" x2="20" y1="16" y2="20" />
+          <line x1="19" x2="21" y1="21" y2="19" />
         </svg>
       );
   }

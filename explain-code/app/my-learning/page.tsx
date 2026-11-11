@@ -164,15 +164,25 @@ export default function MyLearningPage() {
                       </p>
                     </div>
 
-                    {resumeLesson && (
+                    <div className="flex flex-wrap items-center gap-2">
                       <Link
-                        href={`/courses/${course.id}/lessons/${resumeLesson.id}`}
-                        className="inline-flex items-center gap-2 rounded-xl bg-[#2a4d3e] px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-[#1f3b2f]"
+                        href={`/dungeon/${course.id}`}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-[#9b5de5] bg-[#322c4a] px-4 py-3 text-xs font-bold text-[#ffe27a] hover:bg-[#433c61] transition-colors"
                       >
-                        <Icon name="play" className="h-4 w-4" />
-                        <span>เรียนต่อจากที่ค้างไว้: {resumeLesson.title}</span>
+                        <Icon name="gamepad" className="h-4 w-4" />
+                        <span>เล่นโหมดดันเจี้ยน</span>
                       </Link>
-                    )}
+
+                      {resumeLesson && (
+                        <Link
+                          href={`/courses/${course.id}/lessons/${resumeLesson.id}`}
+                          className="inline-flex items-center gap-2 rounded-xl bg-[#2a4d3e] px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-[#1f3b2f]"
+                        >
+                          <Icon name="play" className="h-4 w-4" />
+                          <span>เรียนต่อจากที่ค้างไว้: {resumeLesson.title}</span>
+                        </Link>
+                      )}
+                    </div>
                   </div>
 
                   {/* Progress Bar */}

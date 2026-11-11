@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -18,7 +18,7 @@ import {
   saveLocalEnrollments,
 } from "../../lib/lms-data";
 
-export default function CourseDetailPage() {
+function CourseDetailContent() {
   const params = useParams();
   const router = useRouter();
   const courseId = String(params?.id || "");
@@ -259,5 +259,19 @@ export default function CourseDetailPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function CourseDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#faf8f4] flex items-center justify-center text-sm font-bold text-[#524f49]">
+          กำลังโหลดรายละเอียดคอร์ส...
+        </div>
+      }
+    >
+      <CourseDetailContent />
+    </Suspense>
   );
 }

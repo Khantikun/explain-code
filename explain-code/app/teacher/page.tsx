@@ -25,6 +25,10 @@ import {
   saveLocalCourses,
   saveLocalLessons,
 } from "../lib/lms-data";
+import { PixelSpriteView } from "../components/dungeon/PixelSpriteView";
+import { getMonsterDef, MonsterType } from "../lib/dungeon/monsters";
+import { hashString, dungeonNameForCourse } from "../lib/dungeon/seed";
+import { SAMPLE_DUNGEON_QUESTIONS } from "../lib/dungeon/questions";
 
 export default function TeacherLMSDashboardPage() {
   const router = useRouter();
@@ -34,7 +38,37 @@ export default function TeacherLMSDashboardPage() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [progress, setProgress] = useState<LessonProgress[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<"lessons" | "students">("lessons");
+  const [activeTab, setActiveTab] = useState<
+    "lessons" | "students" | "dungeon"
+  >("lessons");
+
+  // Dungeon Questions & Analytics State
+  const [dungeonQuestions, setDungeonQuestions] = useState<any[]>([]);
+  const [dungeonStats, setDungeonStats] = useState<
+    Record<
+      string,
+      { totalAttempts: number; wrongCount: number; wrongPercent: number }
+    >
+  >({});
+  const [editingDungeonQuestion, setEditingDungeonQuestion] = useState<
+    any | null
+  >(null);
+  const [dqFormLessonId, setDqFormLessonId] = useState("");
+  const [dqFormQuestion, setDqFormQuestion] = useState("");
+  const [dqFormCode, setDqFormCode] = useState("");
+  const [dqFormChoices, setDqFormChoices] = useState<string[]>([
+    "",
+    "",
+    "",
+    "",
+  ]);
+  const [dqFormCorrectIndex, setDqFormCorrectIndex] = useState(0);
+  const [dqFormExplanation, setDqFormExplanation] = useState("");
+  const [dqFormDifficulty, setDqFormDifficulty] = useState<
+    "easy" | "medium" | "hard"
+  >("easy");
+  const [dqFormMonster, setDqFormMonster] = useState<MonsterType>("slime");
+  const [dqFormIsBoss, setDqFormIsBoss] = useState(false);
 
   // Teacher Approval State
   const [inviteCodeInput, setInviteCodeInput] = useState("");
@@ -80,6 +114,149 @@ export default function TeacherLMSDashboardPage() {
       setSelectedCourseId(owned[0].id);
     }
   }, [router]);
+
+  // Load dungeon questions for current course
+  useEffect(() => {
+    async function fetchDungeonData() {
+      if (!selectedCourseId) return;
+      try {
+        const res = await fetch(
+          `/api/teacher/dungeon?courseId=${encodeURIComponent(selectedCourseId)}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.questions) && data.questions.length > 0) {
+            setDungeonQuestions(data.questions);
+            setDungeonStats(data.stats || {});
+            return;
+          }
+        }
+      } catch {
+        // ignore
+      }
+      // Fallback sample questions
+      setDungeonQuestions(
+        SAMPLE_DUNGEON_QUESTIONS.map((q, idx) => ({
+          id: q.id,
+          course_id: selectedCourseId,
+          lesson_id: null,
+          question: q.question,
+          code_snippet: q.codeSnippet,
+          choices: q.choices,
+          correct_index: q.correctIndex,
+          explanation: q.explanation,
+          difficulty: q.difficulty,
+          monster_type: idx === SAMPLE_DUNGEON_QUESTIONS.length - 1 ? "boss" : "slime",
+          is_boss: idx === SAMPLE_DUNGEON_QUESTIONS.length - 1,
+        }))
+      );
+    }
+    void fetchDungeonData();
+  }, [selectedCourseId]);
+
+  const handleOpenDungeonModal = (
+    q?: any,
+    defaultLessonId?: string,
+    isBossDefault?: boolean
+  ) => {
+    if (q) {
+      setEditingDungeonQuestion(q);
+      setDqFormLessonId(q.lesson_id || defaultLessonId || "");
+      setDqFormQuestion(q.question || "");
+      setDqFormCode(q.code_snippet || "");
+      setDqFormChoices(
+        Array.isArray(q.choices) && q.choices.length === 4
+          ? q.choices
+          : ["", "", "", ""]
+      );
+      setDqFormCorrectIndex(q.correct_index ?? 0);
+      setDqFormExplanation(q.explanation || "");
+      setDqFormDifficulty(q.difficulty || "easy");
+      setDqFormMonster(q.monster_type || (q.is_boss ? "boss" : "slime"));
+      setDqFormIsBoss(Boolean(q.is_boss));
+    } else {
+      setEditingDungeonQuestion({ course_id: selectedCourseId });
+      setDqFormLessonId(defaultLessonId || "");
+      setDqFormQuestion("");
+      setDqFormCode("");
+      setDqFormChoices(["", "", "", ""]);
+      setDqFormCorrectIndex(0);
+      setDqFormExplanation("");
+      setDqFormDifficulty("easy");
+      setDqFormMonster(isBossDefault ? "boss" : "slime");
+      setDqFormIsBoss(Boolean(isBossDefault));
+    }
+  };
+
+  const handleSaveDungeonQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCourseId || !dqFormQuestion.trim()) return;
+
+    const payload = {
+      id: editingDungeonQuestion?.id,
+      courseId: selectedCourseId,
+      lessonId: dqFormLessonId || null,
+      question: dqFormQuestion.trim(),
+      codeSnippet: dqFormCode.trim() || null,
+      choices: dqFormChoices.map((c) => c.trim()),
+      correctIndex: dqFormCorrectIndex,
+      explanation: dqFormExplanation.trim(),
+      difficulty: dqFormDifficulty,
+      monsterType: dqFormIsBoss ? "boss" : dqFormMonster,
+      isBoss: dqFormIsBoss,
+    };
+
+    try {
+      const res = await fetch("/api/teacher/dungeon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.question) {
+          setDungeonQuestions((prev) => {
+            const exists = prev.some((item) => item.id === data.question.id);
+            if (exists) {
+              return prev.map((item) =>
+                item.id === data.question.id ? data.question : item
+              );
+            }
+            return [...prev, data.question];
+          });
+        }
+      }
+    } catch {
+      // local update fallback
+      setDungeonQuestions((prev) => {
+        const newQ = {
+          ...payload,
+          id: payload.id || `dq-${Date.now()}`,
+          created_at: new Date().toISOString(),
+        };
+        const exists = prev.some((item) => item.id === newQ.id);
+        if (exists) {
+          return prev.map((item) => (item.id === newQ.id ? newQ : item));
+        }
+        return [...prev, newQ];
+      });
+    }
+
+    setEditingDungeonQuestion(null);
+  };
+
+  const handleDeleteDungeonQuestion = async (questionId: string) => {
+    if (!confirm("คุณแน่ใจหรือไม่ว่าต้องการลบคำถามดันเจี้ยนข้อนี้?")) return;
+    try {
+      await fetch(
+        `/api/teacher/dungeon?questionId=${encodeURIComponent(questionId)}`,
+        { method: "DELETE" }
+      );
+    } catch {
+      // ignore
+    }
+    setDungeonQuestions((prev) => prev.filter((q) => q.id !== questionId));
+  };
 
   function isOwnerOfCourse(course: Course, user: ClientAuthSession | null) {
     if (!user) return false;
@@ -621,6 +798,17 @@ export default function TeacherLMSDashboardPage() {
                   >
                     นักเรียนในคอร์ส ({courseStudentIds.length})
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("dungeon")}
+                    className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+                      activeTab === "dungeon"
+                        ? "border-[#9b5de5] text-[#5a2d91]"
+                        : "border-transparent text-[#6e6a63]"
+                    }`}
+                  >
+                    <span>⚔️ ดันเจี้ยน &amp; มอนสเตอร์</span>
+                  </button>
                 </div>
 
                 {activeTab === "lessons" ? (
@@ -741,6 +929,202 @@ export default function TeacherLMSDashboardPage() {
                         );
                       })
                     )}
+                  </div>
+                )}
+
+                {/* Sub-tab 3: ดันเจี้ยน & มอนสเตอร์ */}
+                {activeTab === "dungeon" && (
+                  <div className="space-y-6">
+                    {/* Dungeon Summary Banner */}
+                    <div className="rounded-2xl border-2 border-[#5c5470] bg-[#1c1b2b] p-5 text-[#f4efe6] space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="pixel-font text-[10px] bg-[#5a2d91] text-[#ffe27a] px-2 py-0.5 rounded font-bold">
+                              DUNGEON CONFIG
+                            </span>
+                            <span className="pixel-font text-[10px] text-[#ffe27a] bg-[#120f1c] px-2 py-0.5 rounded border border-[#4a4766]">
+                              SEED #{(hashString(selectedCourse.id) >>> 0).toString(16).toUpperCase()}
+                            </span>
+                          </div>
+                          <h3 className="text-lg font-black text-[#f6c945] mt-1">
+                            🏰 {dungeonNameForCourse(selectedCourse.id)}
+                          </h3>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDungeonModal(undefined, undefined, false)}
+                            className="rounded-xl bg-[#2fbf71] px-3.5 py-2 text-xs font-black text-[#0b0b14] hover:bg-[#34d37d] cursor-pointer"
+                          >
+                            + เพิ่มคำถามดันเจี้ยน
+                          </button>
+                          <Link
+                            href={`/dungeon/${selectedCourse.id}`}
+                            target="_blank"
+                            className="rounded-xl border border-[#9b5de5] bg-[#252238] px-3.5 py-2 text-xs font-bold text-[#ffe27a] hover:bg-[#322c4a]"
+                          >
+                            🎮 ทดลองเล่นดันเจี้ยน ↗
+                          </Link>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-[#9a93ad] leading-relaxed">
+                        แต่ละบทเรียนของคอร์สนี้จะสร้างเป็น 1 ห้องในดันเจี้ยน คุณสามารถเลือกมอนสเตอร์ประจำห้องและกำหนดคำถาม Block Model
+                        เพื่อให้ผู้เรียนได้ฝึกฝนทักษะการอ่านโค้ดในระหว่างการเดินสำรวจ
+                      </p>
+                    </div>
+
+                    {/* Floor by Floor Configuration */}
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-bold text-[#3d3b36] uppercase tracking-wider">
+                        โครงสร้างชั้นดันเจี้ยนและมอนสเตอร์ประจำบทเรียน ({selectedCourseLessons.length} ชั้น)
+                      </h4>
+
+                      {selectedCourseLessons.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-[#d8d1c5] bg-[#faf8f4] p-8 text-center text-xs text-[#6e6a63]">
+                          ยังไม่มีบทเรียนในคอร์สนี้ กรุณาเพิ่มบทเรียนในแท็บ &ldquo;จัดการบทเรียน&rdquo; ก่อนกำหนดคำถามดันเจี้ยน
+                        </div>
+                      ) : (
+                        selectedCourseLessons.map((lesson, idx) => {
+                          const isBossFloor = idx === selectedCourseLessons.length - 1;
+                          const attachedQ =
+                            dungeonQuestions.find((q) => q.lesson_id === lesson.id) ||
+                            dungeonQuestions[idx] ||
+                            null;
+
+                          const monsterType: MonsterType =
+                            attachedQ?.monster_type || (isBossFloor ? "boss" : "slime");
+                          const monsterDef = getMonsterDef(monsterType);
+                          const stat = attachedQ ? dungeonStats[attachedQ.id] : null;
+
+                          return (
+                            <div
+                              key={lesson.id}
+                              className={`rounded-2xl border p-4 sm:p-5 transition-all ${
+                                isBossFloor
+                                  ? "border-[#9b5de5] bg-[#faf5ff]"
+                                  : "border-[#e5dfd3] bg-[#faf8f4]"
+                              }`}
+                            >
+                              <div className="flex flex-wrap items-start justify-between gap-4">
+                                <div className="flex items-start gap-3.5">
+                                  {/* Monster Sprite Box */}
+                                  <div className="p-2 rounded-xl bg-[#1c1b2b] border-2 border-[#4a4766] flex items-center justify-center shrink-0">
+                                    <PixelSpriteView sprite={monsterDef.sprite} size={40} />
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span
+                                        className={`rounded-md px-2 py-0.5 text-[10px] font-black uppercase ${
+                                          isBossFloor
+                                            ? "bg-[#5a2d91] text-[#ffe27a]"
+                                            : "bg-[#2a4d3e] text-white"
+                                        }`}
+                                      >
+                                        {isBossFloor ? "👑 บอสใหญ่ชั้นสุดท้าย" : `ชั้นที่ ${idx + 1}`}
+                                      </span>
+                                      <span className="text-xs font-bold text-[#1e1e1c]">
+                                        {lesson.title}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 text-xs text-[#524f49]">
+                                      <span>มอนสเตอร์: <strong>{monsterDef.name}</strong></span>
+                                      <span>·</span>
+                                      <span className="text-[#c0283a] font-bold">HP {monsterDef.maxHp}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenDungeonModal(attachedQ, lesson.id, isBossFloor)}
+                                    className="rounded-xl border border-[#2a4d3e] bg-white px-3.5 py-1.5 text-xs font-bold text-[#2a4d3e] hover:bg-[#e8f0ec] cursor-pointer"
+                                  >
+                                    {attachedQ ? "✏️ แก้ไขคำถาม" : "+ กำหนดคำถาม"}
+                                  </button>
+                                  {attachedQ && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteDungeonQuestion(attachedQ.id)}
+                                      className="rounded-xl border border-[#c0283a] bg-white px-3 py-1.5 text-xs font-bold text-[#c0283a] hover:bg-[#fef2f2] cursor-pointer"
+                                    >
+                                      ลบ
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Question preview & Error Analytics */}
+                              {attachedQ ? (
+                                <div className="mt-4 pt-3.5 border-t border-[#ece7dc] space-y-2">
+                                  <div className="text-xs text-[#1e1e1c]">
+                                    <strong>คำถาม:</strong> {attachedQ.question}
+                                  </div>
+
+                                  {attachedQ.code_snippet && (
+                                    <pre className="p-2.5 rounded-lg bg-[#1c1b2b] text-[#ffe27a] font-mono text-[11px] overflow-x-auto">
+                                      <code>{attachedQ.code_snippet}</code>
+                                    </pre>
+                                  )}
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]">
+                                    {Array.isArray(attachedQ.choices) &&
+                                      attachedQ.choices.map((c: string, cIdx: number) => (
+                                        <div
+                                          key={cIdx}
+                                          className={`px-2.5 py-1 rounded-md border ${
+                                            cIdx === attachedQ.correct_index
+                                              ? "bg-[#e8f0ec] border-[#2a4d3e] text-[#2a4d3e] font-bold"
+                                              : "bg-white border-[#e5dfd3] text-[#524f49]"
+                                          }`}
+                                        >
+                                          {cIdx + 1}. {c} {cIdx === attachedQ.correct_index && "✓ (เฉลย)"}
+                                        </div>
+                                      ))}
+                                  </div>
+
+                                  {/* Error Analytics Display */}
+                                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 text-[11px]">
+                                    <span className="text-[#6e6a63]">
+                                      คำอธิบาย: {attachedQ.explanation}
+                                    </span>
+
+                                    {stat ? (
+                                      <div
+                                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 ${
+                                          stat.wrongPercent >= 50
+                                            ? "bg-[#fef2f2] text-[#991b1b] border border-[#fecaca]"
+                                            : "bg-[#e8f0ec] text-[#2a4d3e]"
+                                        }`}
+                                      >
+                                        <span>สถิติ: ตอบแล้ว {stat.totalAttempts} ครั้ง</span>
+                                        <span>(ตอบผิด {stat.wrongPercent}%)</span>
+                                        {stat.wrongPercent >= 50 && (
+                                          <span>⚠️ ตอบผิดบ่อย</span>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-[10px] text-[#9a93ad]">
+                                        ยังไม่มีประวัตินักเรียนตอบข้อนี้
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="mt-3 pt-3 border-t border-[#ece7dc] text-xs text-[#9a93ad] italic">
+                                  ยังไม่ได้กำหนดคำถามเฉพาะสำหรับชั้นนี้ (ระบบจะใช้คำถามมาตรฐานของคอร์ส)
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1080,6 +1464,202 @@ export default function TeacherLMSDashboardPage() {
                   className="rounded-xl bg-[#2a4d3e] px-5 py-2 text-xs font-bold text-white cursor-pointer"
                 >
                   บันทึกบทเรียน
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Modal เพิ่ม/แก้ไขคำถามดันเจี้ยนและมอนสเตอร์ */}
+        {editingDungeonQuestion && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">
+            <form
+              onSubmit={handleSaveDungeonQuestion}
+              className="w-full max-w-xl rounded-2xl border border-[#e5dfd3] bg-white p-6 shadow-xl space-y-4 my-8"
+            >
+              <div className="flex items-center justify-between border-b border-[#ece7dc] pb-3">
+                <h3 className="text-base sm:text-lg font-bold text-[#1e1e1c] flex items-center gap-2">
+                  <span>⚔️ กำหนดคำถามและมอนสเตอร์ดันเจี้ยน</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setEditingDungeonQuestion(null)}
+                  className="text-xs text-[#6e6a63] hover:text-[#1e1e1c] font-bold cursor-pointer"
+                >
+                  ✕ ปิด
+                </button>
+              </div>
+
+              {/* Target Lesson & Monster Selection */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                    บทเรียน / ชั้นที่ต้องการผูก
+                  </label>
+                  <select
+                    value={dqFormLessonId}
+                    onChange={(e) => setDqFormLessonId(e.target.value)}
+                    className="w-full rounded-xl border border-[#d8d1c5] px-3 py-2 text-xs bg-white"
+                  >
+                    <option value="">คำถามทั่วไปประจำคอร์ส</option>
+                    {selectedCourseLessons.map((l, i) => (
+                      <option key={l.id} value={l.id}>
+                        ชั้นที่ {i + 1}: {l.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                    มอนสเตอร์ประจำห้อง
+                  </label>
+                  <select
+                    value={dqFormMonster}
+                    onChange={(e) =>
+                      setDqFormMonster(e.target.value as MonsterType)
+                    }
+                    className="w-full rounded-xl border border-[#d8d1c5] px-3 py-2 text-xs bg-white"
+                  >
+                    <option value="slime">🟢 สไลม์โค้ด (HP 1 - พื้นฐาน)</option>
+                    <option value="skeleton">
+                      💀 โครงกระดูกโค้ดตกค้าง (HP 2 - ปานกลาง)
+                    </option>
+                    <option value="goblin">
+                      👺 ก็อบลินลักบั๊ก (HP 2 - จับบั๊ก)
+                    </option>
+                    <option value="boss">
+                      👑 จอมมารลูปไม่สิ้นสุด (HP 3 - บอสใหญ่)
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Question Text */}
+              <div>
+                <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                  ข้อความคำถาม *
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  value={dqFormQuestion}
+                  onChange={(e) => setDqFormQuestion(e.target.value)}
+                  placeholder="เช่น โค้ดด้านล่างนี้ ค่าของตัวแปร x หลังจบลูปจะมีค่าเท่าใด?"
+                  className="w-full rounded-xl border border-[#d8d1c5] px-3.5 py-2 text-xs"
+                />
+              </div>
+
+              {/* Code Snippet */}
+              <div>
+                <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                  โค้ดโปรแกรมประกอบคำถาม (ถ้ามี)
+                </label>
+                <textarea
+                  rows={3}
+                  value={dqFormCode}
+                  onChange={(e) => setDqFormCode(e.target.value)}
+                  placeholder={"let x = 0;\nfor (let i = 1; i <= 3; i++) {\n  x += i;\n}"}
+                  className="w-full rounded-xl border border-[#d8d1c5] bg-[#faf8f4] font-mono px-3.5 py-2 text-xs"
+                />
+              </div>
+
+              {/* 4 Choices */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-[#3d3b36]">
+                  ตัวเลือก 4 ตัวเลือก (ติ๊กวงกลมเพื่อระบุข้อที่ถูกต้อง) *
+                </label>
+                {dqFormChoices.map((choice, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="correct_choice"
+                      checked={dqFormCorrectIndex === idx}
+                      onChange={() => setDqFormCorrectIndex(idx)}
+                      className="accent-[#2a4d3e] h-4 w-4"
+                      id={`choice-${idx}`}
+                    />
+                    <label
+                      htmlFor={`choice-${idx}`}
+                      className="text-xs font-bold w-6 text-[#6e6a63]"
+                    >
+                      #{idx + 1}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={choice}
+                      onChange={(e) => {
+                        const next = [...dqFormChoices];
+                        next[idx] = e.target.value;
+                        setDqFormChoices(next);
+                      }}
+                      placeholder={`ตัวเลือกที่ ${idx + 1}`}
+                      className="flex-1 rounded-xl border border-[#d8d1c5] px-3 py-1.5 text-xs"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Explanation */}
+              <div>
+                <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                  คำอธิบายเฉลยตาม Block Model / PRIMM
+                </label>
+                <textarea
+                  rows={2}
+                  value={dqFormExplanation}
+                  onChange={(e) => setDqFormExplanation(e.target.value)}
+                  placeholder="อธิบายเหตุผลว่าทำไมคำตอบนี้จึงถูกต้อง เพื่อให้นักเรียนเข้าใจเมื่อตอบคำถาม..."
+                  className="w-full rounded-xl border border-[#d8d1c5] px-3.5 py-2 text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                    ระดับความยาก
+                  </label>
+                  <select
+                    value={dqFormDifficulty}
+                    onChange={(e) =>
+                      setDqFormDifficulty(e.target.value as any)
+                    }
+                    className="w-full rounded-xl border border-[#d8d1c5] px-3 py-2 text-xs bg-white"
+                  >
+                    <option value="easy">ง่าย (Easy) - 25 XP</option>
+                    <option value="medium">ปานกลาง (Medium) - 40 XP</option>
+                    <option value="hard">ยาก (Hard) - 60 XP</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center pt-5">
+                  <label className="flex items-center gap-2 text-xs font-bold text-[#3d3b36] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={dqFormIsBoss}
+                      onChange={(e) => setDqFormIsBoss(e.target.checked)}
+                      className="accent-[#5a2d91] h-4 w-4"
+                    />
+                    <span>กำหนดให้เป็นห้องบอสท้ายคอร์ส</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Modal Buttons */}
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#ece7dc]">
+                <button
+                  type="button"
+                  onClick={() => setEditingDungeonQuestion(null)}
+                  className="rounded-xl border border-[#d8d1c5] px-4 py-2 text-xs font-bold text-[#524f49] hover:bg-[#faf8f4] cursor-pointer"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-[#2a4d3e] px-5 py-2 text-xs font-bold text-white hover:bg-[#1f3b2f] cursor-pointer"
+                >
+                  บันทึกคำถามดันเจี้ยน
                 </button>
               </div>
             </form>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -25,7 +25,7 @@ import {
 } from "../../../../lib/lms-data";
 import { runJavaScriptReal } from "../../../../lib/curriculum";
 
-export default function LessonViewPage() {
+function LessonViewContent() {
   const params = useParams();
   const router = useRouter();
   const courseId = String(params?.id || "");
@@ -484,5 +484,19 @@ export default function LessonViewPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function LessonViewPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#faf8f4] flex items-center justify-center text-sm font-bold text-[#524f49]">
+          กำลังโหลดบทเรียน...
+        </div>
+      }
+    >
+      <LessonViewContent />
+    </Suspense>
   );
 }

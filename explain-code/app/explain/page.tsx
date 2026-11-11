@@ -129,7 +129,7 @@ export default function ExplainCodePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf8f4] text-[#1e1e1c]">
+    <div className="min-h-screen bg-[#faf8f4] text-[#1e1e1c] flex flex-col">
       <SiteHeader />
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
