@@ -17,6 +17,8 @@ interface AnswerPayload {
   runId: string;
   questionId: string;
   selectedIndex: number;
+  courseId?: string;
+  lessonId?: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -40,7 +42,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json()) as AnswerPayload;
-    const { runId, questionId, selectedIndex } = body;
+    const { runId, questionId, selectedIndex, courseId, lessonId } = body;
 
     if (!questionId || selectedIndex === undefined) {
       return NextResponse.json(
@@ -57,6 +59,8 @@ export async function POST(req: NextRequest) {
     let explanation: string = "";
     let difficulty: string = "easy";
     let isBoss: boolean = false;
+    let dbCourseId: string | null = null;
+    let dbLessonId: string | null = null;
 
     // Check Supabase if configured and questionId is a valid UUID
     const admin = getSupabaseAdmin();
@@ -64,7 +68,7 @@ export async function POST(req: NextRequest) {
     if (isSupabaseConfigured() && db && isValidUuid(questionId)) {
       const { data: dbQuestion, error: qErr } = await db
         .from("dungeon_questions")
-        .select("correct_index, explanation, difficulty, is_boss")
+        .select("correct_index, explanation, difficulty, is_boss, course_id, lesson_id")
         .eq("id", questionId)
         .maybeSingle();
 
@@ -73,6 +77,8 @@ export async function POST(req: NextRequest) {
         explanation = dbQuestion.explanation;
         difficulty = dbQuestion.difficulty;
         isBoss = dbQuestion.is_boss;
+        dbCourseId = dbQuestion.course_id;
+        dbLessonId = dbQuestion.lesson_id;
       }
     }
 
@@ -203,8 +209,49 @@ export async function POST(req: NextRequest) {
             updated_at: new Date().toISOString(),
           });
         }
+
+        // 2-Way LMS Sync: If this dungeon room is tied to a lesson, mark lesson completed in LMS!
+        const targetLessonId = lessonId || dbLessonId;
+        const targetCourseId = courseId || dbCourseId;
+        if (
+          isCorrect &&
+          targetLessonId &&
+          targetCourseId &&
+          isValidUuid(targetLessonId) &&
+          isValidUuid(targetCourseId)
+        ) {
+          const nowIso = new Date().toISOString();
+          try {
+            await db.from("lesson_progress").upsert(
+              {
+                student_id: session.userId,
+                course_id: targetCourseId,
+                lesson_id: targetLessonId,
+                is_completed: true,
+                quiz_score: 100,
+                completed_at: nowIso,
+                updated_at: nowIso,
+              },
+              { onConflict: "student_id,lesson_id" }
+            );
+
+            await db.from("enrollments").upsert(
+              {
+                course_id: targetCourseId,
+                student_id: session.userId,
+                last_accessed_lesson_id: targetLessonId,
+                last_accessed_at: nowIso,
+              },
+              { onConflict: "course_id,student_id" }
+            );
+          } catch (syncErr) {
+            console.warn("Dungeon 2-way LMS sync notice:", syncErr);
+          }
+        }
       }
     }
+
+    const effectiveLessonId = lessonId || dbLessonId;
 
     // 4. Return result (NEVER returns correct_index)
     return NextResponse.json({
@@ -216,6 +263,8 @@ export async function POST(req: NextRequest) {
       heartsLeft,
       isGameOver,
       isDoorUnlocked: isCorrect,
+      lessonCompleted: isCorrect && Boolean(effectiveLessonId),
+      lessonId: effectiveLessonId,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการตรวจสอบคำตอบ";

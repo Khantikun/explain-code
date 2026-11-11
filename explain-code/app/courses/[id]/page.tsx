@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -17,6 +17,10 @@ import {
   loadLocalLessons,
   saveLocalEnrollments,
 } from "../../lib/lms-data";
+import { PixelSpriteView } from "../../components/dungeon/PixelSpriteView";
+import { getMonsterDef } from "../../lib/dungeon/monsters";
+import { generateDungeonRoom } from "../../lib/dungeon/mapgen";
+import { hashString, dungeonNameForCourse } from "../../lib/dungeon/seed";
 
 function CourseDetailContent() {
   const params = useParams();
@@ -28,6 +32,7 @@ function CourseDetailContent() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [progress, setProgress] = useState<LessonProgress[]>([]);
+  const [viewMode, setViewMode] = useState<"curriculum" | "dungeon">("curriculum");
 
   useEffect(() => {
     const current = getClientSession();
@@ -190,6 +195,15 @@ function CourseDetailContent() {
                 </span>
               </button>
             )}
+
+            <Link
+              href={`/dungeon/${course.id}`}
+              className="inline-flex items-center gap-2 rounded-xl border border-[#9b5de5] bg-[#322c4a] px-4 py-3 text-xs sm:text-sm font-bold text-[#ffe27a] hover:bg-[#433c61] transition-colors"
+            >
+              <Icon name="gamepad" className="h-4 w-4" />
+              <span>ผจญภัยในโหมดดันเจี้ยน</span>
+            </Link>
+
             {!session && (
               <Link
                 href={`/login?redirect=${encodeURIComponent(`/courses/${course.id}`)}`}
@@ -201,62 +215,210 @@ function CourseDetailContent() {
           </div>
         </div>
 
-        {/* Lessons List */}
-        <div className="rounded-2xl border border-[#e5dfd3] bg-white p-6 shadow-xs">
-          <h2 className="text-base font-bold text-[#1e1e1c] mb-4">
-            สารบัญบทเรียน ({lessons.length} บทเรียน)
-          </h2>
+        {/* View Mode Switcher Tabs */}
+        <div className="mb-4 flex items-center gap-2 border-b border-[#e5dfd3] pb-1">
+          <button
+            type="button"
+            onClick={() => setViewMode("curriculum")}
+            className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+              viewMode === "curriculum"
+                ? "border-[#2a4d3e] text-[#2a4d3e]"
+                : "border-transparent text-[#6e6a63] hover:text-[#1e1e1c]"
+            }`}
+          >
+            <Icon name="book" size={15} />
+            <span>สารบัญบทเรียนปกติ ({lessons.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("dungeon")}
+            className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+              viewMode === "dungeon"
+                ? "border-[#9b5de5] text-[#5a2d91]"
+                : "border-transparent text-[#6e6a63] hover:text-[#1e1e1c]"
+            }`}
+          >
+            <Icon name="gamepad" size={15} />
+            <span>แผนที่ผจญภัยดันเจี้ยน ({lessons.length} ชั้น)</span>
+          </button>
+        </div>
 
-          {lessons.length === 0 ? (
-            <p className="text-xs text-[#6e6a63]">
-              ยังไม่มีบทเรียนที่เผยแพร่ในคอร์สนี้
-            </p>
-          ) : (
+        {viewMode === "curriculum" ? (
+          /* Lessons List (Curriculum View) */
+          <div className="rounded-2xl border border-[#e5dfd3] bg-white p-6 shadow-xs">
+            <h2 className="text-base font-bold text-[#1e1e1c] mb-4">
+              สารบัญบทเรียน ({lessons.length} บทเรียน)
+            </h2>
+
+            {lessons.length === 0 ? (
+              <p className="text-xs text-[#6e6a63]">
+                ยังไม่มีบทเรียนที่เผยแพร่ในคอร์สนี้
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {lessons.map((lesson, idx) => {
+                  const isDone = completedLessonIds.has(lesson.id);
+                  const roomSeed = hashString(course.id);
+                  const room = generateDungeonRoom(roomSeed, idx, Math.max(1, lessons.length));
+                  const monster = getMonsterDef(room.entity?.monsterType || (idx >= lessons.length - 1 ? "boss" : "slime"));
+
+                  return (
+                    <div
+                      key={lesson.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 rounded-xl border border-[#e5dfd3] bg-[#faf8f4] p-4 hover:border-[#2a4d3e] hover:bg-white transition-all"
+                    >
+                      <div className="flex items-center gap-3.5">
+                        <div
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold shrink-0 ${
+                            isDone
+                              ? "bg-[#166534] text-white"
+                              : "bg-[#e8f0ec] text-[#2a4d3e]"
+                          }`}
+                        >
+                          {isDone ? "✓" : idx + 1}
+                        </div>
+
+                        {/* Monster Mini Sprite Preview */}
+                        <div className="p-1 rounded-lg bg-[#1c1b2b] border border-[#4a4766] shrink-0 hidden sm:flex items-center justify-center" title={`มอนสเตอร์ประจำบท: ${monster.name}`}>
+                          <PixelSpriteView sprite={monster.sprite} size={24} />
+                        </div>
+
+                        <div>
+                          <h3 className="text-sm font-bold text-[#1e1e1c]">
+                            {lesson.title}
+                          </h3>
+                          <p className="text-[11px] text-[#6e6a63] flex flex-wrap items-center gap-1.5 mt-0.5">
+                            <span>ภาษา {lesson.programming_language.toUpperCase()}</span>
+                            <span>•</span>
+                            <span>มอนสเตอร์: {monster.name}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                        <Link
+                          href={`/courses/${course.id}/lessons/${lesson.id}?mode=dungeon`}
+                          className="px-3 py-1.5 rounded-lg border border-[#9b5de5] bg-[#322c4a] text-xs font-bold text-[#ffe27a] hover:bg-[#433c61] flex items-center gap-1 transition-colors"
+                          title="ลุยห้องดันเจี้ยนของบทนี้"
+                        >
+                          <Icon name="gamepad" size={13} />
+                          <span>ลุยดันเจี้ยน</span>
+                        </Link>
+                        <Link
+                          href={`/courses/${course.id}/lessons/${lesson.id}`}
+                          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors ${
+                            isDone
+                              ? "bg-[#dcfce7] text-[#166534] hover:bg-[#bbf7d0]"
+                              : "bg-[#2a4d3e] text-white hover:bg-[#1f3b2f]"
+                          }`}
+                        >
+                          {isDone ? "ทบทวนบทเรียน" : "เข้าเรียน →"}
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Dungeon Adventure Map View */
+          <div className="rounded-2xl border-2 border-[#4a4766] bg-[#120f1c] p-6 text-[#f4efe6] shadow-lg space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#2f2d45] pb-5">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="pixel-font text-[10px] text-[#ffe27a] bg-[#5a2d91] px-2 py-0.5 rounded font-bold">
+                    SEED #{(hashString(course.id) >>> 0).toString(16).toUpperCase()}
+                  </span>
+                  <span className="pixel-font text-[10px] text-[#2fbf71]">
+                    {lessons.length} FLOORS
+                  </span>
+                </div>
+                <h2 className="text-xl font-black text-[#f6c945]">
+                  {dungeonNameForCourse(course.id)}
+                </h2>
+                <p className="text-xs text-[#9a93ad]">
+                  พิชิตมอนสเตอร์ในแต่ละชั้นเพื่อบันทึกผลการเรียนจบบทเรียนแบบสองทาง
+                </p>
+              </div>
+
+              <Link
+                href={`/dungeon/${course.id}`}
+                className="retro-button px-4 py-2.5 rounded-xl bg-[#2fbf71] hover:bg-[#34d37d] text-[#0b0b14] text-xs font-black pixel-font flex items-center gap-1.5 shrink-0 transition-colors"
+              >
+                <span>ลุยทั้งคอร์สแบบต่อเนื่อง →</span>
+              </Link>
+            </div>
+
+            {/* Floors Progression */}
             <div className="space-y-3">
               {lessons.map((lesson, idx) => {
                 const isDone = completedLessonIds.has(lesson.id);
+                const isBoss = idx >= lessons.length - 1;
+                const roomSeed = hashString(course.id);
+                const room = generateDungeonRoom(roomSeed, idx, Math.max(1, lessons.length));
+                const monster = getMonsterDef(room.entity?.monsterType || (isBoss ? "boss" : "slime"));
+
                 return (
-                  <Link
+                  <div
                     key={lesson.id}
-                    href={`/courses/${course.id}/lessons/${lesson.id}`}
-                    className="flex items-center justify-between gap-4 rounded-xl border border-[#e5dfd3] bg-[#faf8f4] p-4 hover:border-[#2a4d3e] hover:bg-white transition-all"
+                    className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
+                      isDone
+                        ? "border-[#2fbf71]/50 bg-[#1a7a4a]/15 text-[#f4efe6]"
+                        : "border-[#4a4766] bg-[#1c1b2b] text-[#f4efe6] hover:border-[#9b5de5]"
+                    }`}
                   >
                     <div className="flex items-center gap-3.5">
-                      <div
-                        className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold ${
-                          isDone
-                            ? "bg-[#166534] text-white"
-                            : "bg-[#e8f0ec] text-[#2a4d3e]"
-                        }`}
-                      >
-                        {isDone ? "✓" : idx + 1}
+                      <div className="p-2 rounded-xl bg-[#120f1c] border border-[#4a4766] flex items-center justify-center shrink-0">
+                        <PixelSpriteView sprite={monster.sprite} size={36} animateBounce={!isDone} />
                       </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-[#1e1e1c]">
+
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="pixel-font text-[10px] text-[#ffe27a]">
+                            ชั้นที่ {idx + 1}
+                          </span>
+                          {isBoss && (
+                            <span className="pixel-font text-[9px] bg-[#5a2d91] text-[#ffe27a] px-1.5 py-0.2 rounded font-black">
+                              FINAL BOSS
+                            </span>
+                          )}
+                          {isDone ? (
+                            <span className="text-[10px] bg-[#2fbf71]/20 text-[#2fbf71] px-2 py-0.2 rounded font-bold border border-[#2fbf71]/40">
+                              ✓ พิชิตแล้ว
+                            </span>
+                          ) : (
+                            <span className="text-[10px] bg-[#ffe27a]/20 text-[#ffe27a] px-2 py-0.2 rounded font-bold border border-[#ffe27a]/40">
+                              พร้อมท้าทาย
+                            </span>
+                          )}
+                        </div>
+
+                        <h3 className="text-sm font-bold text-[#f4efe6]">
                           {lesson.title}
                         </h3>
-                        <p className="text-[11px] text-[#6e6a63]">
-                          ภาษา {lesson.programming_language.toUpperCase()} •{" "}
-                          {lesson.quiz_questions?.length || 0} คำถามท้ายบท
+
+                        <p className="text-[11px] text-[#9a93ad]">
+                          มอนสเตอร์: <strong className="text-[#f6c945]">{monster.name}</strong> (HP {monster.maxHp}) · รางวัล: +{monster.xpReward} XP, +{monster.coinReward} G
                         </p>
                       </div>
                     </div>
 
-                    <span
-                      className={`rounded-lg px-3 py-1 text-xs font-bold ${
-                        isDone
-                          ? "bg-[#dcfce7] text-[#166534]"
-                          : "bg-[#e8f0ec] text-[#2a4d3e]"
-                      }`}
-                    >
-                      {isDone ? "เรียนจบแล้ว" : "เข้าเรียน →"}
-                    </span>
-                  </Link>
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                      <Link
+                        href={`/courses/${course.id}/lessons/${lesson.id}?mode=dungeon`}
+                        className="retro-button px-4 py-2 rounded-xl bg-[#9b5de5] hover:bg-[#b07af0] text-[#f4efe6] text-xs font-bold flex items-center gap-1.5 transition-colors"
+                      >
+                        <Icon name="gamepad" size={13} />
+                        <span>เข้าเล่นชั้นนี้</span>
+                      </Link>
+                    </div>
+                  </div>
                 );
               })}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </main>
     </div>
   );

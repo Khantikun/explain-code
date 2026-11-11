@@ -13,7 +13,9 @@ interface BattleOverlayProps {
   monsterHp: number;
   maxMonsterHp: number;
   playerHearts: number;
-  onCorrectAnswer: (xpAwarded?: number, coinsAwarded?: number) => void;
+  courseId?: string;
+  lessonId?: string;
+  onCorrectAnswer: (xpAwarded?: number, coinsAwarded?: number, lessonCompleted?: boolean) => void;
   onWrongAnswer: () => void;
   onClose: () => void;
 }
@@ -25,6 +27,8 @@ export function BattleOverlay({
   monsterHp,
   maxMonsterHp,
   playerHearts,
+  courseId,
+  lessonId,
   onCorrectAnswer,
   onWrongAnswer,
   onClose,
@@ -49,6 +53,7 @@ export function BattleOverlay({
     let explanationText = question.explanation;
     let xp = 25;
     let coins = 10;
+    let isLessonDone = false;
 
     try {
       const res = await fetch("/api/dungeon/answer", {
@@ -58,6 +63,8 @@ export function BattleOverlay({
           runId: runId || "trial",
           questionId: question.id,
           selectedIndex: selectedChoice,
+          courseId,
+          lessonId,
         }),
       });
 
@@ -67,6 +74,7 @@ export function BattleOverlay({
         explanationText = data.explanation || explanationText;
         xp = data.xpAwarded ?? xp;
         coins = data.coinsAwarded ?? coins;
+        isLessonDone = Boolean(data.lessonCompleted);
       } else {
         correct = selectedChoice === question.correctIndex;
       }
@@ -81,14 +89,14 @@ export function BattleOverlay({
       if (correct) {
         setFlashDamage("monster");
         dungeonSound.playHit();
-        onCorrectAnswer(xp, coins);
+        onCorrectAnswer(xp, coins, isLessonDone);
       } else {
         setFlashDamage("player");
         dungeonSound.playHurt();
         onWrongAnswer();
       }
     }
-  }, [selectedChoice, isSubmitted, isSubmitting, runId, question, onCorrectAnswer, onWrongAnswer]);
+  }, [selectedChoice, isSubmitted, isSubmitting, runId, question, courseId, lessonId, onCorrectAnswer, onWrongAnswer]);
 
   // Keyboard shortcut listener for numbers 1-4 and Enter
   useEffect(() => {

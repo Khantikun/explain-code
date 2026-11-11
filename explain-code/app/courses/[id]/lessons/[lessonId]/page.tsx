@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   SiteHeader,
   getClientSession,
@@ -24,12 +24,21 @@ import {
   saveLocalLessonProgress,
 } from "../../../../lib/lms-data";
 import { runJavaScriptReal } from "../../../../lib/curriculum";
+import { LessonDungeonRoom } from "../../../../components/dungeon/LessonDungeonRoom";
+import { PixelSpriteView } from "../../../../components/dungeon/PixelSpriteView";
+import { getMonsterDef } from "../../../../lib/dungeon/monsters";
+import { generateDungeonRoom } from "../../../../lib/dungeon/mapgen";
+import { hashString } from "../../../../lib/dungeon/seed";
 
 function LessonViewContent() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const courseId = String(params?.id || "");
   const lessonId = String(params?.lessonId || "");
+
+  const initialTab = searchParams.get("mode") === "dungeon" ? "dungeon" : "content";
+  const [activeTab, setActiveTab] = useState<"content" | "dungeon">(initialTab);
 
   const [session, setSession] = useState<ClientAuthSession | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
@@ -152,6 +161,21 @@ function LessonViewContent() {
   }
 
   const currentIdx = courseLessons.findIndex((l) => l.id === lesson.id);
+  const totalLessons = Math.max(1, courseLessons.length);
+  const roomSeed = useMemo(() => hashString(course.id), [course.id]);
+  const currentRoom = useMemo(
+    () => generateDungeonRoom(roomSeed, currentIdx >= 0 ? currentIdx : 0, totalLessons),
+    [roomSeed, currentIdx, totalLessons]
+  );
+  const monsterDef = useMemo(
+    () =>
+      getMonsterDef(
+        currentRoom.entity?.monsterType ||
+          (currentIdx >= totalLessons - 1 ? "boss" : "slime")
+      ),
+    [currentRoom.entity?.monsterType, currentIdx, totalLessons]
+  );
+
   const prevLesson = currentIdx > 0 ? courseLessons[currentIdx - 1] : null;
   const nextLesson =
     currentIdx >= 0 && currentIdx < courseLessons.length - 1
@@ -284,8 +308,53 @@ function LessonViewContent() {
           </span>
         </div>
 
-        {/* Lesson Content Card */}
-        <div className="rounded-2xl border border-[#e5dfd3] bg-white p-6 sm:p-8 shadow-xs space-y-6">
+        {/* Dual Mode Switcher Tabs */}
+        <div className="mb-5 flex items-center gap-2 border-b border-[#e5dfd3] pb-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab("content")}
+            className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "content"
+                ? "border-[#2a4d3e] text-[#2a4d3e]"
+                : "border-transparent text-[#6e6a63] hover:text-[#1e1e1c]"
+            }`}
+          >
+            <Icon name="book" size={15} />
+            <span>อ่านบทเรียน &amp; โค้ดตัวอย่าง</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("dungeon")}
+            className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "dungeon"
+                ? "border-[#9b5de5] text-[#5a2d91]"
+                : "border-transparent text-[#6e6a63] hover:text-[#1e1e1c]"
+            }`}
+          >
+            <Icon name="gamepad" size={15} />
+            <span>ห้องดันเจี้ยนประจำบทเรียน</span>
+            {isCompleted && (
+              <span className="text-[10px] bg-[#dcfce7] text-[#166534] px-1.5 py-0.2 rounded font-bold">
+                พิชิตแล้ว
+              </span>
+            )}
+          </button>
+        </div>
+
+        {activeTab === "dungeon" ? (
+          <LessonDungeonRoom
+            course={course}
+            lesson={lesson}
+            lessonIndex={currentIdx >= 0 ? currentIdx : 0}
+            totalLessons={totalLessons}
+            isCompleted={isCompleted}
+            onLessonCompleted={() => setIsCompleted(true)}
+            onSwitchToContent={() => setActiveTab("content")}
+            nextLessonUrl={nextLesson ? `/courses/${course.id}/lessons/${nextLesson.id}` : undefined}
+          />
+        ) : (
+          /* Lesson Content Card */
+          <div className="rounded-2xl border border-[#e5dfd3] bg-white p-6 sm:p-8 shadow-xs space-y-6">
           <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#ece7dc] pb-4">
             <div>
               <span className="rounded-md bg-[#e8f0ec] px-2.5 py-1 text-xs font-bold text-[#2a4d3e]">
@@ -440,6 +509,42 @@ function LessonViewContent() {
               </div>
             )}
 
+          {/* Dungeon Practice Callout Box */}
+          <div className="rounded-2xl border border-[#9b5de5]/30 bg-gradient-to-r from-[#252238] to-[#1c1b2b] p-5 text-[#f4efe6] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center gap-3.5">
+              <div className="p-2.5 rounded-xl bg-[#120f1c] border border-[#4a4766]">
+                <PixelSpriteView sprite={monsterDef.sprite} size={40} animateBounce />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="pixel-font text-[10px] text-[#ffe27a] uppercase">
+                    DUNGEON CHALLENGE · ชั้นที่ {currentIdx + 1}
+                  </span>
+                  {isCompleted && (
+                    <span className="text-[10px] bg-[#2fbf71]/20 text-[#2fbf71] px-2 py-0.5 rounded border border-[#2fbf71]/40 font-bold">
+                      พิชิตแล้ว
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-sm font-bold text-[#f4efe6]">
+                  ท้าทายด้วยห้องดันเจี้ยน: {monsterDef.name}
+                </h3>
+                <p className="text-[11px] text-[#9a93ad] mt-0.5">
+                  เดินสำรวจห้องพิกเซล ตอบคำถามทดสอบความเข้าใจเพื่อรับ +{monsterDef.xpReward} XP และ +{monsterDef.coinReward} G
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("dungeon")}
+              className="px-4 py-2.5 rounded-xl bg-[#9b5de5] hover:bg-[#b07af0] text-[#f4efe6] text-xs font-bold shrink-0 cursor-pointer flex items-center gap-1.5 transition-colors"
+            >
+              <Icon name="gamepad" size={14} />
+              <span>เข้าสู่ห้องดันเจี้ยน</span>
+            </button>
+          </div>
+
           {/* Bottom Actions: Mark Completed & Next/Prev Lesson */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#ece7dc] pt-5">
             <div>
@@ -482,6 +587,7 @@ function LessonViewContent() {
             </div>
           </div>
         </div>
+        )}
       </main>
     </div>
   );

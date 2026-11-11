@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { AVATARS, getAvatar, DEFAULT_AVATAR, AvatarKey } from "../../lib/dungeon/sprites";
 import { hashString, dungeonNameForCourse } from "../../lib/dungeon/seed";
 import { generateDungeonRoom, DungeonRoom } from "../../lib/dungeon/mapgen";
@@ -14,13 +14,23 @@ import { BattleOverlay } from "../../components/dungeon/BattleOverlay";
 import { MobileDpad } from "../../components/dungeon/MobileDpad";
 import { PauseModal, GameOverModal, VictoryModal } from "../../components/dungeon/GameModals";
 import { dungeonSound } from "../../lib/dungeon/sound";
-import { Course, Lesson } from "../../lib/supabase";
-import { loadLocalCourses, loadLocalLessons } from "../../lib/lms-data";
+import { Course, Lesson, LessonProgress } from "../../lib/supabase";
+import {
+  loadLocalCourses,
+  loadLocalLessons,
+  loadLocalLessonProgress,
+  saveLocalLessonProgress,
+  loadLocalEnrollments,
+  saveLocalEnrollments,
+} from "../../lib/lms-data";
+import { getClientSession } from "../../components/SiteHeader";
 
 function DungeonPlayContent() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const courseId = String(params?.courseId || "");
+  const initialFloor = Math.max(0, parseInt(searchParams.get("floor") || "0", 10) || 0);
 
   // Avatar and sound
   const [avatarKey, setAvatarKey] = useState<AvatarKey>(DEFAULT_AVATAR);
@@ -33,7 +43,7 @@ function DungeonPlayContent() {
 
   // Game state
   const [runId, setRunId] = useState<string>(() => `run-${courseId}-${Date.now()}`);
-  const [floorIndex, setFloorIndex] = useState<number>(0);
+  const [floorIndex, setFloorIndex] = useState<number>(initialFloor);
   const [hearts, setHearts] = useState<number>(3);
   const [maxHearts] = useState<number>(3);
   const [coins, setCoins] = useState<number>(0);
@@ -149,6 +159,59 @@ function DungeonPlayContent() {
       setCoins((prev) => prev + gainedCoins);
       setXp((prev) => prev + gainedXp);
 
+      // Two-Way Progress Sync: Mark current lesson completed in local storage
+      const currentLesson = courseLessons[floorIndex];
+      const session = getClientSession();
+      if (currentLesson && session) {
+        const nowIso = new Date().toISOString();
+        const progs = loadLocalLessonProgress();
+        const existingIdx = progs.findIndex(
+          (p) => p.lesson_id === currentLesson.id && p.student_id === session.userId
+        );
+        let updatedProgs: LessonProgress[];
+        if (existingIdx >= 0) {
+          updatedProgs = [...progs];
+          updatedProgs[existingIdx] = {
+            ...updatedProgs[existingIdx],
+            is_completed: true,
+            quiz_score: 100,
+            completed_at: nowIso,
+            updated_at: nowIso,
+          };
+        } else {
+          updatedProgs = [
+            {
+              id: `prog-${Date.now()}`,
+              student_id: session.userId,
+              course_id: courseId,
+              lesson_id: currentLesson.id,
+              is_completed: true,
+              quiz_score: 100,
+              opened_at: nowIso,
+              completed_at: nowIso,
+              updated_at: nowIso,
+            },
+            ...progs,
+          ];
+        }
+        saveLocalLessonProgress(updatedProgs);
+
+        // Update enrollments
+        const enrolls = loadLocalEnrollments();
+        const existingEnrollIdx = enrolls.findIndex(
+          (e) => e.course_id === courseId && e.student_id === session.userId
+        );
+        if (existingEnrollIdx >= 0) {
+          const updatedEnrolls = [...enrolls];
+          updatedEnrolls[existingEnrollIdx] = {
+            ...updatedEnrolls[existingEnrollIdx],
+            last_accessed_lesson_id: currentLesson.id,
+            last_accessed_at: nowIso,
+          };
+          saveLocalEnrollments(updatedEnrolls);
+        }
+      }
+
       setRoom((prev) => {
         const nextEntity = prev.entity
           ? { ...prev.entity, hp: 0, isCompleted: true }
@@ -160,7 +223,7 @@ function DungeonPlayContent() {
         };
       });
     },
-    [currentMonster]
+    [currentMonster, courseLessons, floorIndex, courseId]
   );
 
   const handleWrongAnswer = useCallback(() => {
@@ -285,6 +348,8 @@ function DungeonPlayContent() {
           monsterHp={room.entity?.isCompleted ? 0 : currentMonster.maxHp}
           maxMonsterHp={currentMonster.maxHp}
           playerHearts={hearts}
+          courseId={courseId}
+          lessonId={courseLessons[floorIndex]?.id}
           onCorrectAnswer={handleCorrectAnswer}
           onWrongAnswer={handleWrongAnswer}
           onClose={() => setIsInBattle(false)}
