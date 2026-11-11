@@ -1294,7 +1294,8 @@ function CoursesContent() {
                             className="press-secondary rounded-xl px-3 py-2 text-xs font-extrabold flex items-center gap-1.5 text-[#5a2d91] border-[#d8c7ed] hover:border-[#9b5de5] hover:bg-[#f6f0fd]"
                             title="เล่นคอร์สนี้ในโหมด Dungeon Crawler พิกเซล"
                           >
-                            <span>⚔️ ดันเจี้ยน</span>
+                            <Icon name="gamepad" size={14} />
+                            <span>ดันเจี้ยน</span>
                           </Link>
                           <Link
                             href={`/courses/${course.id}`}

@@ -807,7 +807,7 @@ export default function TeacherLMSDashboardPage() {
                         : "border-transparent text-[#6e6a63]"
                     }`}
                   >
-                    <span>⚔️ ดันเจี้ยน &amp; มอนสเตอร์</span>
+                    <span>ดันเจี้ยน &amp; มอนสเตอร์</span>
                   </button>
                 </div>
 
@@ -948,7 +948,7 @@ export default function TeacherLMSDashboardPage() {
                             </span>
                           </div>
                           <h3 className="text-lg font-black text-[#f6c945] mt-1">
-                            🏰 {dungeonNameForCourse(selectedCourse.id)}
+                            {dungeonNameForCourse(selectedCourse.id)}
                           </h3>
                         </div>
 
@@ -965,7 +965,7 @@ export default function TeacherLMSDashboardPage() {
                             target="_blank"
                             className="rounded-xl border border-[#9b5de5] bg-[#252238] px-3.5 py-2 text-xs font-bold text-[#ffe27a] hover:bg-[#322c4a]"
                           >
-                            🎮 ทดลองเล่นดันเจี้ยน ↗
+                            ทดลองเล่นดันเจี้ยน ↗
                           </Link>
                         </div>
                       </div>
@@ -1024,7 +1024,7 @@ export default function TeacherLMSDashboardPage() {
                                             : "bg-[#2a4d3e] text-white"
                                         }`}
                                       >
-                                        {isBossFloor ? "👑 บอสใหญ่ชั้นสุดท้าย" : `ชั้นที่ ${idx + 1}`}
+                                        {isBossFloor ? "บอสใหญ่ชั้นสุดท้าย" : `ชั้นที่ ${idx + 1}`}
                                       </span>
                                       <span className="text-xs font-bold text-[#1e1e1c]">
                                         {lesson.title}
@@ -1045,7 +1045,7 @@ export default function TeacherLMSDashboardPage() {
                                     onClick={() => handleOpenDungeonModal(attachedQ, lesson.id, isBossFloor)}
                                     className="rounded-xl border border-[#2a4d3e] bg-white px-3.5 py-1.5 text-xs font-bold text-[#2a4d3e] hover:bg-[#e8f0ec] cursor-pointer"
                                   >
-                                    {attachedQ ? "✏️ แก้ไขคำถาม" : "+ กำหนดคำถาม"}
+                                    {attachedQ ? "แก้ไขคำถาม" : "+ กำหนดคำถาม"}
                                   </button>
                                   {attachedQ && (
                                     <button
@@ -1105,7 +1105,7 @@ export default function TeacherLMSDashboardPage() {
                                         <span>สถิติ: ตอบแล้ว {stat.totalAttempts} ครั้ง</span>
                                         <span>(ตอบผิด {stat.wrongPercent}%)</span>
                                         {stat.wrongPercent >= 50 && (
-                                          <span>⚠️ ตอบผิดบ่อย</span>
+                                          <span className="font-bold underline">ตอบผิดบ่อย</span>
                                         )}
                                       </div>
                                     ) : (
@@ -1479,7 +1479,7 @@ export default function TeacherLMSDashboardPage() {
             >
               <div className="flex items-center justify-between border-b border-[#ece7dc] pb-3">
                 <h3 className="text-base sm:text-lg font-bold text-[#1e1e1c] flex items-center gap-2">
-                  <span>⚔️ กำหนดคำถามและมอนสเตอร์ดันเจี้ยน</span>
+                  <span>กำหนดคำถามและมอนสเตอร์ดันเจี้ยน</span>
                 </h3>
                 <button
                   type="button"
@@ -1521,15 +1521,15 @@ export default function TeacherLMSDashboardPage() {
                     }
                     className="w-full rounded-xl border border-[#d8d1c5] px-3 py-2 text-xs bg-white"
                   >
-                    <option value="slime">🟢 สไลม์โค้ด (HP 1 - พื้นฐาน)</option>
+                    <option value="slime">สไลม์โค้ด (HP 1 - พื้นฐาน)</option>
                     <option value="skeleton">
-                      💀 โครงกระดูกโค้ดตกค้าง (HP 2 - ปานกลาง)
+                      โครงกระดูกโค้ดตกค้าง (HP 2 - ปานกลาง)
                     </option>
                     <option value="goblin">
-                      👺 ก็อบลินลักบั๊ก (HP 2 - จับบั๊ก)
+                      ก็อบลินลักบั๊ก (HP 2 - จับบั๊ก)
                     </option>
                     <option value="boss">
-                      👑 จอมมารลูปไม่สิ้นสุด (HP 3 - บอสใหญ่)
+                      จอมมารลูปไม่สิ้นสุด (HP 3 - บอสใหญ่)
                     </option>
                   </select>
                 </div>

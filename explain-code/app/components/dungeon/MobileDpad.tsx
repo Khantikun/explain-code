@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback } from "react";
+import { Icon } from "../Icons";
 
 interface MobileDpadProps {
   onMove: (dx: number, dy: number) => void;
@@ -80,7 +81,7 @@ export function MobileDpad({ onMove, onAction, disabled = false }: MobileDpadPro
         </div>
       </div>
 
-      {/* Action Button (⚔️ Interact / Attack / Open) */}
+      {/* Action Button (Interact / Attack / Open) */}
       <div className="flex flex-col items-center gap-2">
         <button
           type="button"
@@ -90,8 +91,8 @@ export function MobileDpad({ onMove, onAction, disabled = false }: MobileDpadPro
           className="w-20 h-20 rounded-full bg-[#f6c945] active:bg-[#ffe27a] border-4 border-[#120f1c] shadow-[0_4px_0_#120f1c] active:translate-y-1 active:shadow-none flex flex-col items-center justify-center text-[#120f1c] cursor-pointer select-none transition-all"
           aria-label="ปุ่มกระทำ โต้ตอบ หรือโจมตี"
         >
-          <span className="text-xl">⚔️</span>
-          <span className="pixel-font text-[10px] font-black uppercase">ACT</span>
+          <Icon name="sword" size={18} />
+          <span className="pixel-font text-[10px] font-black uppercase mt-0.5">ACT</span>
         </button>
         <span className="text-[10px] text-[#9a93ad] font-bold">โต้ตอบ / คุย</span>
       </div>

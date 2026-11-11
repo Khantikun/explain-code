@@ -17,7 +17,7 @@ export default function DungeonCreditsPage() {
       <div className="retro-panel rounded-2xl p-6 sm:p-8 space-y-6">
         <div>
           <h1 className="text-2xl font-extrabold text-[#f4efe6] flex items-center gap-3">
-            <span>📜 รายการทรัพย์สินและสิทธิ์การใช้งาน (Credits)</span>
+            <span>รายการทรัพย์สินและสิทธิ์การใช้งาน (Credits)</span>
           </h1>
           <p className="text-xs sm:text-sm text-[#9a93ad] mt-1">
             Dungeon Crawler โหมดการเรียนรู้ของ &ldquo;โค้ดนี้ฉันอธิบายได้&rdquo; พัฒนาขึ้นโดยเคารพลิขสิทธิ์และสิทธิ์ทรัพย์สินทางปัญญา 100%

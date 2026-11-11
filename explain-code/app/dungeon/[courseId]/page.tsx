@@ -241,14 +241,14 @@ function DungeonPlayContent() {
       {/* Instructions / Status hint */}
       <div className="w-full max-w-[640px] flex items-center justify-between text-xs text-[#9a93ad] px-1 select-none">
         <span className="hidden sm:inline">
-          ⌨️ เดินด้วย <strong>WASD</strong> หรือ <strong>ลูกศร</strong> · โต้ตอบด้วย <strong>Space/Enter</strong>
+          เดินด้วย <strong>WASD</strong> หรือ <strong>ลูกศร</strong> · โต้ตอบด้วย <strong>Space/Enter</strong>
         </span>
         <span className="text-[#ffe27a] font-bold">
           {room.isDoorUnlocked
-            ? "✨ ประตูเปิดแล้ว! เดินขึ้นไปที่ประตูเพื่อไปชั้นถัดไป"
+            ? "ประตูเปิดแล้ว! เดินขึ้นไปที่ประตูเพื่อไปชั้นถัดไป"
             : isBossFloor
-            ? "👑 ประจันหน้ากับบอสใหญ่ท้ายคอร์ส!"
-            : "⚔️ เดินไปชนเป้าหมายเพื่อตอบคำถาม"}
+            ? "ประจันหน้ากับบอสใหญ่ท้ายคอร์ส!"
+            : "เดินไปชนเป้าหมายเพื่อตอบคำถาม"}
         </span>
       </div>
 

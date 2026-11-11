@@ -230,7 +230,7 @@ export function BattleOverlay({
             }`}
           >
             <div className="font-extrabold flex items-center gap-2">
-              <span>{isCorrect ? "⚔️ ตอบถูก! โจมตีสำเร็จ" : "💥 ตอบผิด! โดนโจมตีเสีย 1 หัวใจ"}</span>
+              <span>{isCorrect ? "ตอบถูก! โจมตีสำเร็จ" : "ตอบผิด! เสีย 1 หัวใจ"}</span>
               {isCorrect && isMonsterDefeated && (
                 <span className="pixel-font text-[#ffe27a]">VICTORY!</span>
               )}

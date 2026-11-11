@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { PixelSpriteView } from "./PixelSpriteView";
 import { HEART_SPRITE, COIN_SPRITE } from "../../lib/dungeon/sprites";
+import { Icon } from "../Icons";
 
 interface PauseModalProps {
   isOpen: boolean;
@@ -19,7 +20,7 @@ export function PauseModal({ isOpen, onResume, onExit }: PauseModalProps) {
       <div className="retro-panel rounded-2xl max-w-sm w-full p-6 text-center space-y-5 text-[#f4efe6]">
         <div className="space-y-1">
           <span className="pixel-font text-xs text-[#ffe27a]">GAME PAUSED</span>
-          <h2 className="text-xl font-black">⏸️ หยุดเกมชั่วคราว</h2>
+          <h2 className="text-xl font-black">หยุดเกมชั่วคราว</h2>
           <p className="text-xs text-[#9a93ad]">
             เกมหยุดอัตโนมัติเมื่อคุณสลับแท็บหรือกดปุ่มหยุด
           </p>
@@ -38,7 +39,7 @@ export function PauseModal({ isOpen, onResume, onExit }: PauseModalProps) {
             onClick={onExit}
             className="retro-button w-full py-2.5 rounded-xl bg-[#252238] hover:bg-[#c0283a] text-[#f4efe6] font-bold text-xs cursor-pointer"
           >
-            🚪 ออกจากดันเจี้ยน
+            ออกจากดันเจี้ยน
           </button>
         </div>
       </div>
@@ -59,7 +60,9 @@ export function GameOverModal({ isOpen, onRetry, onExit }: GameOverModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xs select-none">
       <div className="retro-panel rounded-2xl max-w-md w-full p-6 text-center space-y-5 text-[#f4efe6] border-2 border-[#c0283a]">
         <div className="space-y-2">
-          <div className="text-4xl">💔</div>
+          <div className="w-14 h-14 mx-auto rounded-full bg-[#c0283a]/20 border border-[#c0283a] flex items-center justify-center text-[#ff4d6d]">
+            <Icon name="heart" size={28} />
+          </div>
           <span className="pixel-font text-xs text-[#ff4d6d] font-bold">GAME OVER</span>
           <h2 className="text-xl sm:text-2xl font-black text-[#f4efe6]">
             หัวใจหมดแล้ว!
@@ -76,7 +79,7 @@ export function GameOverModal({ isOpen, onRetry, onExit }: GameOverModalProps) {
             onClick={onRetry}
             className="retro-button flex-1 py-3 rounded-xl bg-[#f6c945] hover:bg-[#ffe27a] text-[#120f1c] font-black pixel-font text-xs cursor-pointer"
           >
-            🔄 RETRY (ลองใหม่)
+            RETRY (ลองใหม่)
           </button>
           <button
             type="button"
@@ -114,7 +117,9 @@ export function VictoryModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xs select-none">
       <div className="retro-panel rounded-2xl max-w-md w-full p-6 text-center space-y-6 text-[#f4efe6] border-2 border-[#f6c945] animate-in zoom-in-95 duration-200">
         <div className="space-y-2">
-          <div className="text-5xl animate-bounce">🏆</div>
+          <div className="w-16 h-16 mx-auto rounded-full bg-[#f6c945]/20 border-2 border-[#f6c945] flex items-center justify-center text-[#ffe27a] animate-bounce">
+            <Icon name="trophy" size={32} />
+          </div>
           <span className="pixel-font text-xs text-[#f6c945] font-black uppercase">
             DUNGEON CONQUERED!
           </span>

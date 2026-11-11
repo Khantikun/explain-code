@@ -159,12 +159,12 @@ export default function DungeonTrialPage() {
       {/* Instructions / Controls hint */}
       <div className="w-full max-w-[640px] flex items-center justify-between text-xs text-[#9a93ad] px-1 select-none">
         <span className="hidden sm:inline">
-          ⌨️ เดินด้วย <strong>WASD</strong> หรือ <strong>ลูกศร</strong> · โต้ตอบด้วย <strong>Space/Enter</strong>
+          เดินด้วย <strong>WASD</strong> หรือ <strong>ลูกศร</strong> · โต้ตอบด้วย <strong>Space/Enter</strong>
         </span>
         <span className="text-[#ffe27a] font-bold">
           {room.isDoorUnlocked
-            ? "✨ ประตูเปิดแล้ว! เดินขึ้นไปที่ประตูด้านบนเพื่อจบด่าน"
-            : "⚔️ เดินไปชนสไลม์เพื่อเริ่มตอบคำถาม"}
+            ? "ประตูเปิดแล้ว! เดินขึ้นไปที่ประตูด้านบนเพื่อจบด่าน"
+            : "เดินไปชนสไลม์เพื่อเริ่มตอบคำถาม"}
         </span>
       </div>
 

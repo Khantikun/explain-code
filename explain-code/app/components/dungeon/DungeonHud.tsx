@@ -3,6 +3,7 @@
 import React from "react";
 import { AvatarDef, HEART_SPRITE, COIN_SPRITE } from "../../lib/dungeon/sprites";
 import { PixelSpriteView } from "./PixelSpriteView";
+import { Icon } from "../Icons";
 
 interface DungeonHudProps {
   avatar: AvatarDef;
@@ -97,7 +98,7 @@ export function DungeonHud({
             className="p-1.5 rounded-lg bg-[#252238] hover:bg-[#322c4a] text-[#f4efe6] text-xs cursor-pointer transition-colors"
             title={soundEnabled ? "ปิดเสียง" : "เปิดเสียง"}
           >
-            {soundEnabled ? "🔊" : "🔇"}
+            <Icon name={soundEnabled ? "volume-2" : "volume-x"} size={14} />
           </button>
           <button
             type="button"
@@ -105,7 +106,7 @@ export function DungeonHud({
             className="p-1.5 rounded-lg bg-[#252238] hover:bg-[#322c4a] text-[#f4efe6] text-xs cursor-pointer transition-colors"
             title="หยุดชั่วคราว"
           >
-            ⏸️
+            <Icon name="pause" size={14} />
           </button>
           <button
             type="button"
@@ -113,7 +114,7 @@ export function DungeonHud({
             className="p-1.5 rounded-lg bg-[#252238] hover:bg-[#c0283a] text-[#f4efe6] text-xs cursor-pointer transition-colors"
             title="ออกจากดันเจี้ยน"
           >
-            🚪
+            <Icon name="logout" size={14} />
           </button>
         </div>
       </div>

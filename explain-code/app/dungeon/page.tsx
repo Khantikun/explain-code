@@ -8,6 +8,7 @@ import { PixelSpriteView } from "../components/dungeon/PixelSpriteView";
 import { Course, Lesson } from "../lib/supabase";
 import { loadLocalCourses, loadLocalLessons } from "../lib/lms-data";
 import { getClientSession, ClientAuthSession } from "../components/SiteHeader";
+import { Icon } from "../components/Icons";
 
 const STORAGE_AVATAR_KEY = "explain_code_dungeon_avatar";
 const STORAGE_SOUND_KEY = "explain_code_dungeon_sound";
@@ -113,7 +114,7 @@ export default function DungeonHubPage() {
             href="/courses"
             className="retro-button px-3.5 py-1.5 rounded-lg bg-[#252238] hover:bg-[#322c4a] text-xs font-bold text-[#f4efe6] transition-colors"
           >
-            📚 คลังบทเรียนปกติ
+            คลังบทเรียนปกติ
           </Link>
         </div>
 
@@ -124,7 +125,8 @@ export default function DungeonHubPage() {
             className="retro-button px-3.5 py-1.5 rounded-lg bg-[#252238] hover:bg-[#322c4a] text-xs font-bold text-[#f4efe6] flex items-center gap-2 cursor-pointer transition-colors"
             title="เปิด/ปิดเสียงเอฟเฟกต์ 8-bit"
           >
-            <span>{soundEnabled ? "🔊 เสียงเปิดอยู่" : "🔇 ปิดเสียง"}</span>
+            <Icon name={soundEnabled ? "volume-2" : "volume-x"} size={14} />
+            <span>{soundEnabled ? "เสียงเปิดอยู่" : "ปิดเสียง"}</span>
           </button>
 
           <Link
@@ -148,7 +150,7 @@ export default function DungeonHubPage() {
               Pixel Top-Down RPG
             </span>
             <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-[#f4efe6] flex items-center gap-3">
-              <span>🏰 ดันเจี้ยนอ่านโค้ด</span>
+              <span>ดันเจี้ยนอ่านโค้ด</span>
               <span className="text-xs sm:text-sm pixel-font text-[#f6c945] bg-[#120f1c] px-2 py-1 rounded border border-[#4a4766]">
                 v1.0 BETA
               </span>
@@ -186,7 +188,7 @@ export default function DungeonHubPage() {
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg sm:text-xl font-extrabold text-[#f4efe6] flex items-center gap-2">
-            <span>🧙 เลือกตัวละครพิกเซลของคุณ</span>
+            <span>เลือกตัวละครพิกเซลของคุณ</span>
             <span className="text-xs text-[#9a93ad] font-normal">(แสดงบนแผนที่และโปรไฟล์)</span>
           </h2>
         </div>
@@ -252,7 +254,7 @@ export default function DungeonHubPage() {
               </span>
             </div>
             <h3 className="text-lg sm:text-xl font-extrabold text-[#f4efe6]">
-              🎮 โหมดทดลองเล่นด่วน 1 ห้อง (Guest Trial)
+              โหมดทดลองเล่นด่วน 1 ห้อง (Guest Trial)
             </h3>
             <p className="text-xs sm:text-sm text-[#9a93ad] max-w-2xl leading-relaxed">
               ฝึกเดินตัวละครบนแผนที่พิกเซล สำรวจห้องมอนสเตอร์ และทดลองตอบคำถามแกะโค้ด 1 ข้อ
@@ -264,7 +266,7 @@ export default function DungeonHubPage() {
             href="/dungeon/trial"
             className="retro-button px-5 py-3 rounded-xl bg-[#9b5de5] hover:bg-[#b07af0] text-[#f4efe6] text-xs sm:text-sm font-extrabold pixel-font flex items-center gap-2 shrink-0 transition-colors"
           >
-            <span>⚔️ เริ่มทดลอง 1 ห้อง →</span>
+            <span>เริ่มทดลอง 1 ห้อง →</span>
           </Link>
         </div>
       </section>
@@ -274,7 +276,7 @@ export default function DungeonHubPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg sm:text-xl font-extrabold text-[#f4efe6] flex items-center gap-2">
-              <span>🗺️ ดันเจี้ยนประจำคอร์สเรียน</span>
+              <span>ดันเจี้ยนประจำคอร์สเรียน</span>
             </h2>
             <p className="text-xs text-[#9a93ad] mt-0.5">
               แผนที่แต่ละดันเจี้ยนถูกสร้างอัตโนมัติจาก Seed คงที่ตามเนื้อหาคอร์สและบทเรียนจริง
@@ -319,7 +321,7 @@ export default function DungeonHubPage() {
                     {/* Dungeon Procedural Title */}
                     <div>
                       <h3 className="text-base sm:text-lg font-black text-[#f6c945] flex items-center gap-2">
-                        <span>⚔️ {dungeonName}</span>
+                        <span>{dungeonName}</span>
                       </h3>
                       <h4 className="text-xs sm:text-sm font-bold text-[#f4efe6] mt-0.5 line-clamp-1">
                         {course.title}
@@ -333,16 +335,16 @@ export default function DungeonHubPage() {
                     {/* Room Type Legend */}
                     <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#9a93ad] pt-2 border-t border-[#4a4766]/40">
                       <span className="inline-flex items-center gap-1 bg-[#120f1c] px-2 py-0.5 rounded">
-                        👾 มอนสเตอร์
+                        มอนสเตอร์
                       </span>
                       <span className="inline-flex items-center gap-1 bg-[#120f1c] px-2 py-0.5 rounded">
-                        💎 หีบสมบัติ
+                        หีบสมบัติ
                       </span>
                       <span className="inline-flex items-center gap-1 bg-[#120f1c] px-2 py-0.5 rounded">
-                        🧩 ปริศนาโค้ด
+                        ปริศนาโค้ด
                       </span>
                       <span className="inline-flex items-center gap-1 bg-[#120f1c] px-2 py-0.5 rounded text-[#ffe27a]">
-                        👑 บอสคอร์ส
+                        บอสคอร์ส
                       </span>
                     </div>
                   </div>
@@ -373,7 +375,8 @@ export default function DungeonHubPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#2f2d45] pb-3">
           <div>
             <h2 className="text-lg sm:text-xl font-extrabold text-[#ffe27a] flex items-center gap-2">
-              <span>🏆 ทำเนียบผู้พิชิตดันเจี้ยน (Hall of Fame)</span>
+              <Icon name="trophy" size={20} className="text-[#ffe27a]" />
+              <span>ทำเนียบผู้พิชิตดันเจี้ยน (Hall of Fame)</span>
             </h2>
             <p className="text-xs text-[#9a93ad] mt-0.5">
               คำนวณคะแนนฝั่งเซิร์ฟเวอร์ และแสดงเฉพาะผู้เล่นที่เปิดเผยชื่อตามหลัก PDPA

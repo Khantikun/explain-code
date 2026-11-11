@@ -1069,14 +1069,14 @@ export default function ExplainCodeApp() {
               <div className="space-y-3 max-w-2xl">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-[#5a2d91] px-3 py-1 text-xs font-bold text-[#ffe27a]">
-                    ✨ โหมดเกมการเรียนรู้ใหม่ · Pixel Dungeon Crawler
+                    โหมดเกมการเรียนรู้ใหม่ · Pixel Dungeon Crawler
                   </span>
                   <span className="rounded-full bg-[#2fbf71]/20 border border-[#2fbf71]/50 px-2.5 py-0.5 text-[11px] font-bold text-[#2fbf71]">
                     เล่นได้ทันที
                   </span>
                 </div>
                 <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#f6c945]">
-                  🏰 ดันเจี้ยนอ่านโค้ด: ตะลุยเขาวงกตพิกเซล ปราบมอนสเตอร์ด้วยคำถาม
+                  ดันเจี้ยนอ่านโค้ด: ตะลุยเขาวงกตพิกเซล ปราบมอนสเตอร์ด้วยคำถาม
                 </h2>
                 <p className="text-xs sm:text-sm leading-relaxed text-[#9a93ad]">
                   เปลี่ยนการฝึกอ่านโค้ดให้เป็นการผจญภัยแนว RPG พิกเซลมุมมอง Top-down!
@@ -1084,10 +1084,10 @@ export default function ExplainCodeApp() {
                   ไขปริศนาเติมโค้ด และปราบบอสท้ายคอร์สเพื่อรับเหรียญรางวัลและตราเกียรติยศ
                 </p>
                 <div className="flex flex-wrap items-center gap-4 text-xs text-[#e8e1cf]">
-                  <span>❤️ 3 หัวใจต่อรอบ</span>
-                  <span>⚔️ มอนสเตอร์และปริศนาโค้ด</span>
-                  <span>🧙 เลือกตัวละครได้ 4 คลาส</span>
-                  <span>🎮 มีโหมดทดลองเล่นฟรี</span>
+                  <span>• 3 หัวใจต่อรอบ</span>
+                  <span>• มอนสเตอร์และปริศนาโค้ด</span>
+                  <span>• เลือกตัวละครได้ 4 คลาส</span>
+                  <span>• มีโหมดทดลองเล่นฟรี</span>
                 </div>
               </div>
 
