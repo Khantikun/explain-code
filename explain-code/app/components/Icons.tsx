@@ -24,7 +24,12 @@ export type IconName =
   | "close"
   | "home"
   | "gift"
-  | "eye";
+  | "eye"
+  | "sparkles"
+  | "clock"
+  | "trash"
+  | "award"
+  | "alert";
 
 interface IconProps {
   name: IconName;
@@ -243,6 +248,42 @@ export function Icon({ name, size = 24, filled = false, className = "" }: IconPr
         <svg {...common}>
           <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
           <circle cx="12" cy="12" r="3" />
+        </svg>
+      );
+    case "sparkles":
+      return (
+        <svg {...common}>
+          <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
+        </svg>
+      );
+    case "clock":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      );
+    case "trash":
+      return (
+        <svg {...common}>
+          <path d="M3 6h18" />
+          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+        </svg>
+      );
+    case "award":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="8" r="6" />
+          <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+        </svg>
+      );
+    case "alert":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" x2="12" y1="8" y2="12" />
+          <line x1="12" x2="12.01" y1="16" y2="16" />
         </svg>
       );
   }

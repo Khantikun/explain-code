@@ -1,0 +1,233 @@
+import { LineExplanationItem } from "./supabase";
+
+export interface ExplainCodeInput {
+  code: string;
+  language: string;
+}
+
+export interface ExplainCodeResult {
+  language: string;
+  summary: string;
+  lineByLine: LineExplanationItem[];
+  keyConcepts: string[];
+  stepByStepFlow: string[];
+  potentialPitfalls: string[];
+  provider: "mock-analyzer" | "ai-api";
+}
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  javascript: "JavaScript",
+  typescript: "TypeScript",
+  python: "Python",
+  java: "Java",
+  cpp: "C / C++",
+  html: "HTML / CSS",
+  sql: "SQL",
+};
+
+/**
+ * วิเคราะห์บรรทัดโค้ดแต่ละบรรทัดแบบอัจฉริยะ (Smart Deterministic Mock Analyzer)
+ * พร้อมจุดเชื่อมต่อ AI API ฝั่ง Server เท่านั้น (เช่น GEMINI_API_KEY / OPENAI_API_KEY)
+ */
+function explainSingleLine(line: string, lineNumber: number, lang: string): string {
+  const trimmed = line.trim();
+  if (!trimmed) return "บรรทัดว่างสำหรับจัดระเบียบโค้ดให้อ่านง่าย";
+
+  // Comments
+  if (trimmed.startsWith("//") || trimmed.startsWith("#") || trimmed.startsWith("--") || trimmed.startsWith("/*")) {
+    return "คอมเมนต์อธิบายโค้ด (ไม่มีผลต่อการประมวลผลของโปรแกรม)";
+  }
+
+  // Imports / Includes
+  if (/^(import\s|from\s.+import|#include|using\s|require\()/.test(trimmed)) {
+    return "นำเข้าไลบรารีหรือโมดูลภายนอกเข้ามาใช้งานในไฟล์นี้";
+  }
+
+  // Function definitions
+  if (/^(async\s+)?function\s+\w+|^(def|func|void|int|string|public|private)\s+\w+\s*\(|const\s+\w+\s*=\s*(async\s*)?\(/.test(trimmed)) {
+    const isAsync = trimmed.includes("async");
+    return isAsync
+      ? "ประกาศฟังก์ชันแบบ Asynchronous (รองรับการรอผลด้วย await โดยไม่บล็อกการทำงาน)"
+      : "ประกาศฟังก์ชันพร้อมพารามิเตอร์เพื่อรวบรวมชุดคำสั่งไว้เรียกใช้งานซ้ำ";
+  }
+
+  // Return statements
+  if (/^return(\s|$|;)/.test(trimmed)) {
+    return "ส่งค่าผลลัพธ์กลับออกจากฟังก์ชันและจบการทำงานของฟังก์ชันทันที";
+  }
+
+  // Loops
+  if (/^(for|while)\b/.test(trimmed) || /\.forEach\(|\.map\(|\.filter\(|\.reduce\(/.test(trimmed)) {
+    if (trimmed.includes(".map(")) {
+      return "วนลูปแปลงค่าสมาชิกทุกตัวใน Array แล้วสร้างเป็น Array ใหม่";
+    }
+    if (trimmed.includes(".filter(")) {
+      return "วนลูปคัดกรองเฉพาะสมาชิกใน Array ที่ตรงตามเงื่อนไข";
+    }
+    if (trimmed.startsWith("while")) {
+      return "คำสั่งวนซ้ำ (while loop) ที่จะทำงานต่อเนื่องตราบใดที่เงื่อนไขยังเป็นจริง (ระวัง Infinite Loop หากไม่เปลี่ยนค่าตัวแปร)";
+    }
+    return "คำสั่งวนซ้ำ (Loop) เพื่อประมวลผลข้อมูลทีละรอบตามเงื่อนไขหรือจำนวนสมาชิก";
+  }
+
+  // Conditionals
+  if (/^(if|else\s+if|elif)\b/.test(trimmed)) {
+    return "ตรวจสอบเงื่อนไข (Condition) ว่ามีค่าเป็นจริง (true) หรือไม่ ก่อนตัดสินใจเลือกทางเดินของโปรแกรม";
+  }
+  if (/^else\b|^}\s*else/.test(trimmed)) {
+    return "กรณีทางเลือกสำรอง (else) จะทำงานเมื่อเงื่อนไข if ก่อนหน้าเป็นเท็จทั้งหมด";
+  }
+
+  // Try / Catch
+  if (/^(try|catch|except|finally)\b/.test(trimmed)) {
+    return "ส่วนจัดการข้อผิดพลาด (Error Handling) เพื่อดักจับ Exception ไม่ให้โปรแกรมล่ม";
+  }
+
+  // Output / Logging
+  if (/console\.(log|error|warn)|print\s*\(|System\.out\.print|cout\s*<</.test(trimmed)) {
+    return "แสดงผลลัพธ์หรือค่าของตัวแปรออกทางหน้าจอ / Console เพื่อตรวจสอบการทำงาน";
+  }
+
+  // SQL queries
+  if (/^(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|WHERE|JOIN|GROUP BY|ORDER BY)\b/i.test(trimmed)) {
+    return "คำสั่ง SQL สำหรับดึงหรือจัดการข้อมูลในตารางฐานข้อมูล";
+  }
+
+  // Async / Await
+  if (/\bawait\b/.test(trimmed)) {
+    return "หยุดรอให้การทำงานแบบ Asynchronous (Promise / API / Database) เสร็จสิ้นก่อนนำค่าไปใช้ต่อ";
+  }
+
+  // Variable declarations & assignments
+  if (/^(const|let|var)\s+\w+/.test(trimmed)) {
+    const keyword = trimmed.split(/\s+/)[0];
+    if (keyword === "const") {
+      return "ประกาศตัวแปรแบบค่าคงที่ (const) ที่ไม่สามารถกำหนดค่าทับใหม่ได้";
+    }
+    return "ประกาศตัวแปรและกำหนดค่าเริ่มต้นเพื่อเก็บข้อมูลไว้ในหน่วยความจำ";
+  }
+
+  if (/\+=|-=|\*=|\/=|\+\+|--/.test(trimmed)) {
+    return "อัปเดตค่าในตัวแปรเดิม (เช่น บวกสะสมค่า หรือเพิ่มลดค่าทีละลำดับ)";
+  }
+
+  if (/^[a-zA-Z_$][\w$]*\s*=[^=]/.test(trimmed)) {
+    return "กำหนดหรืออัปเดตค่าใหม่ให้กับตัวแปร";
+  }
+
+  if (/^[{}()[\];]+$/.test(trimmed)) {
+    return "วงเล็บปิดขอบเขตของบล็อกคำสั่ง (Scope / Block Closure)";
+  }
+
+  return `คำสั่งประมวลผลในภาษา ${LANGUAGE_LABELS[lang] || lang} (บรรทัดที่ ${lineNumber})`;
+}
+
+/**
+ * ฟังก์ชัน Service เดียวสำหรับอธิบายโค้ด
+ * ปัจจุบันใช้ Smart Mock Analyzer และสามารถเปิดใช้งาน AI API จริงผ่าน Server Env ได้ทันที
+ */
+export async function explainCodeSnippet(
+  input: ExplainCodeInput
+): Promise<ExplainCodeResult> {
+  const rawCode = (input.code || "").trim();
+  const language = (input.language || "javascript").toLowerCase();
+  const langLabel = LANGUAGE_LABELS[language] || language;
+
+  if (!rawCode) {
+    throw new Error("กรุณาวางโค้ดที่ต้องการให้อธิบาย");
+  }
+
+  // หมายเหตุ: จุดเชื่อมต่อ AI API ฝั่ง Server เท่านั้น (ห้ามส่ง API Key ไปฝั่ง Client)
+  // const serverAiKey = process.env.EXPLAIN_AI_API_KEY || process.env.GEMINI_API_KEY;
+  // ตอนนี้ใช้ระบบ Mock Analyzer ตามที่กำหนด เพื่อให้พร้อมต่อยอดกับ AI API ภายหลัง
+
+  const lines = rawCode.split(/\r?\n/);
+  const lineByLine: LineExplanationItem[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const codeLine = lines[i];
+    if (codeLine.trim().length === 0) continue;
+    lineByLine.push({
+      lineNumber: i + 1,
+      code: codeLine,
+      explanation: explainSingleLine(codeLine, i + 1, language),
+    });
+  }
+
+  // สกัดแนวคิดสำคัญ (Key Concepts) จากโครงสร้างโค้ด
+  const keyConcepts: string[] = [];
+  if (/\b(const|let|var)\b|=/.test(rawCode)) {
+    keyConcepts.push("ตัวแปรและการเก็บสถานะข้อมูล (Variables & State)");
+  }
+  if (/\b(if|else|switch|elif)\b|\?.*:/.test(rawCode)) {
+    keyConcepts.push("การตรวจสอบเงื่อนไขและทางเลือก (Control Flow: Conditionals)");
+  }
+  if (/\b(for|while)\b|\.(map|forEach|filter|reduce)\(/.test(rawCode)) {
+    keyConcepts.push("การวนซ้ำและประมวลผลชุดข้อมูล (Loops & Iteration)");
+  }
+  if (/\b(function|def|func)\b|=>/.test(rawCode)) {
+    keyConcepts.push("การแยกส่วนการทำงานด้วยฟังก์ชัน (Functions & Modularity)");
+  }
+  if (/\b(async|await|Promise|fetch)\b/.test(rawCode)) {
+    keyConcepts.push("การทำงานแบบไม่พร้อมกัน (Asynchronous Programming)");
+  }
+  if (/\[.*\]|\bArray\b/.test(rawCode)) {
+    keyConcepts.push("โครงสร้างข้อมูลแถวลำดับ (Arrays / Lists)");
+  }
+  if (/^(SELECT|INSERT|UPDATE|DELETE)\b/im.test(rawCode)) {
+    keyConcepts.push("การสืบค้นและจัดการฐานข้อมูล (SQL Querying)");
+  }
+  if (keyConcepts.length === 0) {
+    keyConcepts.push(`พื้นฐานไวยากรณ์ภาษา ${langLabel} (Syntax & Expressions)`);
+  }
+
+  // สรุปขั้นตอนการทำงาน (Step-by-step Flow)
+  const stepByStepFlow: string[] = [
+    `1. เตรียมข้อมูลตั้งต้นและประกาศตัวแปร/ฟังก์ชันในภาษา ${langLabel} (ทั้งหมด ${lines.length} บรรทัด)`,
+  ];
+  if (keyConcepts.some((c) => c.includes("Loops") || c.includes("Conditionals"))) {
+    stepByStepFlow.push(
+      "2. ดำเนินการตรวจสอบเงื่อนไขหรือวนลูปประมวลผลข้อมูลทีละลำดับตามตรรกะที่กำหนด"
+    );
+  } else {
+    stepByStepFlow.push("2. ประมวลผลคำสั่งตามลำดับจากบนลงล่าง (Sequential Execution)");
+  }
+  stepByStepFlow.push(
+    "3. คืนค่าผลลัพธ์ (Return) หรือแสดงผลออกทางหน้าจอ/Console เมื่อจบการทำงาน"
+  );
+
+  // จุดที่ควรระวัง (Potential Pitfalls)
+  const potentialPitfalls: string[] = [];
+  if (/\bwhile\b/.test(rawCode)) {
+    potentialPitfalls.push(
+      "ระวัง Infinite Loop: ตรวจสอบว่าภายในลูป while มีการเปลี่ยนแปลงค่าตัวแปรที่ทำให้เงื่อนไขเป็นเท็จได้เสมอ"
+    );
+  }
+  if (/\bawait\b/.test(rawCode) && !/\btry\b/.test(rawCode)) {
+    potentialPitfalls.push(
+      "มีการใช้ await โดยไม่มี try/catch: หาก API หรือ Promise ล้มเหลว อาจทำให้เกิด Unhandled Rejection ได้"
+    );
+  }
+  if (/==[^=]/.test(rawCode) && (language === "javascript" || language === "typescript")) {
+    potentialPitfalls.push(
+      "พบการใช้ == แทน === ใน JavaScript/TypeScript: แนะนำให้ใช้ === เพื่อเปรียบเทียบทั้งค่าและชนิดข้อมูลอย่างแม่นยำ"
+    );
+  }
+  if (potentialPitfalls.length === 0) {
+    potentialPitfalls.push(
+      "ควรทดสอบด้วยข้อมูลขอบเขต (Edge Cases) เช่น ค่าว่าง (null/empty) หรือตัวเลขติดลบ เพื่อให้มั่นใจว่าโค้ดทำงานถูกต้องทุกกรณี"
+    );
+  }
+
+  const summary = `โค้ดภาษา ${langLabel} ความยาว ${lines.length} บรรทัดนี้ ประกอบด้วย ${keyConcepts.slice(0, 2).join(" และ ")} โดยทำงานตามลำดับตรรกะที่ชัดเจนและสามารถไล่ตรวจสอบค่าตัวแปรทีละบรรทัดได้ตามกรอบ Block Model`;
+
+  return {
+    language,
+    summary,
+    lineByLine,
+    keyConcepts,
+    stepByStepFlow,
+    potentialPitfalls,
+    provider: "mock-analyzer",
+  };
+}

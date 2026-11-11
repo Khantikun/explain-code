@@ -5,12 +5,17 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 // Matching DATABASE_DESIGN.md schema specification
 // ============================================================================
 
-export type UserRole = "student" | "teacher";
+export type UserRole = "student" | "teacher" | "admin";
+
+export type TeacherApprovalStatus = "pending" | "approved" | "rejected";
 
 export type Profile = {
   id: string; // references auth.users(id)
   role: UserRole;
+  display_name?: string | null;
+  teacher_status?: TeacherApprovalStatus;
   created_at: string;
+  updated_at?: string;
 };
 
 export type Teacher = {
@@ -161,6 +166,82 @@ export type ClassroomQuestionStat = {
   wrong_percent: number;
 };
 
+// Open Platform LMS Entities
+export type QuizQuestionItem = {
+  id: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation?: string;
+};
+
+export type Course = {
+  id: string;
+  teacher_id: string;
+  teacher_name: string;
+  title: string;
+  description: string;
+  join_code: string;
+  level: "beginner" | "intermediate" | "advanced" | string;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Lesson = {
+  id: string;
+  course_id: string;
+  title: string;
+  content_md: string;
+  code_example: string;
+  programming_language: string;
+  external_url: string | null;
+  video_url: string | null;
+  quiz_questions: QuizQuestionItem[];
+  order_index: number;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Enrollment = {
+  id: string;
+  course_id: string;
+  student_id: string;
+  enrolled_at: string;
+  last_accessed_lesson_id: string | null;
+  last_accessed_at: string;
+};
+
+export type LessonProgress = {
+  id: string;
+  student_id: string;
+  course_id: string;
+  lesson_id: string;
+  is_completed: boolean;
+  quiz_score: number | null;
+  opened_at: string;
+  completed_at: string | null;
+  updated_at: string;
+};
+
+export type LineExplanationItem = {
+  lineNumber: number;
+  code: string;
+  explanation: string;
+};
+
+export type CodeExplanation = {
+  id: string;
+  user_id: string;
+  language: string;
+  code_snippet: string;
+  summary: string;
+  line_by_line: LineExplanationItem[];
+  key_concepts: string[];
+  created_at: string;
+};
+
 // ============================================================================
 // Supabase Database Schema Definition for TypeScript
 // ============================================================================
@@ -266,6 +347,56 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<AiUsageLog>;
+        Relationships: [];
+      };
+      courses: {
+        Row: Course;
+        Insert: Omit<Course, "id" | "join_code" | "created_at" | "updated_at"> & {
+          id?: string;
+          join_code?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Course>;
+        Relationships: [];
+      };
+      lessons: {
+        Row: Lesson;
+        Insert: Omit<Lesson, "id" | "created_at" | "updated_at"> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Lesson>;
+        Relationships: [];
+      };
+      enrollments: {
+        Row: Enrollment;
+        Insert: Omit<Enrollment, "id" | "enrolled_at" | "last_accessed_at"> & {
+          id?: string;
+          enrolled_at?: string;
+          last_accessed_at?: string;
+        };
+        Update: Partial<Enrollment>;
+        Relationships: [];
+      };
+      lesson_progress: {
+        Row: LessonProgress;
+        Insert: Omit<LessonProgress, "id" | "opened_at" | "updated_at"> & {
+          id?: string;
+          opened_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<LessonProgress>;
+        Relationships: [];
+      };
+      code_explanations: {
+        Row: CodeExplanation;
+        Insert: Omit<CodeExplanation, "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<CodeExplanation>;
         Relationships: [];
       };
     };

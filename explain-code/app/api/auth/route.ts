@@ -3,7 +3,10 @@ import { createHash } from "crypto";
 import {
   getSupabaseAdmin,
   isSupabaseConfigured,
+  TeacherApprovalStatus,
+  UserRole,
 } from "@/app/lib/supabase";
+import { APP_SESSION_COOKIE, AppUserSession } from "@/app/lib/supabase/server";
 import {
   BlockCellId,
   StudentRecord,
@@ -15,6 +18,27 @@ function sha256(input: string): string {
 }
 
 const SERVER_PEPPER = process.env.SERVER_PEPPER || "_explain_code_pepper_2026";
+const TEACHER_INVITE_CODE = process.env.TEACHER_INVITE_CODE || "TEACHER2026";
+
+function withSessionCookie(
+  res: NextResponse,
+  session: AppUserSession | null
+): NextResponse {
+  if (!session) {
+    res.cookies.delete(APP_SESSION_COOKIE);
+    return res;
+  }
+  const encoded = Buffer.from(JSON.stringify(session), "utf-8").toString(
+    "base64"
+  );
+  res.cookies.set(APP_SESSION_COOKIE, encoded, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 14, // 14 days
+  });
+  return res;
+}
 
 function getPepperedPin(pin: string): string {
   return `${pin.trim()}${SERVER_PEPPER}`;
@@ -224,7 +248,63 @@ async function buildStudentRecord(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { action, nickname, pin, roomCode, username, password, displayName } = body;
+    const {
+      action,
+      nickname,
+      pin,
+      roomCode,
+      username,
+      password,
+      displayName,
+      inviteCode,
+    } = body;
+
+    // ออกจากระบบและล้าง Session Cookie
+    if (action === "logout") {
+      const res = NextResponse.json({ authenticated: false, loggedOut: true });
+      return withSessionCookie(res, null);
+    }
+
+    // อนุมัติบัญชีครูด้วยรหัสเชิญครู (Invite Code) หรือโดย Admin
+    if (action === "approve-teacher") {
+      const cleanCode = String(inviteCode || "").trim();
+      const targetTeacherId = String(body.teacherId || body.userId || "").trim();
+      const targetUsername = String(body.username || "ครูผู้สอน").trim();
+      const targetDisplayName = String(body.displayName || targetUsername).trim();
+
+      if (cleanCode !== TEACHER_INVITE_CODE) {
+        return NextResponse.json(
+          { error: "รหัสเชิญครูไม่ถูกต้อง (รหัสเริ่มต้นสำหรับทดสอบคือ TEACHER2026)" },
+          { status: 403 }
+        );
+      }
+
+      if (isSupabaseConfigured() && targetTeacherId && isValidUuid(targetTeacherId)) {
+        try {
+          const supabase = getSupabaseAdmin();
+          if (supabase) {
+            await supabase
+              .from("profiles")
+              .update({ teacher_status: "approved" })
+              .eq("id", targetTeacherId);
+          }
+        } catch (e) {
+          console.warn("Update teacher_status notice:", e);
+        }
+      }
+
+      const res = NextResponse.json({
+        approved: true,
+        teacherStatus: "approved",
+      });
+      return withSessionCookie(res, {
+        userId: targetTeacherId || `tch-${targetUsername}`,
+        username: targetUsername,
+        displayName: targetDisplayName,
+        role: "teacher",
+        teacherStatus: "approved",
+      });
+    }
 
     // กรณีเรียกแฮช PIN พื้นฐาน
     if (!action && pin) {
@@ -287,12 +367,19 @@ export async function POST(req: NextRequest) {
 
               const studentRecord = await buildStudentRecord(supabase, studentRow, pinHash);
 
-              return NextResponse.json({
+              const res = NextResponse.json({
                 authenticated: true,
                 source: "supabase",
                 role: "student",
                 pinHash,
                 student: studentRecord,
+              });
+              return withSessionCookie(res, {
+                userId: studentRecord.id,
+                username: studentRecord.nickname,
+                displayName: studentRecord.nickname,
+                role: "student",
+                roomCode: studentRecord.roomCode,
               });
             }
           }
@@ -301,11 +388,17 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      return NextResponse.json({
+      const fallbackRes = NextResponse.json({
         authenticated: true,
         source: "local",
         role: "student",
         pinHash,
+      });
+      return withSessionCookie(fallbackRes, {
+        userId: `stu-${nick}`,
+        username: nick,
+        displayName: nick,
+        role: "student",
       });
     }
 
@@ -523,12 +616,19 @@ export async function POST(req: NextRequest) {
               history: [],
             };
 
-            return NextResponse.json({
+            const res = NextResponse.json({
               authenticated: true,
               source: "supabase",
               role: "student",
               pinHash,
               student: newStudent,
+            });
+            return withSessionCookie(res, {
+              userId: newStudent.id,
+              username: newStudent.nickname,
+              displayName: newStudent.nickname,
+              role: "student",
+              roomCode: newStudent.roomCode,
             });
           }
         } catch (err) {
@@ -536,11 +636,18 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      return NextResponse.json({
+      const fallbackRegRes = NextResponse.json({
         authenticated: true,
         source: "local",
         role: "student",
         pinHash,
+      });
+      return withSessionCookie(fallbackRegRes, {
+        userId: `stu-${nick}`,
+        username: nick,
+        displayName: nick,
+        role: "student",
+        roomCode: cleanRoom,
       });
     }
 
@@ -602,18 +709,43 @@ export async function POST(req: NextRequest) {
                 console.warn("classrooms lookup for teacher notice:", e);
               }
 
-              return NextResponse.json({
+              // ตรวจสอบสถานะการอนุมัติครูจาก profiles
+              let teacherStatus: TeacherApprovalStatus = "approved";
+              try {
+                const { data: prof } = await supabase
+                  .from("profiles")
+                  .select("teacher_status")
+                  .eq("id", tRow.id)
+                  .maybeSingle();
+                if (prof?.teacher_status) {
+                  teacherStatus = prof.teacher_status as TeacherApprovalStatus;
+                }
+              } catch {
+                // fallback if column not migrated yet
+              }
+
+              const tDisplayName = tRow.display_name || tRow.username;
+              const res = NextResponse.json({
                 authenticated: true,
                 source: "supabase",
                 role: "teacher",
                 passwordHash,
+                teacherStatus,
                 teacher: {
                   id: tRow.id,
                   username: tRow.username,
-                  displayName: tRow.display_name || tRow.username,
+                  displayName: tDisplayName,
                   role: "teacher",
+                  teacherStatus,
                 },
                 classrooms: teacherClassrooms,
+              });
+              return withSessionCookie(res, {
+                userId: tRow.id,
+                username: tRow.username,
+                displayName: tDisplayName,
+                role: "teacher",
+                teacherStatus,
               });
             }
           }
@@ -622,11 +754,19 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      return NextResponse.json({
+      const fallbackTeacherLoginRes = NextResponse.json({
         authenticated: true,
         source: "local",
         role: "teacher",
         passwordHash,
+        teacherStatus: "approved",
+      });
+      return withSessionCookie(fallbackTeacherLoginRes, {
+        userId: `tch-${uname}`,
+        username: uname,
+        displayName: uname,
+        role: "teacher",
+        teacherStatus: "approved",
       });
     }
 
@@ -643,6 +783,11 @@ export async function POST(req: NextRequest) {
       const pwd = String(password).trim();
       const dName = (displayName || username).trim();
       const passwordHash = sha256(pwd);
+      const cleanInvite = String(inviteCode || "").trim();
+      const isInviteApproved = cleanInvite === TEACHER_INVITE_CODE;
+      const teacherStatus: TeacherApprovalStatus = isInviteApproved
+        ? "approved"
+        : "pending";
 
       if (isSupabaseConfigured()) {
         try {
@@ -675,7 +820,12 @@ export async function POST(req: NextRequest) {
                 email: teacherEmail,
                 password: pwd,
                 email_confirm: true,
-                user_metadata: { role: "teacher", username: uname, display_name: dName },
+                user_metadata: {
+                  role: "teacher",
+                  username: uname,
+                  display_name: dName,
+                  teacher_approved: isInviteApproved ? "true" : "false",
+                },
               });
               if (authData?.user?.id) {
                 teacherId = authData.user.id;
@@ -690,12 +840,20 @@ export async function POST(req: NextRequest) {
               teacherId = crypto.randomUUID();
             }
 
-            // 3. บันทึกลง profiles (role: 'teacher')
+            // 3. บันทึกลง profiles (role: 'teacher', teacher_status)
             try {
-              await supabase.from("profiles").insert({
+              const { error: profErr } = await supabase.from("profiles").upsert({
                 id: teacherId,
                 role: "teacher",
+                display_name: dName,
+                teacher_status: teacherStatus,
               });
+              if (profErr) {
+                await supabase.from("profiles").insert({
+                  id: teacherId,
+                  role: "teacher",
+                });
+              }
             } catch (e) {
               console.warn("profiles insert notice:", e);
             }
@@ -759,16 +917,18 @@ export async function POST(req: NextRequest) {
               console.warn("Initial classroom creation notice:", e);
             }
 
-            return NextResponse.json({
+            const regTeacherRes = NextResponse.json({
               authenticated: true,
               source: "supabase",
               role: "teacher",
               passwordHash,
+              teacherStatus,
               teacher: {
                 id: teacherId,
                 username: uname,
                 displayName: dName,
                 role: "teacher",
+                teacherStatus,
               },
               classrooms: createdClassroom
                 ? [createdClassroom]
@@ -780,17 +940,32 @@ export async function POST(req: NextRequest) {
                     },
                   ],
             });
+            return withSessionCookie(regTeacherRes, {
+              userId: teacherId,
+              username: uname,
+              displayName: dName,
+              role: "teacher",
+              teacherStatus,
+            });
           }
         } catch (err) {
           console.warn("Supabase teacher register fallback due to error:", err);
         }
       }
 
-      return NextResponse.json({
+      const fallbackTeacherRegRes = NextResponse.json({
         authenticated: true,
         source: "local",
         role: "teacher",
         passwordHash,
+        teacherStatus,
+      });
+      return withSessionCookie(fallbackTeacherRegRes, {
+        userId: `tch-${uname}`,
+        username: uname,
+        displayName: dName,
+        role: "teacher",
+        teacherStatus,
       });
     }
 
