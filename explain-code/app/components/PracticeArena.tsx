@@ -4,6 +4,7 @@ import {
   BlockCellId,
   BLOCK_MODEL_CELLS,
   runJavaScriptReal,
+  StudentRecord,
 } from "../lib/curriculum";
 import { Icon, StatusCircle } from "./Icons";
 
@@ -16,7 +17,23 @@ interface PracticeArenaProps {
     updatedCellScores: Partial<Record<BlockCellId, number>>;
     badgeId: string;
     scorePercent: number;
+    answers?: {
+      questionId: string;
+      cellId: string;
+      chosenOptionId?: string | null;
+      isCorrect: boolean;
+      tries: number;
+      xpEarned: number;
+    }[];
+    aiEvaluation?: {
+      studentExplanation: string;
+      score: number;
+      passed: boolean;
+      feedback: string;
+    };
   }) => void;
+  currentStudent?: StudentRecord | null;
+  studentId?: string;
 }
 
 type PrimmStep = 1 | 2 | 3 | 4 | 5; // 5 = สรุปจบเรื่อง (ดูเฉลย เหตุผล + XP + ตรา)
@@ -33,6 +50,8 @@ export function PracticeArena({
   topic,
   onBackToMap,
   onCompleteTopic,
+  currentStudent,
+  studentId,
 }: PracticeArenaProps) {
   const [primmStep, setPrimmStep] = useState<PrimmStep>(1);
 
@@ -170,6 +189,7 @@ export function PracticeArena({
           code: topic.code,
           topicTitle: topic.title,
           studentExplanation: freeExplanation,
+          studentId: currentStudent?.id || studentId,
         }),
       });
       const data = await res.json();
@@ -247,12 +267,36 @@ export function PracticeArena({
       ) / topic.questions.length
     );
 
+    const answers = topic.questions.map((q) => {
+      const st = qStates[q.id];
+      return {
+        questionId: q.id,
+        cellId: q.cellId,
+        chosenOptionId: st?.selectedOptionId || null,
+        isCorrect: st?.status === "correct",
+        tries: (st?.wrongCount || 0) + 1,
+        xpEarned: st?.earnedXp || 0,
+      };
+    });
+
+    const aiEvaluation =
+      aiEvalResult && freeExplanation.trim()
+        ? {
+            studentExplanation: freeExplanation.trim(),
+            score: aiEvalResult.score,
+            passed: aiEvalResult.passed,
+            feedback: aiEvalResult.feedback,
+          }
+        : undefined;
+
     onCompleteTopic({
       topicId: topic.id,
       earnedXp: totalEarnedXp,
       updatedCellScores,
       badgeId: topic.badgeReward.id,
       scorePercent: avgQuestionScore,
+      answers,
+      aiEvaluation,
     });
   };
 

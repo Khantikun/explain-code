@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ClassroomRecord,
   StudentRecord,
@@ -10,18 +10,39 @@ import {
 import { Icon } from "./Icons";
 import { BlockModelGrid } from "./BlockModelGrid";
 
-interface TeacherDashboardProps {
+export interface TeacherDashboardProps {
   teacherUsername: string;
   classrooms: ClassroomRecord[];
   students: StudentRecord[];
-  onCreateClassroom: (roomName: string) => ClassroomRecord;
+  onCreateClassroom: (
+    roomName: string
+  ) => ClassroomRecord | Promise<ClassroomRecord>;
   onUpdatePinnedReview: (
     roomCode: string,
     topicId: number | null,
     note: string
-  ) => void;
+  ) => void | Promise<void>;
   onLogout: () => void;
   onSwitchToStudentView: () => void;
+  cellAverages?: {
+    classroom_id?: string;
+    classroomId?: string;
+    roomCode?: string;
+    cell_id: string;
+    avg_score: number;
+    students_count: number;
+  }[];
+  questionStats?: {
+    classroom_id?: string;
+    classroomId?: string;
+    roomCode?: string;
+    question_id: string;
+    cell_id: string;
+    answers: number;
+    wrong_percent: number;
+  }[];
+  isLoading?: boolean;
+  onRefresh?: () => Promise<void> | void;
 }
 
 export function TeacherDashboard({
@@ -32,6 +53,10 @@ export function TeacherDashboard({
   onUpdatePinnedReview,
   onLogout,
   onSwitchToStudentView,
+  cellAverages,
+  questionStats,
+  isLoading,
+  onRefresh,
 }: TeacherDashboardProps) {
   const [selectedRoomCode, setSelectedRoomCode] = useState<string>(
     classrooms[0]?.roomCode || "ABC123"
@@ -58,8 +83,25 @@ export function TeacherDashboard({
       "ให้ทบทวนช่อง Block Model ที่ค่าเฉลี่ยของห้องต่ำกว่า 50%"
   );
   const [savedReviewBanner, setSavedReviewBanner] = useState<boolean>(false);
+  const [isCreatingRoom, setIsCreatingRoom] = useState<boolean>(false);
+  const [isSavingReview, setIsSavingReview] = useState<boolean>(false);
 
-  // คำนวณค่าเฉลี่ย 12 ช่องของทั้งห้อง
+  // ซิงค์เรื่องทบทวนและโน้ตเมื่อสลับห้องเรียน
+  useEffect(() => {
+    if (currentRoom) {
+      setReviewTopicId(currentRoom.pinnedReviewTopicId || 4);
+      setReviewNote(
+        currentRoom.pinnedReviewNote ||
+          "ให้ทบทวนช่อง Block Model ที่ค่าเฉลี่ยของห้องต่ำกว่า 50%"
+      );
+    }
+  }, [
+    currentRoom?.roomCode,
+    currentRoom?.pinnedReviewTopicId,
+    currentRoom?.pinnedReviewNote,
+  ]);
+
+  // คำนวณค่าเฉลี่ย 12 ช่องของทั้งห้อง (หากมี cellAverages จาก Supabase ให้ใช้ค่าเฉลี่ยจริงจากฐานข้อมูล)
   const avgCellScores: Record<BlockCellId, number> = {
     T1: 0,
     E1: 0,
@@ -75,12 +117,24 @@ export function TeacherDashboard({
     F4: 0,
   };
 
+  const currentRoomCellAverages = (cellAverages || []).filter(
+    (c) =>
+      c.classroom_id === currentRoom?.roomCode ||
+      c.classroomId === (currentRoom as any)?.id ||
+      c.roomCode === currentRoom?.roomCode
+  );
+
   BLOCK_MODEL_CELLS.forEach((cell) => {
-    if (roomStudents.length === 0) {
+    const viewStat = currentRoomCellAverages.find(
+      (a) => a.cell_id === cell.id || (a as any).cellId === cell.id
+    );
+    if (viewStat) {
+      avgCellScores[cell.id] = Math.round(Number(viewStat.avg_score));
+    } else if (roomStudents.length === 0) {
       avgCellScores[cell.id] = 0;
     } else {
       const sum = roomStudents.reduce(
-        (acc, st) => acc + (st.cellScores[cell.id] ?? 50),
+        (acc, st) => acc + (st.cellScores?.[cell.id] ?? 50),
         0
       );
       avgCellScores[cell.id] = Math.round(sum / roomStudents.length);
@@ -102,12 +156,21 @@ export function TeacherDashboard({
     (c) => avgCellScores[c.id] >= 80
   ).sort((a, b) => avgCellScores[b.id] - avgCellScores[a.id]);
 
-  const handleCreateNewRoom = (e: React.FormEvent) => {
+  const handleCreateNewRoom = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newRoomName.trim()) return;
-    const created = onCreateClassroom(newRoomName.trim());
-    setSelectedRoomCode(created.roomCode);
-    setNewRoomName("");
+    if (!newRoomName.trim() || isCreatingRoom) return;
+    try {
+      setIsCreatingRoom(true);
+      const created = await onCreateClassroom(newRoomName.trim());
+      if (created?.roomCode) {
+        setSelectedRoomCode(created.roomCode);
+      }
+      setNewRoomName("");
+    } catch (err) {
+      console.error("Failed to create classroom:", err);
+    } finally {
+      setIsCreatingRoom(false);
+    }
   };
 
   const handleCopyRoomCode = () => {
@@ -163,11 +226,18 @@ export function TeacherDashboard({
     setTimeout(() => setCopiedSummary(false), 2500);
   };
 
-  const handleSaveTeachingAdjustment = () => {
-    if (!currentRoom) return;
-    onUpdatePinnedReview(currentRoom.roomCode, reviewTopicId, reviewNote);
-    setSavedReviewBanner(true);
-    setTimeout(() => setSavedReviewBanner(false), 2500);
+  const handleSaveTeachingAdjustment = async () => {
+    if (!currentRoom || isSavingReview) return;
+    try {
+      setIsSavingReview(true);
+      await onUpdatePinnedReview(currentRoom.roomCode, reviewTopicId, reviewNote);
+      setSavedReviewBanner(true);
+      setTimeout(() => setSavedReviewBanner(false), 2500);
+    } catch (err) {
+      console.error("Failed to update pinned review:", err);
+    } finally {
+      setIsSavingReview(false);
+    }
   };
 
   return (
@@ -185,6 +255,23 @@ export function TeacherDashboard({
           </div>
 
           <div className="flex items-center gap-2.5">
+            {isLoading && (
+              <span className="px-2.5 py-1 rounded-full bg-[#fbeacb] text-[#5c3704] text-[12px] font-bold animate-pulse">
+                กำลังโหลดข้อมูล...
+              </span>
+            )}
+            {onRefresh && (
+              <button
+                type="button"
+                onClick={() => void onRefresh()}
+                disabled={isLoading}
+                className="press-secondary px-3 py-1.5 rounded-xl text-[13px] font-extrabold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                title="รีเฟรชข้อมูลจากฐานข้อมูล"
+              >
+                <Icon name="chart" size={16} />
+                <span>รีเฟรช</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={onSwitchToStudentView}
@@ -311,10 +398,14 @@ export function TeacherDashboard({
 
             <button
               type="submit"
-              disabled={!newRoomName.trim()}
-              className="press-teal w-full py-2.5 rounded-xl text-[15px] font-extrabold disabled:opacity-50 cursor-pointer"
+              disabled={!newRoomName.trim() || isCreatingRoom}
+              className="press-teal w-full py-2.5 rounded-xl text-[15px] font-extrabold disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
             >
-              + สร้างห้องเรียนและรับรหัสห้อง
+              {isCreatingRoom ? (
+                <span>กำลังสร้างห้องเรียน...</span>
+              ) : (
+                <span>+ สร้างห้องเรียนและรับรหัสห้อง</span>
+              )}
             </button>
           </form>
         </div>
@@ -398,6 +489,66 @@ export function TeacherDashboard({
             title={`แผนที่ Block Model เฉลี่ยทั้งห้อง (${roomStudents.length} คน)`}
             subtitle="ช่วยให้ครูเห็นทันทีว่าทั้งห้องเข้าใจช่องไหนดีแล้ว และช่องไหนที่ห้องยังอ่อนเพื่อนำไปปรับการสอน"
           />
+
+          {/* สถิติข้อที่นักเรียนในห้องตอบผิดบ่อย (จาก classroom_question_stats view) */}
+          {(() => {
+            const currentRoomQuestionStats = (questionStats || []).filter(
+              (q) =>
+                q.classroom_id === currentRoom?.roomCode ||
+                q.classroomId === (currentRoom as any)?.id ||
+                q.roomCode === currentRoom?.roomCode
+            );
+            if (currentRoomQuestionStats.length === 0) return null;
+
+            return (
+              <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 flex flex-col gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#f8d9d4] text-[#7d1d10] flex items-center justify-center font-bold">
+                    <Icon name="bulb" size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-[16px] font-extrabold text-[#1b2a2f]">
+                      สถิติข้อที่นักเรียนในห้องตอบผิดบ่อย (จาก classroom_question_stats)
+                    </h4>
+                    <p className="text-[13px] text-[#475b60]">
+                      วิเคราะห์จากประวัติการตอบคำถามจริงในห้องเพื่อนำไปเน้นย้ำในชั่วโมงสอน
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-1">
+                  {currentRoomQuestionStats
+                    .sort((a, b) => b.wrong_percent - a.wrong_percent)
+                    .slice(0, 6)
+                    .map((stat, idx) => (
+                      <div
+                        key={stat.question_id + idx}
+                        className="p-3.5 rounded-xl bg-[#fef8f8] border border-[#fca5a5] flex items-center justify-between gap-3"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="px-2 py-0.5 rounded-md bg-[#7d1d10] text-white text-[11px] font-extrabold">
+                              ช่อง {stat.cell_id}
+                            </span>
+                            <span className="font-code text-[12px] font-bold text-[#1b2a2f] truncate">
+                              ข้อ: {stat.question_id}
+                            </span>
+                          </div>
+                          <div className="text-[12px] text-[#475b60] mt-1">
+                            ตอบทั้งหมด {stat.answers} ครั้ง
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-[17px] font-extrabold text-[#7d1d10]">
+                            ผิด {Math.round(stat.wrong_percent)}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* ขั้นตอนที่ 6 & 4: ตารางภาพรวมว่าใครทำถึงไหน + ดูรายคน */}
@@ -583,9 +734,10 @@ export function TeacherDashboard({
               <button
                 type="button"
                 onClick={handleSaveTeachingAdjustment}
-                className="press-teal w-full py-2.5 rounded-xl text-[14px] font-extrabold cursor-pointer"
+                disabled={isSavingReview}
+                className="press-teal w-full py-2.5 rounded-xl text-[14px] font-extrabold cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                บันทึกการสอน
+                {isSavingReview ? "กำลังบันทึก..." : "บันทึกการสอน"}
               </button>
             </div>
           </div>

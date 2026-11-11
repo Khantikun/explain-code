@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   TOPICS,
   BLOCK_MODEL_CELLS,
@@ -40,6 +40,22 @@ interface AuthSession {
   roomCode?: string;
 }
 
+function formatAttemptTimestamp(isoStr?: string): string {
+  if (!isoStr) return "เมื่อสักครู่";
+  try {
+    const d = new Date(isoStr);
+    return d.toLocaleString("th-TH", {
+      timeZone: "Asia/Bangkok",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "เมื่อสักครู่";
+  }
+}
+
 export default function ExplainCodeApp() {
   const [appMode, setAppMode] = useState<AppMode>("student-login");
   const [studentTab, setStudentTab] = useState<StudentTab>("quest");
@@ -55,9 +71,9 @@ export default function ExplainCodeApp() {
   const [studentAuthTab, setStudentAuthTab] = useState<"login" | "register">(
     "login"
   );
-  const [loginNickname, setLoginNickname] = useState<string>("แมวส้ม");
-  const [loginPin, setLoginPin] = useState<string>("1234");
-  const [signupRoomCode, setSignupRoomCode] = useState<string>("ABC123");
+  const [loginNickname, setLoginNickname] = useState<string>("");
+  const [loginPin, setLoginPin] = useState<string>("");
+  const [signupRoomCode, setSignupRoomCode] = useState<string>("");
   const [authMessage, setAuthMessage] = useState<{
     type: "error" | "info";
     text: string;
@@ -68,12 +84,17 @@ export default function ExplainCodeApp() {
   const [teacherAuthTab, setTeacherAuthTab] = useState<"login" | "register">(
     "login"
   );
-  const [teacherUsername, setTeacherUsername] = useState<string>("ครูตัวอย่าง");
-  const [teacherPassword, setTeacherPassword] = useState<string>("12345678");
+  const [teacherUsername, setTeacherUsername] = useState<string>("");
+  const [teacherPassword, setTeacherPassword] = useState<string>("");
   const [teacherDisplayName, setTeacherDisplayName] = useState<string>(
     "ครูวิทยาการคำนวณ"
   );
   const [teacherAuthError, setTeacherAuthError] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [showSecret, setShowSecret] = useState<boolean>(false);
+  const [teacherCellAverages, setTeacherCellAverages] = useState<any[]>([]);
+  const [teacherQuestionStats, setTeacherQuestionStats] = useState<any[]>([]);
+  const [teacherLoading, setTeacherLoading] = useState<boolean>(false);
 
   // สถานะการฝึกอ่านโค้ดฝั่งนักเรียน
   const [selectedTopicId, setSelectedTopicId] = useState<number>(1);
@@ -174,6 +195,110 @@ export default function ExplainCodeApp() {
       // ignore
     }
   };
+
+  const fetchTeacherAnalytics = useCallback(async () => {
+    if (!teacherUsername) return;
+    try {
+      setTeacherLoading(true);
+      const res = await fetch(
+        `/api/teacher/classrooms?teacherUsername=${encodeURIComponent(
+          teacherUsername
+        )}&teacherId=${encodeURIComponent(authSession?.userId || "")}`
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data.classrooms) && data.classrooms.length > 0) {
+        setClassrooms(data.classrooms);
+        saveRoomsToStorage(data.classrooms);
+      }
+      if (Array.isArray(data.students) && data.students.length > 0) {
+        setStudents(data.students);
+        saveStudentsToStorage(data.students);
+      }
+      if (Array.isArray(data.cellAverages)) {
+        setTeacherCellAverages(data.cellAverages);
+      }
+      if (Array.isArray(data.questionStats)) {
+        setTeacherQuestionStats(data.questionStats);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch teacher analytics:", err);
+    } finally {
+      setTeacherLoading(false);
+    }
+  }, [teacherUsername, authSession?.userId]);
+
+  useEffect(() => {
+    if (appMode === "teacher-portal" && teacherUsername) {
+      void fetchTeacherAnalytics();
+    }
+  }, [appMode, teacherUsername, fetchTeacherAnalytics]);
+
+  // ซิงค์ข้อมูลนักเรียนและประวัติการเล่นกับ Supabase อัตโนมัติในเบื้องหลัง
+  const syncStudentData = useCallback(async (targetId?: string) => {
+    const sid = targetId || currentStudentId || authSession?.userId;
+    if (!sid) return;
+
+    try {
+      // 1. ลองดึงข้อมูลนักเรียนล่าสุดจาก /api/auth?studentId=...
+      const authRes = await fetch(`/api/auth?studentId=${encodeURIComponent(sid)}`);
+      if (authRes.ok) {
+        const authData = await authRes.json();
+        if (authData.source === "supabase" && authData.student) {
+          const sbStudent: StudentRecord = authData.student;
+          setStudents((prev) => {
+            const exists = prev.some((s) => s.id === sbStudent.id);
+            const nextList = exists
+              ? prev.map((s) => (s.id === sbStudent.id ? { ...s, ...sbStudent } : s))
+              : [...prev, sbStudent];
+            try {
+              localStorage.setItem(STORAGE_STUDENTS_KEY, JSON.stringify(nextList));
+            } catch {}
+            return nextList;
+          });
+          return;
+        }
+      }
+
+      // 2. ดึงประวัติ attempts และคะแนนล่าสุดจาก /api/attempts?studentId=...
+      const attRes = await fetch(`/api/attempts?studentId=${encodeURIComponent(sid)}`);
+      if (attRes.ok) {
+        const attData = await attRes.json();
+        if (Array.isArray(attData.attempts) && attData.attempts.length > 0) {
+          const formattedHistory = attData.attempts.map((att: any) => ({
+            topicId: att.topic_id,
+            topicTitle:
+              TOPICS.find((t) => t.id === att.topic_id)?.title || `เรื่องที่ ${att.topic_id}`,
+            scorePercent: att.score_percent,
+            xpEarned: att.xp_earned,
+            timestamp: formatAttemptTimestamp(att.created_at),
+          }));
+
+          setStudents((prev) => {
+            const stu = prev.find((s) => s.id === sid);
+            if (!stu) return prev;
+            const synced: StudentRecord = {
+              ...stu,
+              history: formattedHistory,
+            };
+            const nextList = prev.map((s) => (s.id === synced.id ? synced : s));
+            try {
+              localStorage.setItem(STORAGE_STUDENTS_KEY, JSON.stringify(nextList));
+            } catch {}
+            return nextList;
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("Notice: student session background sync skipped/offline:", err);
+    }
+  }, [currentStudentId, authSession?.userId]);
+
+  useEffect(() => {
+    if (appMode === "student-portal" && (currentStudentId || authSession?.userId)) {
+      void syncStudentData(currentStudentId || authSession?.userId);
+    }
+  }, [appMode, currentStudentId, authSession?.userId, syncStudentData]);
 
   const currentStudent =
     students.find((s) => s.id === currentStudentId) || students[0];
@@ -500,13 +625,15 @@ export default function ExplainCodeApp() {
   };
 
   // ครูสร้างห้องเรียนใหม่ (ขั้นตอนที่ 2 ของโฟลครู)
-  const handleCreateClassroom = (roomName: string): ClassroomRecord => {
+  const handleCreateClassroom = async (
+    roomName: string
+  ): Promise<ClassroomRecord> => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let code = "";
     for (let i = 0; i < 6; i++) {
       code += chars[Math.floor(Math.random() * chars.length)];
     }
-    const newRoom: ClassroomRecord = {
+    const localRoom: ClassroomRecord = {
       roomCode: code,
       roomName,
       teacherUsername: teacherUsername || "ครูตัวอย่าง",
@@ -514,13 +641,54 @@ export default function ExplainCodeApp() {
       pinnedReviewNote: "เริ่มต้นฝึกอ่านโค้ดเรื่องที่ 1 ตัวแปรและการคำนวณ",
       createdAt: "วันนี้",
     };
-    const updated = [newRoom, ...classrooms];
+
+    try {
+      const res = await fetch("/api/teacher/classrooms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomName,
+          teacherUsername: teacherUsername || "ครูตัวอย่าง",
+          teacherId: authSession?.userId,
+          pinnedTopicId: 1,
+          pinnedNote: "เริ่มต้นฝึกอ่านโค้ดเรื่องที่ 1 ตัวแปรและการคำนวณ",
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.classroom) {
+          const created: ClassroomRecord = {
+            roomCode: data.classroom.roomCode,
+            roomName: data.classroom.roomName,
+            teacherUsername:
+              data.classroom.teacherUsername ||
+              teacherUsername ||
+              "ครูตัวอย่าง",
+            pinnedReviewTopicId: data.classroom.pinnedReviewTopicId ?? 1,
+            pinnedReviewNote:
+              data.classroom.pinnedReviewNote ??
+              "เริ่มต้นฝึกอ่านโค้ดเรื่องที่ 1 ตัวแปรและการคำนวณ",
+            createdAt: data.classroom.createdAt || "วันนี้",
+          };
+          const updated = [
+            created,
+            ...classrooms.filter((c) => c.roomCode !== created.roomCode),
+          ];
+          saveRoomsToStorage(updated);
+          return created;
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to create classroom via API:", err);
+    }
+
+    const updated = [localRoom, ...classrooms];
     saveRoomsToStorage(updated);
-    return newRoom;
+    return localRoom;
   };
 
   // ครูปรับการสอน / ปักหมุดเรื่องทบทวนประจำห้อง (ขั้นตอนที่ 7 ของโฟลครู)
-  const handleUpdatePinnedReview = (
+  const handleUpdatePinnedReview = async (
     roomCode: string,
     topicId: number | null,
     note: string
@@ -531,6 +699,20 @@ export default function ExplainCodeApp() {
         : r
     );
     saveRoomsToStorage(updated);
+
+    try {
+      await fetch("/api/teacher/classrooms", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomCode,
+          pinnedTopicId: topicId,
+          pinnedNote: note,
+        }),
+      });
+    } catch (err) {
+      console.warn("Failed to update pinned review via API:", err);
+    }
   };
 
   // เมื่อนักเรียนเล่นจบเรื่อง -> อัปเดต XP, ตรา, และคะแนน 12 ช่องของ Block Model
@@ -540,50 +722,175 @@ export default function ExplainCodeApp() {
     updatedCellScores: Partial<Record<BlockCellId, number>>;
     badgeId: string;
     scorePercent: number;
+    answers?: {
+      questionId: string;
+      cellId: string;
+      chosenOptionId?: string | null;
+      isCorrect: boolean;
+      tries: number;
+      xpEarned: number;
+    }[];
+    aiEvaluation?: {
+      studentExplanation: string;
+      score: number;
+      passed: boolean;
+      feedback: string;
+    };
   }) => {
-    const topicObj = TOPICS.find((t) => t.id === result.topicId)!;
-    const updatedStudents = students.map((stu) => {
-      if (stu.id !== currentStudent.id) return stu;
+    const topicObj = TOPICS.find((t) => t.id === result.topicId);
+    const currentStudentSnapshot = currentStudent;
 
-      const nextCompleted = stu.completedTopics.includes(result.topicId)
-        ? stu.completedTopics
-        : [...stu.completedTopics, result.topicId];
+    // 1. อัปเดตแบบ Optimistic UI ทันทีในเครื่อง เพื่อให้หน้าจอไม่สะดุดแม้เครือข่ายช้า
+    const nextCompleted = currentStudentSnapshot.completedTopics.includes(result.topicId)
+      ? currentStudentSnapshot.completedTopics
+      : [...currentStudentSnapshot.completedTopics, result.topicId];
 
-      const nextBadges = stu.badges.includes(result.badgeId)
-        ? stu.badges
-        : [...stu.badges, result.badgeId];
+    const nextBadges = currentStudentSnapshot.badges.includes(result.badgeId)
+      ? currentStudentSnapshot.badges
+      : [...currentStudentSnapshot.badges, result.badgeId];
 
-      const nextCells = { ...stu.cellScores };
-      Object.entries(result.updatedCellScores).forEach(([cellKey, val]) => {
-        const k = cellKey as BlockCellId;
-        if (typeof val === "number") {
-          nextCells[k] = Math.max(nextCells[k] || 0, val);
-        }
-      });
-
-      const nextHistory = [
-        {
-          topicId: result.topicId,
-          topicTitle: topicObj.title,
-          scorePercent: result.scorePercent,
-          xpEarned: result.earnedXp,
-          timestamp: "เมื่อสักครู่",
-        },
-        ...stu.history,
-      ];
-
-      return {
-        ...stu,
-        xp: stu.xp + result.earnedXp,
-        completedTopics: nextCompleted,
-        badges: nextBadges,
-        cellScores: nextCells,
-        history: nextHistory,
-      };
+    const nextCells = { ...currentStudentSnapshot.cellScores };
+    Object.entries(result.updatedCellScores).forEach(([cellKey, val]) => {
+      const k = cellKey as BlockCellId;
+      if (typeof val === "number") {
+        nextCells[k] = Math.max(nextCells[k] || 0, val);
+      }
     });
+
+    const newHistoryItem = {
+      topicId: result.topicId,
+      topicTitle: topicObj?.title || `เรื่องที่ ${result.topicId}`,
+      scorePercent: result.scorePercent,
+      xpEarned: result.earnedXp,
+      timestamp: "เมื่อสักครู่",
+    };
+
+    const nextHistory = [newHistoryItem, ...currentStudentSnapshot.history];
+
+    const optimisticStudent: StudentRecord = {
+      ...currentStudentSnapshot,
+      xp: currentStudentSnapshot.xp + result.earnedXp,
+      completedTopics: nextCompleted,
+      badges: nextBadges,
+      cellScores: nextCells,
+      history: nextHistory,
+    };
+
+    const updatedStudents = students.map((stu) =>
+      stu.id === currentStudentSnapshot.id ? optimisticStudent : stu
+    );
+    if (!updatedStudents.some((stu) => stu.id === currentStudentSnapshot.id)) {
+      updatedStudents.push(optimisticStudent);
+    }
 
     saveStudentsToStorage(updatedStudents);
     setStudentTab("profile");
+
+    // 2. เรียก POST /api/attempts ไปยังหลังบ้าน Supabase PostgreSQL
+    void (async () => {
+      try {
+        const payload = {
+          studentId: currentStudentSnapshot.id,
+          topicId: result.topicId,
+          scorePercent: result.scorePercent,
+          earnedXp: result.earnedXp,
+          updatedCellScores: result.updatedCellScores,
+          badgeId: result.badgeId,
+          answers: result.answers,
+          aiEvaluation: result.aiEvaluation,
+        };
+
+        const res = await fetch("/api/attempts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          console.warn("POST /api/attempts returned non-OK status:", res.status);
+          return;
+        }
+
+        const data = await res.json();
+
+        // 3. รวมผลสถิติล่าสุดจาก Supabase (views: student_stats, student_streaks, student_cell_latest)
+        if (data.success && data.stats) {
+          const stats = data.stats;
+          setStudents((prev) => {
+            const stu = prev.find((s) => s.id === currentStudentSnapshot.id);
+            if (!stu) return prev;
+
+            const mergedCellScores = { ...stu.cellScores };
+            if (stats.cellScores && typeof stats.cellScores === "object") {
+              for (const [k, v] of Object.entries(stats.cellScores)) {
+                if (typeof v === "number" && k in mergedCellScores) {
+                  mergedCellScores[k as BlockCellId] = v;
+                }
+              }
+            }
+
+            const mergedCompleted =
+              Array.isArray(stats.completedTopics) && stats.completedTopics.length > 0
+                ? Array.from(new Set([...stu.completedTopics, ...stats.completedTopics]))
+                : stu.completedTopics;
+
+            const mergedBadges =
+              Array.isArray(stats.badges) && stats.badges.length > 0
+                ? Array.from(new Set([...stu.badges, ...stats.badges]))
+                : stu.badges;
+
+            const synced: StudentRecord = {
+              ...stu,
+              xp: typeof stats.xp === "number" ? stats.xp : stu.xp,
+              streak: typeof stats.streak === "number" ? stats.streak : stu.streak,
+              completedTopics: mergedCompleted,
+              badges: mergedBadges,
+              cellScores: mergedCellScores,
+            };
+
+            const nextList = prev.map((s) => (s.id === synced.id ? synced : s));
+            try {
+              localStorage.setItem(STORAGE_STUDENTS_KEY, JSON.stringify(nextList));
+            } catch {}
+            return nextList;
+          });
+        }
+
+        // 4. ดึงประวัติ attempts จริงจาก Supabase เพื่อให้ประวัติและเวลาอัปเดตแม่นยำ
+        const historyRes = await fetch(
+          `/api/attempts?studentId=${encodeURIComponent(currentStudentSnapshot.id)}`
+        );
+        if (historyRes.ok) {
+          const historyData = await historyRes.json();
+          if (Array.isArray(historyData.attempts) && historyData.attempts.length > 0) {
+            const formattedHistory = historyData.attempts.map((att: any) => ({
+              topicId: att.topic_id,
+              topicTitle:
+                TOPICS.find((t) => t.id === att.topic_id)?.title || `เรื่องที่ ${att.topic_id}`,
+              scorePercent: att.score_percent,
+              xpEarned: att.xp_earned,
+              timestamp: formatAttemptTimestamp(att.created_at),
+            }));
+
+            setStudents((prev) => {
+              const stu = prev.find((s) => s.id === currentStudentSnapshot.id);
+              if (!stu) return prev;
+              const synced: StudentRecord = {
+                ...stu,
+                history: formattedHistory,
+              };
+              const nextList = prev.map((s) => (s.id === synced.id ? synced : s));
+              try {
+                localStorage.setItem(STORAGE_STUDENTS_KEY, JSON.stringify(nextList));
+              } catch {}
+              return nextList;
+            });
+          }
+        }
+      } catch (syncErr) {
+        console.warn("Notice: background sync to Supabase skipped/offline:", syncErr);
+      }
+    })();
   };
 
   // ตรวจสอบว่าเรื่องที่ i ปลดล็อกหรือยัง:
@@ -596,6 +903,24 @@ export default function ExplainCodeApp() {
     }
     return currentStudent.completedTopics.includes(topicId - 1);
   };
+
+  // ครอบ handler ของฟอร์ม: กันกดซ้ำ + แสดงสถานะกำลังตรวจสอบ + จับ error เครือข่ายแยกตาม Role
+  const runSubmit =
+    (fn: (e: React.FormEvent) => Promise<void>, role: "student" | "teacher") =>
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (isSubmitting) return;
+      setIsSubmitting(true);
+      try {
+        await fn(e);
+      } catch {
+        const msg = "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่อีกครั้ง";
+        if (role === "teacher") setTeacherAuthError(msg);
+        else setAuthMessage({ type: "error", text: msg });
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
 
   // ==================== 1. หน้าเข้าสู่ระบบแยกตาม Role: นักเรียน & ครูผู้สอน (สไตล์มินิมอล) ====================
   if (appMode === "student-login" || appMode === "teacher-login") {
@@ -743,7 +1068,7 @@ export default function ExplainCodeApp() {
 
                 {studentAuthTab === "login" ? (
                   <form
-                    onSubmit={handleStudentLogin}
+                    onSubmit={runSubmit(handleStudentLogin, "student")}
                     className="flex flex-col gap-4"
                   >
                     <div className="flex flex-col gap-1.5">
@@ -771,8 +1096,10 @@ export default function ExplainCodeApp() {
                       <input
                         type="password"
                         maxLength={4}
+                        inputMode="numeric"
+                        autoComplete="off"
                         value={loginPin}
-                        onChange={(e) => setLoginPin(e.target.value)}
+                        onChange={(e) => setLoginPin(e.target.value.replace(/\D/g, ""))}
                         placeholder="••••"
                         className="w-full px-4 py-3.5 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[16px] font-bold text-[#1b2a2f] tracking-widest focus:bg-white focus:outline-none focus:border-[#0f766e]"
                       />
@@ -780,15 +1107,16 @@ export default function ExplainCodeApp() {
 
                     <button
                       type="submit"
-                      className="press-teal w-full py-4 rounded-2xl text-[18px] font-extrabold flex items-center justify-center gap-2.5 cursor-pointer mt-1"
+                      disabled={isSubmitting}
+                      className="press-teal disabled:opacity-60 w-full py-4 rounded-2xl text-[18px] font-extrabold flex items-center justify-center gap-2.5 cursor-pointer mt-1"
                     >
                       <Icon name="play" size={22} filled />
-                      <span>เริ่มเล่นเลย</span>
+                      <span>{isSubmitting ? "กำลังตรวจสอบ..." : "เริ่มเล่นเลย"}</span>
                     </button>
                   </form>
                 ) : (
                   <form
-                    onSubmit={handleStudentSignupWithRoom}
+                    onSubmit={runSubmit(handleStudentSignupWithRoom, "student")}
                     className="flex flex-col gap-4"
                   >
                     <div className="flex flex-col gap-1.5">
@@ -812,8 +1140,10 @@ export default function ExplainCodeApp() {
                         <input
                           type="password"
                           maxLength={4}
+                        inputMode="numeric"
+                        autoComplete="off"
                           value={loginPin}
-                          onChange={(e) => setLoginPin(e.target.value)}
+                          onChange={(e) => setLoginPin(e.target.value.replace(/\D/g, ""))}
                           placeholder="••••"
                           className="w-full px-4 py-3 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[16px] font-bold text-[#1b2a2f] tracking-widest focus:bg-white focus:outline-none focus:border-[#0f766e]"
                         />
@@ -835,10 +1165,11 @@ export default function ExplainCodeApp() {
 
                     <button
                       type="submit"
-                      className="press-gold w-full py-4 rounded-2xl text-[18px] font-extrabold flex items-center justify-center gap-2.5 cursor-pointer mt-1"
+                      disabled={isSubmitting}
+                      className="press-gold disabled:opacity-60 w-full py-4 rounded-2xl text-[18px] font-extrabold flex items-center justify-center gap-2.5 cursor-pointer mt-1"
                     >
                       <Icon name="user" size={22} />
-                      <span>สมัครเข้าเล่นทันที</span>
+                      <span>{isSubmitting ? "กำลังสมัคร..." : "สมัครเข้าเล่นทันที"}</span>
                     </button>
                   </form>
                 )}
@@ -924,8 +1255,8 @@ export default function ExplainCodeApp() {
                 <form
                   onSubmit={
                     teacherAuthTab === "login"
-                      ? handleTeacherLogin
-                      : handleTeacherRegister
+                      ? runSubmit(handleTeacherLogin, "teacher")
+                      : runSubmit(handleTeacherRegister, "teacher")
                   }
                   className="flex flex-col gap-4"
                 >
@@ -936,6 +1267,7 @@ export default function ExplainCodeApp() {
                     <input
                       type="text"
                       value={teacherUsername}
+                      autoComplete="username"
                       onChange={(e) => setTeacherUsername(e.target.value)}
                       placeholder="เช่น ครูตัวอย่าง"
                       className="w-full px-4 py-3 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[15px] font-bold text-[#1b2a2f] focus:bg-white focus:outline-none focus:border-[#0f766e]"
@@ -961,24 +1293,47 @@ export default function ExplainCodeApp() {
                     <label className="text-[14px] font-extrabold text-[#1b2a2f]">
                       รหัสผ่าน
                     </label>
-                    <input
-                      type="password"
-                      value={teacherPassword}
-                      onChange={(e) => setTeacherPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full px-4 py-3 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[15px] font-bold text-[#1b2a2f] focus:bg-white focus:outline-none focus:border-[#0f766e]"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showSecret ? "text" : "password"}
+                        value={teacherPassword}
+                        autoComplete={
+                          teacherAuthTab === "login"
+                            ? "current-password"
+                            : "new-password"
+                        }
+                        onChange={(e) => setTeacherPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full pl-4 pr-20 py-3 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[15px] font-bold text-[#1b2a2f] focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSecret((v) => !v)}
+                        aria-label={showSecret ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg text-[12px] font-extrabold text-[#0b4f49] bg-[#e3f1ee] hover:bg-[#cfe0dc] cursor-pointer"
+                      >
+                        {showSecret ? "ซ่อน" : "แสดง"}
+                      </button>
+                    </div>
+                    {teacherAuthTab === "register" && (
+                      <p className="text-[12px] font-semibold text-[#475b60]">
+                        ตั้งรหัสผ่านอย่างน้อย 4 ตัวอักษร
+                      </p>
+                    )}
                   </div>
 
                   <button
                     type="submit"
-                    className={`w-full py-4 rounded-2xl text-[17px] font-extrabold flex items-center justify-center gap-2 cursor-pointer mt-1 ${
+                    disabled={isSubmitting}
+                    className={`disabled:opacity-60 w-full py-4 rounded-2xl text-[17px] font-extrabold flex items-center justify-center gap-2 cursor-pointer mt-1 ${
                       teacherAuthTab === "login" ? "press-teal" : "press-gold"
                     }`}
                   >
                     <Icon name="users" size={20} />
                     <span>
-                      {teacherAuthTab === "login"
+                      {isSubmitting
+                        ? "กำลังตรวจสอบ..."
+                        : teacherAuthTab === "login"
                         ? "เข้าสู่ระบบสำหรับครู"
                         : "สร้างบัญชีครูและเข้าใช้งาน"}
                     </span>
@@ -986,8 +1341,23 @@ export default function ExplainCodeApp() {
                 </form>
 
                 <p className="text-[12px] font-semibold text-[#475b60] leading-relaxed text-center">
-                  หน้านี้แสดงเฉพาะชื่อเล่นสมมติและคะแนน ไม่แสดงข้อมูลส่วนบุคคลจริงของนักเรียน (บัญชีทดสอบ: <strong>ครูตัวอย่าง</strong> / รหัสผ่าน <strong>12345678</strong>)
+                  หน้านี้แสดงเฉพาะชื่อเล่นสมมติและคะแนน ไม่แสดงข้อมูลส่วนบุคคลจริงของนักเรียน
                 </p>
+                <div className="pt-2 border-t border-[#cfe0dc] flex items-center justify-center gap-2 text-[12px] text-[#475b60]">
+                  <span className="font-bold">บัญชีทดสอบ:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTeacherAuthTab("login");
+                      setTeacherAuthError("");
+                      setTeacherUsername("ครูตัวอย่าง");
+                      setTeacherPassword("12345678");
+                    }}
+                    className="px-2.5 py-1 rounded-lg font-extrabold bg-[#e3f1ee] text-[#0b4f49] hover:bg-[#cfe0dc] cursor-pointer"
+                  >
+                    ใช้บัญชีครูตัวอย่าง
+                  </button>
+                </div>
               </>
             )}
           </div>
@@ -1010,6 +1380,10 @@ export default function ExplainCodeApp() {
           saveSessionToStorage(null);
           setAppMode("student-login");
         }}
+        cellAverages={teacherCellAverages}
+        questionStats={teacherQuestionStats}
+        isLoading={teacherLoading}
+        onRefresh={fetchTeacherAnalytics}
       />
     );
   }
@@ -1339,6 +1713,8 @@ export default function ExplainCodeApp() {
           <PracticeArena
             key={activeTopic.id}
             topic={activeTopic}
+            currentStudent={currentStudent}
+            studentId={currentStudent?.id}
             onBackToMap={() => setStudentTab("quest")}
             onCompleteTopic={handleCompleteTopic}
           />
@@ -1459,7 +1835,7 @@ export default function ExplainCodeApp() {
                     </span>
                   </div>
                   <p className="text-[14px] font-semibold text-[#475b60] mt-0.5">
-                    เลเวล {studentLevel} · สะสม {currentStudent.xp} XP · ผ่านแล้ว{" "}
+                    เลเวล {studentLevel} · สะสม {currentStudent.xp} XP · ต่อเนื่อง {currentStudent.streak} วัน · ผ่านแล้ว{" "}
                     {currentStudent.completedTopics.length}/7 เรื่อง · ความเข้าใจเฉลี่ย{" "}
                     {studentAvgMastery}% ({getMasteryStatus(studentAvgMastery).label})
                   </p>
