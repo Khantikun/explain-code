@@ -1080,16 +1080,16 @@ export default function ExplainCodeApp() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link
-                  href="/login?role=student"
+                  href="/login"
                   className="rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-3.5 py-2 text-xs font-bold text-[#2a4d3e] hover:bg-[#f2efe8]"
                 >
-                  สำหรับนักเรียน
+                  เข้าสู่ระบบ
                 </Link>
                 <Link
-                  href="/login?role=teacher"
-                  className="rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-3.5 py-2 text-xs font-bold text-[#2a4d3e] hover:bg-[#f2efe8]"
+                  href="/login?mode=register"
+                  className="rounded-xl bg-[#2a4d3e] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#1f3b2f]"
                 >
-                  สำหรับครูผู้สอน
+                  สมัครสมาชิกใหม่
                 </Link>
               </div>
             </div>

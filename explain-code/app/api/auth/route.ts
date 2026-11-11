@@ -9,6 +9,8 @@ import {
 import { APP_SESSION_COOKIE, AppUserSession } from "@/app/lib/supabase/server";
 import {
   BlockCellId,
+  INITIAL_STUDENTS,
+  INITIAL_TEACHERS,
   StudentRecord,
   TOPICS,
 } from "@/app/lib/curriculum";
@@ -304,6 +306,193 @@ export async function POST(req: NextRequest) {
         role: "teacher",
         teacherStatus: "approved",
       });
+    }
+
+    // ==================== 0. เข้าสู่ระบบแบบรวมศูนย์ (Unified Login: ตรวจ Role อัตโนมัติ) ====================
+    if (action === "unified-login") {
+      const identifier = String(body.identifier || username || nickname || "").trim();
+      const secret = String(body.secret || password || pin || "").trim();
+
+      if (!identifier || !secret) {
+        return NextResponse.json(
+          { error: "กรุณากรอกชื่อผู้ใช้/ชื่อเล่น และรหัสผ่าน/PIN" },
+          { status: 400 }
+        );
+      }
+
+      const secretHash = sha256(secret);
+      const pepperedSecretHash = sha256(getPepperedPin(secret));
+
+      if (isSupabaseConfigured()) {
+        try {
+          const supabase = getSupabaseAdmin();
+          if (supabase) {
+            // 1) ตรวจสอบในตาราง teachers ก่อน
+            const { data: teacherRows } = await supabase
+              .from("teachers")
+              .select("*")
+              .ilike("username", identifier);
+
+            if (teacherRows && teacherRows.length > 0) {
+              const tRow = teacherRows[0];
+              if (tRow.password_hash && tRow.password_hash !== secretHash) {
+                return NextResponse.json(
+                  { error: "รหัสผ่านไม่ถูกต้อง" },
+                  { status: 401 }
+                );
+              }
+
+              let teacherStatus: TeacherApprovalStatus = "approved";
+              try {
+                const { data: prof } = await supabase
+                  .from("profiles")
+                  .select("teacher_status")
+                  .eq("id", tRow.id)
+                  .maybeSingle();
+                if (prof?.teacher_status) {
+                  teacherStatus = prof.teacher_status as TeacherApprovalStatus;
+                }
+              } catch {
+                // ignore
+              }
+
+              const tDisplayName = tRow.display_name || tRow.username;
+              const res = NextResponse.json({
+                authenticated: true,
+                source: "supabase",
+                role: "teacher",
+                teacherStatus,
+                teacher: {
+                  id: tRow.id,
+                  username: tRow.username,
+                  displayName: tDisplayName,
+                  role: "teacher",
+                  teacherStatus,
+                },
+              });
+              return withSessionCookie(res, {
+                userId: tRow.id,
+                username: tRow.username,
+                displayName: tDisplayName,
+                role: "teacher",
+                teacherStatus,
+              });
+            }
+
+            // 2) ตรวจสอบในตาราง students
+            const { data: studentRows } = await supabase
+              .from("students")
+              .select("*")
+              .ilike("nickname", identifier);
+
+            if (studentRows && studentRows.length > 0) {
+              const studentRow = studentRows[0];
+              const validPin =
+                !studentRow.pin_hash ||
+                studentRow.pin_hash === secretHash ||
+                studentRow.pin_hash === pepperedSecretHash;
+
+              if (!validPin) {
+                return NextResponse.json(
+                  { error: "รหัสผ่าน / PIN ไม่ถูกต้อง" },
+                  { status: 401 }
+                );
+              }
+
+              const studentRecord = await buildStudentRecord(
+                supabase,
+                studentRow,
+                secretHash
+              );
+
+              const res = NextResponse.json({
+                authenticated: true,
+                source: "supabase",
+                role: "student",
+                student: studentRecord,
+              });
+              return withSessionCookie(res, {
+                userId: studentRecord.id,
+                username: studentRecord.nickname,
+                displayName: studentRecord.nickname,
+                role: "student",
+                roomCode: studentRecord.roomCode,
+              });
+            }
+          }
+        } catch (err) {
+          console.warn("Supabase unified-login check notice:", err);
+        }
+      }
+
+      // 3) Fallback ตรวจสอบกับข้อมูลบัญชีเริ่มต้น (Demo Accounts)
+      const matchedTeacher = INITIAL_TEACHERS.find(
+        (t) => t.username.toLowerCase() === identifier.toLowerCase()
+      );
+      if (matchedTeacher) {
+        if (
+          matchedTeacher.passwordHash !== secretHash &&
+          secret !== "12345678"
+        ) {
+          return NextResponse.json(
+            { error: "รหัสผ่านไม่ถูกต้อง (บัญชีครูตัวอย่างใช้รหัสผ่าน: 12345678)" },
+            { status: 401 }
+          );
+        }
+        const res = NextResponse.json({
+          authenticated: true,
+          source: "local",
+          role: "teacher",
+          teacherStatus: "approved",
+          teacher: {
+            id: matchedTeacher.id,
+            username: matchedTeacher.username,
+            displayName: matchedTeacher.displayName,
+            role: "teacher",
+            teacherStatus: "approved",
+          },
+        });
+        return withSessionCookie(res, {
+          userId: matchedTeacher.id,
+          username: matchedTeacher.username,
+          displayName: matchedTeacher.displayName,
+          role: "teacher",
+          teacherStatus: "approved",
+        });
+      }
+
+      const matchedStudent = INITIAL_STUDENTS.find(
+        (s) => s.nickname.toLowerCase() === identifier.toLowerCase()
+      );
+      if (matchedStudent) {
+        if (matchedStudent.pinHash !== secretHash && secret !== "1234") {
+          return NextResponse.json(
+            { error: "รหัส PIN ไม่ถูกต้อง (บัญชีนักเรียนตัวอย่างใช้ PIN: 1234)" },
+            { status: 401 }
+          );
+        }
+        const res = NextResponse.json({
+          authenticated: true,
+          source: "local",
+          role: "student",
+          student: matchedStudent,
+        });
+        return withSessionCookie(res, {
+          userId: matchedStudent.id,
+          username: matchedStudent.nickname,
+          displayName: matchedStudent.nickname,
+          role: "student",
+          roomCode: matchedStudent.roomCode,
+        });
+      }
+
+      return NextResponse.json(
+        {
+          error:
+            "ไม่พบบัญชีผู้ใช้นี้ในระบบ กรุณาตรวจสอบชื่อผู้ใช้ หรือสลับไปที่แท็บ 'สมัครสมาชิกใหม่'",
+        },
+        { status: 404 }
+      );
     }
 
     // กรณีเรียกแฮช PIN พื้นฐาน
