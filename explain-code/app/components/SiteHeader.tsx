@@ -227,8 +227,8 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
         }`}
       >
         <div className="flex items-center justify-between gap-3">
-          {/* Left: Brand Logo & Desktop Navigation */}
-          <div className="flex items-center gap-4 lg:gap-7">
+          {/* Left: Brand Logo */}
+          <div className="flex flex-1 items-center justify-start">
             <Link
               href="/"
               aria-label="โค้ดนี้ฉันอธิบายได้ หน้าแรก"
@@ -250,70 +250,70 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                 </span>
               </div>
             </Link>
-
-            {/* Desktop Navigation Pill Track with Sliding Glass Indicator */}
-            <nav
-              ref={navContainerRef}
-              aria-label="เมนูหลัก"
-              className="relative hidden md:flex items-center gap-1 rounded-full bg-[#0b4f49]/10 p-1.5 border border-[#0f766e]/25 shadow-inner"
-            >
-              {/* Sliding Active Glass Capsule */}
-              <span
-                aria-hidden="true"
-                className={`liquid-glass-active-pill pointer-events-none absolute left-0 top-1.5 bottom-1.5 rounded-full ${
-                  isPillPulsing ? "liquid-pill-Squish" : ""
-                }`}
-                style={{
-                  transform: `translateX(${capsuleStyle.left}px)`,
-                  width: `${capsuleStyle.width}px`,
-                  opacity: capsuleStyle.opacity,
-                }}
-              />
-
-              {navItems.map((item) => {
-                const isActive =
-                  item.href === "/"
-                    ? pathname === "/"
-                    : pathname.startsWith(item.href);
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    ref={(el) => {
-                      navItemRefs.current[item.href] = el;
-                    }}
-                    onClick={() => {
-                      setIsPillPulsing(false);
-                      window.requestAnimationFrame(() =>
-                        setIsPillPulsing(true)
-                      );
-                      window.setTimeout(() => setIsPillPulsing(false), 380);
-                    }}
-                    aria-current={isActive ? "page" : undefined}
-                    className={`liquid-press relative z-10 rounded-full px-4 py-1.5 text-sm font-extrabold tracking-wide focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f766e] ${
-                      isActive
-                        ? "liquid-active-nav-item text-white"
-                        : "text-[#062e2b] hover:text-[#032220] hover:bg-[#0f766e]/15"
-                    }`}
-                  >
-                    <span className="relative z-10 flex items-center gap-1.5">
-                      {isActive && (
-                        <span
-                          aria-hidden="true"
-                          className="h-2 w-2 rounded-full bg-[#f6b73c] shadow-[0_0_8px_#f6b73c]"
-                        />
-                      )}
-                      <span>{item.label}</span>
-                    </span>
-                  </Link>
-                );
-              })}
-            </nav>
           </div>
 
+          {/* Center: Desktop Navigation Pill Track with Sliding Glass Indicator */}
+          <nav
+            ref={navContainerRef}
+            aria-label="เมนูหลัก"
+            className="relative hidden md:flex items-center justify-center gap-1 rounded-full bg-[#0b4f49]/10 p-1.5 border border-[#0f766e]/25 shadow-inner shrink-0"
+          >
+            {/* Sliding Active Glass Capsule */}
+            <span
+              aria-hidden="true"
+              className={`liquid-glass-active-pill pointer-events-none absolute left-0 top-1.5 bottom-1.5 rounded-full ${
+                isPillPulsing ? "liquid-pill-Squish" : ""
+              }`}
+              style={{
+                transform: `translateX(${capsuleStyle.left}px)`,
+                width: `${capsuleStyle.width}px`,
+                opacity: capsuleStyle.opacity,
+              }}
+            />
+
+            {navItems.map((item) => {
+              const isActive =
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  ref={(el) => {
+                    navItemRefs.current[item.href] = el;
+                  }}
+                  onClick={() => {
+                    setIsPillPulsing(false);
+                    window.requestAnimationFrame(() =>
+                      setIsPillPulsing(true)
+                    );
+                    window.setTimeout(() => setIsPillPulsing(false), 380);
+                  }}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`liquid-press relative z-10 rounded-full px-4 py-1.5 text-sm font-extrabold tracking-wide focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f766e] ${
+                    isActive
+                      ? "liquid-active-nav-item text-white"
+                      : "text-[#062e2b] hover:text-[#032220] hover:bg-[#0f766e]/15"
+                  }`}
+                >
+                  <span className="relative z-10 flex items-center gap-1.5">
+                    {isActive && (
+                      <span
+                        aria-hidden="true"
+                        className="h-2 w-2 rounded-full bg-[#f6b73c] shadow-[0_0_8px_#f6b73c]"
+                      />
+                    )}
+                    <span>{item.label}</span>
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
+
           {/* Right: Auth Controls & Mobile Hamburger Trigger */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-1 items-center justify-end gap-2">
             {mounted && session ? (
               <div className="flex items-center gap-2">
                 {/* Role Quick Link on Desktop */}

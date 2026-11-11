@@ -497,9 +497,9 @@ export default function CoursesPage() {
       <SiteHeader />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 flex flex-col gap-6">
-        {/* แถบควบคุมหมวดการเรียนรู้ & สถานะ XP/สตรีคของผู้เรียน */}
-        <div className="rounded-2xl border-2 border-[#cfe0dc] bg-white p-4 sm:p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2 flex-wrap">
+        {/* แถบควบคุมหมวดการเรียนรู้ (จัดกึ่งกลาง) & สถานะ XP/สตรีคของผู้เรียน */}
+        <div className="rounded-2xl border-2 border-[#cfe0dc] bg-white p-4 sm:p-5 shadow-xs flex flex-col items-center gap-3.5">
+          <div className="flex items-center justify-center gap-2 flex-wrap w-full">
             {[
               {
                 id: "quest" as LearningTab,
@@ -546,19 +546,19 @@ export default function CoursesPage() {
             })}
           </div>
 
-          {/* แถบแสดง XP, เลเวล และสตรีค */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="px-3 py-1.5 rounded-xl bg-[#e3f1ee] text-[#0b4f49] text-xs font-extrabold">
+          {/* แถบแสดง XP, เลเวล และสตรีค (จัดกึ่งกลางด้านล่างเมนูย่อย) */}
+          <div className="flex items-center justify-center gap-2 flex-wrap border-t border-[#e3f1ee] pt-3 w-full">
+            <span className="px-3 py-1 rounded-xl bg-[#e3f1ee] text-[#0b4f49] text-xs font-extrabold">
               ผู้เรียน: {currentStudent.nickname}
             </span>
-            <div className="px-3 py-1.5 rounded-xl bg-[#fff4d6] border border-[#f0a92e] text-[#3d2603] text-xs font-extrabold flex items-center gap-1.5">
+            <div className="px-3 py-1 rounded-xl bg-[#fff4d6] border border-[#f0a92e] text-[#3d2603] text-xs font-extrabold flex items-center gap-1.5">
               <Icon name="star" size={15} filled />
               <span>
                 Lv.{studentLevel} · {currentStudent.xp} XP
               </span>
             </div>
             <div
-              className="px-2.5 py-1.5 rounded-xl bg-[#0b4f49] text-[#f6b73c] text-xs font-extrabold flex items-center gap-1"
+              className="px-2.5 py-1 rounded-xl bg-[#0b4f49] text-[#f6b73c] text-xs font-extrabold flex items-center gap-1"
               title="สตรีคการฝึกต่อเนื่อง"
             >
               <Icon name="flame" size={15} filled />
