@@ -38,12 +38,23 @@
   --low-ink: #7d1d10;
 }
 
+html {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
 body {
   background-color: var(--bg);
   color: var(--ink);
   font-family: var(--font-noto-thai), "Noto Sans Thai", sans-serif;
   font-size: 15px;
   line-height: 1.55;
+}
+
+@media (max-width: 767px) {
+  body {
+    padding-bottom: 5.5rem;
+  }
 }
 
 code,
@@ -122,3 +133,354 @@ pre,
     background: #ffffff;
   }
 }
+
+/* ==========================================================================
+   Liquid Glass Design System (High-Contrast Jade & Emerald Liquid Glass)
+   ========================================================================== */
+
+.liquid-glass {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(218, 240, 234, 0.84) 0%,
+    rgba(236, 247, 244, 0.78) 50%,
+    rgba(205, 233, 225, 0.86) 100%
+  );
+  backdrop-filter: blur(20px) saturate(190%);
+  -webkit-backdrop-filter: blur(20px) saturate(190%);
+  border: 1.5px solid rgba(15, 118, 110, 0.34);
+  box-shadow:
+    0 14px 36px -6px rgba(11, 79, 73, 0.22),
+    0 4px 14px -2px rgba(11, 79, 73, 0.12),
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1.5px 2px 0 rgba(15, 118, 110, 0.15);
+}
+
+/* Directional specular border highlight (bright top-left, emerald-gold bottom-right) */
+.liquid-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(15, 118, 110, 0.35) 55%,
+    rgba(240, 169, 46, 0.42) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.liquid-glass-scrolled {
+  background: linear-gradient(
+    135deg,
+    rgba(206, 235, 228, 0.92) 0%,
+    rgba(228, 244, 239, 0.9) 50%,
+    rgba(194, 227, 218, 0.94) 100%
+  );
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border-color: rgba(11, 79, 73, 0.45);
+  box-shadow:
+    0 18px 42px -8px rgba(11, 79, 73, 0.28),
+    0 6px 18px -4px rgba(11, 79, 73, 0.16),
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.98),
+    inset 0 -1.5px 2px 0 rgba(15, 118, 110, 0.22);
+}
+
+/* High-Contrast Deep Dark Emerald Sliding Active Capsule (13.5:1 contrast for crisp white text) */
+.liquid-glass-active-pill {
+  background: linear-gradient(
+    135deg,
+    #032220 0%,
+    #063834 55%,
+    #084741 100%
+  ) !important;
+  border: 1.5px solid rgba(246, 183, 60, 0.75) !important;
+  box-shadow:
+    0 6px 16px -2px rgba(3, 34, 32, 0.5),
+    0 0 12px 0 rgba(15, 118, 110, 0.35),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.35);
+  transition:
+    transform 340ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    width 340ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 200ms ease;
+}
+
+/* Guaranteed deep dark emerald surface + ultra-crisp elevated white text for active nav item */
+.liquid-active-nav-item {
+  background: linear-gradient(
+    135deg,
+    #032220 0%,
+    #063834 55%,
+    #084741 100%
+  ) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.9),
+    0 0 10px rgba(255, 255, 255, 0.28) !important;
+  box-shadow:
+    0 4px 12px -2px rgba(3, 34, 32, 0.45),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.liquid-active-nav-item,
+.liquid-active-nav-item * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* Pulse morph animation when switching tabs */
+.liquid-pill-Squish {
+  transform-origin: center;
+  animation: liquidCapsulePulse 360ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes liquidCapsulePulse {
+  0% {
+    scale: 1 1;
+  }
+  40% {
+    scale: 1.05 0.92;
+  }
+  75% {
+    scale: 0.99 1.02;
+  }
+  100% {
+    scale: 1 1;
+  }
+}
+
+/* Interactive press effect: stationary (no transform/scale shift) with instant crisp white text */
+.liquid-press {
+  position: relative;
+  transition: box-shadow 150ms ease;
+}
+
+.liquid-press:hover {
+  transform: none;
+}
+
+.liquid-press:active {
+  transform: none !important;
+  background: linear-gradient(135deg, #021917 0%, #052e2b 55%, #073d38 100%) !important;
+  border-color: #f6b73c !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.95),
+    0 0 12px rgba(255, 255, 255, 0.45) !important;
+  box-shadow:
+    0 0 0 3px rgba(246, 183, 60, 0.7),
+    0 4px 12px rgba(2, 25, 23, 0.45) !important;
+}
+
+.liquid-press:active,
+.liquid-press:active * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* Secondary translucent glass button (stationary) */
+.liquid-glass-btn {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1.5px solid rgba(15, 118, 110, 0.45);
+  color: #062e2b !important;
+  box-shadow:
+    0 4px 10px -2px rgba(11, 79, 73, 0.15),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.98);
+  transition: box-shadow 160ms ease;
+}
+
+.liquid-glass-btn:hover {
+  background: #ffffff;
+  border-color: #0b4f49;
+  color: #032220 !important;
+  transform: none;
+  box-shadow:
+    0 8px 18px -4px rgba(11, 79, 73, 0.24),
+    0 0 12px 0 rgba(15, 118, 110, 0.18),
+    inset 0 1px 1px 0 #ffffff;
+}
+
+.liquid-glass-btn:active {
+  transform: none !important;
+  background: linear-gradient(135deg, #021917 0%, #052e2b 55%, #073d38 100%) !important;
+  border-color: #f6b73c !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.95),
+    0 0 12px rgba(255, 255, 255, 0.45) !important;
+  box-shadow:
+    0 0 0 3px rgba(246, 183, 60, 0.7),
+    0 4px 12px rgba(2, 25, 23, 0.45) !important;
+}
+
+.liquid-glass-btn:active,
+.liquid-glass-btn:active * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* Primary emerald gradient button with guaranteed crisp white text (stationary) */
+.liquid-glass-primary-btn {
+  background: linear-gradient(135deg, #042b28 0%, #084741 60%, #0b5e57 100%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 8px 20px -4px rgba(3, 34, 32, 0.5),
+    0 2px 0 0 #021917,
+    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.45);
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.85),
+    0 0 8px rgba(255, 255, 255, 0.25);
+  transition: box-shadow 160ms ease;
+}
+
+.liquid-glass-primary-btn,
+.liquid-glass-primary-btn * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+.liquid-glass-primary-btn:hover {
+  background: linear-gradient(135deg, #032220 0%, #063834 60%, #09504a 100%) !important;
+  color: #ffffff !important;
+  transform: none;
+  box-shadow:
+    0 12px 26px -4px rgba(3, 34, 32, 0.6),
+    0 3px 0 0 #021917,
+    0 0 16px 0 rgba(246, 183, 60, 0.45),
+    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.65);
+}
+
+.liquid-glass-primary-btn:active {
+  background: linear-gradient(135deg, #021917 0%, #042b28 100%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.95),
+    0 0 12px rgba(255, 255, 255, 0.5) !important;
+  transform: none !important;
+  box-shadow:
+    0 0 0 3px rgba(246, 183, 60, 0.75),
+    0 4px 12px rgba(2, 25, 23, 0.5) !important;
+}
+
+/* Fallback for browsers that do not support backdrop-filter */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .liquid-glass,
+  .liquid-glass-scrolled {
+    background: rgba(250, 248, 244, 0.96);
+    border-color: #d8d1c5;
+  }
+}
+
+/* Respect user preference for reduced transparency (keep active pill dark emerald!) */
+@media (prefers-reduced-transparency: reduce) {
+  .liquid-glass,
+  .liquid-glass-scrolled,
+  .liquid-glass-btn {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: #faf8f4 !important;
+    border-color: #cfe0dc !important;
+  }
+}
+
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .liquid-glass,
+  .liquid-glass-scrolled,
+  .liquid-glass-active-pill,
+  .liquid-glass-btn,
+  .liquid-glass-primary-btn {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ==================== Dungeon Crawler Pixel Styling ==================== */
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.pixel-font {
+  font-family: var(--font-pixel, "Courier New", monospace);
+  letter-spacing: 0.05em;
+}
+
+.dungeon-theme {
+  --dg-void: #0b0b14;
+  --dg-outline: #120f1c;
+  --dg-stone-dark: #1c1b2b;
+  --dg-stone: #2f2d45;
+  --dg-stone-light: #4a4766;
+  --dg-wall: #5c5470;
+  --dg-floor: #3b3550;
+  --dg-floor-light: #524a6b;
+  --dg-skin: #f2c79b;
+  --dg-skin-shadow: #c98d63;
+  --dg-torch: #ffb347;
+  --dg-torch-hot: #ffe27a;
+  --dg-ember: #e25822;
+  --dg-blood: #c0283a;
+  --dg-heart: #ff4d6d;
+  --dg-gold: #f6c945;
+  --dg-gold-dark: #b8860b;
+  --dg-emerald: #2fbf71;
+  --dg-emerald-dark: #1a7a4a;
+  --dg-mana: #4da3ff;
+  --dg-mana-dark: #2b5fb3;
+  --dg-purple: #9b5de5;
+  --dg-purple-dark: #5a2d91;
+  --dg-bone: #e8e1cf;
+  --dg-text: #f4efe6;
+  --dg-muted: #9a93ad;
+}
+
+.retro-panel {
+  background: #1c1b2b;
+  border: 3px solid #4a4766;
+  box-shadow: inset 0 0 0 2px #120f1c, 0 4px 0 #0b0b14;
+}
+
+.retro-card {
+  background: #252238;
+  border: 2px solid #5c5470;
+  box-shadow: inset 0 0 0 1px #1c1b2b, 0 3px 0 #0b0b14;
+  transition: transform 0.1s ease, border-color 0.1s ease;
+}
+
+.retro-card:hover {
+  border-color: #f6c945;
+  transform: translateY(-2px);
+}
+
+.retro-button {
+  border: 2px solid #120f1c;
+  box-shadow: 0 4px 0 #120f1c;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.retro-button:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #120f1c;
+}
+
+

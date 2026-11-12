@@ -3,13 +3,17 @@ import {
   TopicQuest,
   BlockCellId,
   BLOCK_MODEL_CELLS,
-  runJavaScriptReal,
   StudentRecord,
 } from "../lib/curriculum";
+import {
+  LearningLanguage,
+  runCodeByLanguage,
+} from "../lib/language-tracks";
 import { Icon, StatusCircle } from "./Icons";
 
 interface PracticeArenaProps {
   topic: TopicQuest;
+  language?: LearningLanguage;
   onBackToMap: () => void;
   onCompleteTopic: (result: {
     topicId: number;
@@ -48,6 +52,7 @@ interface QuestionAttemptState {
 
 export function PracticeArena({
   topic,
+  language = "javascript",
   onBackToMap,
   onCompleteTopic,
   currentStudent,
@@ -119,7 +124,7 @@ export function PracticeArena({
   // รันโค้ดจริงในขั้นที่ 2 (เทียบผลรันจริง)
   const handleRunAndCompare = () => {
     if (!predictedAnswer.trim()) return;
-    const exec = runJavaScriptReal(topic.code);
+    const exec = runCodeByLanguage(topic.code, language);
     setRealRunResult(exec);
     const isExactMatch = predictedAnswer.trim() === exec.finalOutput.trim();
     // XP ให้ตามความเข้าใจและการมีส่วนร่วมทำนายผล (ไม่มีการหักคะแนน)
@@ -212,8 +217,11 @@ export function PracticeArena({
   // รันโค้ดจริงในขั้นที่ 4 (แก้ค่าแล้วทายใหม่)
   const handleRunModifiedCode = () => {
     if (!modifyPrediction.trim()) return;
-    const realModified = runJavaScriptReal(modifiedCode);
-    const targetModified = runJavaScriptReal(topic.modifyChallenge.suggestedCode);
+    const realModified = runCodeByLanguage(modifiedCode, language);
+    const targetModified = runCodeByLanguage(
+      topic.modifyChallenge.suggestedCode,
+      language
+    );
 
     if (!realModified.success) {
       setModifyRunResult({

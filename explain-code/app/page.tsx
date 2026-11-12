@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { SiteHeader } from "./components/SiteHeader";
 import {
   TOPICS,
   BLOCK_MODEL_CELLS,
@@ -22,6 +24,7 @@ import { TeacherDashboard } from "./components/TeacherDashboard";
 import { DungeonRunScreen } from "./components/DungeonRunScreen";
 
 type AppMode =
+  | "landing"
   | "student-login"
   | "teacher-login"
   | "student-portal"
@@ -58,7 +61,7 @@ function formatAttemptTimestamp(isoStr?: string): string {
 }
 
 export default function ExplainCodeApp() {
-  const [appMode, setAppMode] = useState<AppMode>("student-login");
+  const [appMode, setAppMode] = useState<AppMode>("landing");
   const [studentTab, setStudentTab] = useState<StudentTab>("quest");
   const [authSession, setAuthSession] = useState<AuthSession | null>(null);
 
@@ -146,10 +149,8 @@ export default function ExplainCodeApp() {
         setAuthSession(parsed);
         if (parsed.role === "student") {
           setCurrentStudentId(parsed.userId);
-          setAppMode("student-portal");
         } else if (parsed.role === "teacher") {
           setTeacherUsername(parsed.username);
-          setAppMode("teacher-portal");
         }
       }
     } catch {
@@ -923,6 +924,262 @@ export default function ExplainCodeApp() {
       }
     };
 
+  // ==================== 0. หน้า Landing ("/") แบบ Public (เว็บระบบเปิด) ====================
+  if (appMode === "landing") {
+    const openClassicPortal = () => {
+      if (authSession?.role === "teacher") {
+        setAppMode("teacher-portal");
+      } else {
+        setAppMode("student-portal");
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-[#faf8f4] text-[#1e1e1c] flex flex-col">
+        <SiteHeader onOpenClassicPortal={openClassicPortal} />
+
+        <main className="mx-auto flex-1 max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
+          {/* Hero Section: แนะนำเว็บและวิธีใช้งาน */}
+          <section className="text-center max-w-3xl mx-auto mb-12">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#d8d1c5] bg-[#e8f0ec] px-3.5 py-1.5 text-xs font-bold text-[#2a4d3e]">
+              <Icon name="sparkles" className="h-3.5 w-3.5" />
+              แพลตฟอร์มการเรียนรู้และแกะโค้ดระบบเปิด (Open Platform)
+            </span>
+            <h1 className="mt-4 text-3xl sm:text-5xl font-extrabold tracking-tight text-[#1e1e1c] leading-tight">
+              เขียนโค้ดด้วย AI ได้{" "}
+              <span className="text-[#2a4d3e] underline decoration-[#b7d3c6] underline-offset-8">
+                ต้องอ่านและอธิบายได้ด้วย
+              </span>
+            </h1>
+            <p className="mt-4 text-sm sm:text-base leading-relaxed text-[#524f49]">
+              <strong>&ldquo;โค้ดนี้ฉันอธิบายได้&rdquo;</strong>{" "}
+              คือพื้นที่ฝึกทักษะการอ่านโค้ดตามแนวคิด{" "}
+              <strong>Block Model &amp; PRIMM</strong> สำหรับนักเรียนและครูยุคใหม่
+              คุณสามารถเข้ามาเลือกเรียนคอร์สต่างๆ หรือวางโค้ดเพื่อให้ระบบช่วยแกะทีละบรรทัดได้ทันทีโดยไม่ต้องล็อกอิน
+              หรือเข้าสู่ระบบเพื่อบันทึกความคืบหน้าและประวัติส่วนตัว
+            </p>
+          </section>
+
+          {/* การ์ด 2 ใบเป็นทางเลือกหลัก: "การเรียนรู้" และ "อธิบายโค้ด" */}
+          <section className="grid grid-cols-1 gap-6 md:grid-cols-2 mb-14">
+            {/* การ์ดที่ 1: การเรียนรู้ (รวมเควสต์ PRIMM & คอร์สเรียน) */}
+            <div className="group relative flex flex-col justify-between rounded-3xl border-2 border-[#d8d1c5] bg-white p-7 sm:p-8 shadow-xs transition-all hover:border-[#2a4d3e] hover:shadow-md">
+              <div>
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e8f0ec] text-[#2a4d3e] transition-transform group-hover:scale-105">
+                    <Icon name="book" className="h-7 w-7" />
+                  </div>
+                  <span className="rounded-full bg-[#e8f0ec] px-3 py-1 text-xs font-bold text-[#2a4d3e]">
+                    ทางเลือกที่ 1 · เควสต์ PRIMM &amp; คอร์สเรียน
+                  </span>
+                </div>
+
+                <h2 className="text-2xl font-extrabold text-[#1e1e1c]">
+                  การเรียนรู้ (Learning &amp; Quests)
+                </h2>
+                <p className="mt-2.5 text-sm leading-relaxed text-[#524f49]">
+                  ฝึกทำเควสต์อ่านโค้ด 4 ขั้น (PRIMM) ทั้ง 7 ด่าน วัดความเข้าใจด้วยตาราง Block Model 12 ช่อง พร้อมศึกษาคอร์สและบทเรียนที่ครูผู้สอนจัดเตรียมไว้ในพื้นที่เดียว
+                </p>
+
+                <ul className="mt-5 space-y-2 text-xs font-semibold text-[#3d3b36]">
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#2a4d3e]">✓</span>
+                    ตะลุยเส้นทางเควสต์อ่านโค้ด 7 เรื่อง (PRIMM) และสะสม XP / ตราเกียรติยศ
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#2a4d3e]">✓</span>
+                    วัดความเข้าใจเชิงลึกด้วยแผนที่ Block Model 12 ช่อง (Text · Execution · Function)
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#2a4d3e]">✓</span>
+                    เรียนคอร์สเสริมจากครูผู้สอน เข้าร่วมด้วยรหัสห้องเรียน และบันทึกความคืบหน้าอัตโนมัติ
+                  </li>
+                </ul>
+              </div>
+
+              <div className="mt-8 flex flex-col sm:flex-row gap-3 pt-4 border-t border-[#ece7dc]">
+                <Link
+                  href="/courses"
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#2a4d3e] px-5 py-3.5 text-sm font-bold text-white shadow-xs hover:bg-[#1f3b2f] transition-colors"
+                >
+                  <Icon name="play" className="h-4 w-4" filled />
+                  <span>เข้าสู่การเรียนรู้และฝึกเควสต์ →</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* การ์ดที่ 2: อธิบายโค้ด */}
+            <div className="group relative flex flex-col justify-between rounded-3xl border-2 border-[#d8d1c5] bg-white p-7 sm:p-8 shadow-xs transition-all hover:border-[#2a4d3e] hover:shadow-md">
+              <div>
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e8f0ec] text-[#2a4d3e] transition-transform group-hover:scale-105">
+                    <Icon name="code" className="h-7 w-7" />
+                  </div>
+                  <span className="rounded-full bg-[#e8f0ec] px-3 py-1 text-xs font-bold text-[#2a4d3e]">
+                    ทางเลือกที่ 2 · เครื่องมือวิเคราะห์โค้ด
+                  </span>
+                </div>
+
+                <h2 className="text-2xl font-extrabold text-[#1e1e1c]">
+                  อธิบายโค้ด (Code Explainer)
+                </h2>
+                <p className="mt-2.5 text-sm leading-relaxed text-[#524f49]">
+                  วางโค้ดที่คุณสงสัยหรือโค้ดที่ได้จาก AI แล้วเลือกภาษาโปรแกรม ระบบจะช่วยสรุปภาพรวม แยกอธิบายหน้าที่ของแต่ละบรรทัด และชี้จุดที่ควรระวังให้อ่านเข้าใจง่าย
+                </p>
+
+                <ul className="mt-5 space-y-2 text-xs font-semibold text-[#3d3b36]">
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#2a4d3e]">✓</span>
+                    รองรับหลายภาษา: JavaScript, TypeScript, Python, Java, C/C++, SQL
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#2a4d3e]">✓</span>
+                    แยกลำดับการทำงาน (Execution Flow) และอธิบายโค้ดรายบรรทัด
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-[#2a4d3e]">✓</span>
+                    บันทึกประวัติการอธิบายโค้ดไว้ดูย้อนหลังได้เมื่อเข้าสู่ระบบ
+                  </li>
+                </ul>
+              </div>
+
+              <div className="mt-8 flex flex-col sm:flex-row gap-3 pt-4 border-t border-[#ece7dc]">
+                <Link
+                  href="/explain"
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#2a4d3e] px-5 py-3.5 text-sm font-bold text-white shadow-xs hover:bg-[#1f3b2f] transition-colors"
+                >
+                  <Icon name="sparkles" className="h-4 w-4" />
+                  <span>วางโค้ดเพื่อให้อธิบายทันที →</span>
+                </Link>
+                <Link
+                  href="/my-history"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-4 py-3.5 text-xs font-bold text-[#524f49] hover:bg-[#f2efe8] transition-colors"
+                >
+                  <span>ประวัติของฉัน</span>
+                </Link>
+              </div>
+            </div>
+          </section>
+
+          {/* แบนเนอร์พิเศษ: ดันเจี้ยนอ่านโค้ด สไตล์พิกเซล (Dungeon Crawler) */}
+          <section className="mb-14 rounded-3xl border-2 border-[#5c5470] bg-[#1c1b2b] p-7 sm:p-9 text-[#f4efe6] shadow-lg relative overflow-hidden">
+            <div className="absolute top-2 right-4 text-7xl opacity-5 select-none pointer-events-none font-mono font-black text-[#f6c945]">
+              PIXEL RPG
+            </div>
+            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="space-y-3 max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-[#5a2d91] px-3 py-1 text-xs font-bold text-[#ffe27a]">
+                    โหมดเกมการเรียนรู้ใหม่ · Pixel Dungeon Crawler
+                  </span>
+                  <span className="rounded-full bg-[#2fbf71]/20 border border-[#2fbf71]/50 px-2.5 py-0.5 text-[11px] font-bold text-[#2fbf71]">
+                    เล่นได้ทันที
+                  </span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#f6c945]">
+                  ดันเจี้ยนอ่านโค้ด: ตะลุยเขาวงกตพิกเซล ปราบมอนสเตอร์ด้วยคำถาม
+                </h2>
+                <p className="text-xs sm:text-sm leading-relaxed text-[#9a93ad]">
+                  เปลี่ยนการฝึกอ่านโค้ดให้เป็นการผจญภัยแนว RPG พิกเซลมุมมอง Top-down!
+                  1 คอร์ส = 1 ดันเจี้ยน, 1 บทเรียน = 1 ห้อง เดินสำรวจ ตอบคำถาม Block Model เพื่อโจมตีมอนสเตอร์
+                  ไขปริศนาเติมโค้ด และปราบบอสท้ายคอร์สเพื่อรับเหรียญรางวัลและตราเกียรติยศ
+                </p>
+                <div className="flex flex-wrap items-center gap-4 text-xs text-[#e8e1cf]">
+                  <span>• 3 หัวใจต่อรอบ</span>
+                  <span>• มอนสเตอร์และปริศนาโค้ด</span>
+                  <span>• เลือกตัวละครได้ 4 คลาส</span>
+                  <span>• มีโหมดทดลองเล่นฟรี</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row md:flex-col gap-3 w-full md:w-auto shrink-0">
+                <Link
+                  href="/dungeon"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#f6c945] px-6 py-4 text-sm font-black text-[#120f1c] shadow-md hover:bg-[#ffe27a] transition-all hover:scale-102"
+                >
+                  <Icon name="gamepad" className="h-5 w-5" />
+                  <span>เข้าสู่โหมดดันเจี้ยน →</span>
+                </Link>
+                <Link
+                  href="/dungeon/trial"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-[#5c5470] bg-[#252238] px-4 py-2.5 text-xs font-bold text-[#f4efe6] hover:bg-[#322c4a] transition-colors"
+                >
+                  <span>ลองเล่นห้องทดลอง (Guest)</span>
+                </Link>
+              </div>
+            </div>
+          </section>
+
+          {/* แนะนำการใช้งานเว็บไซต์ 3 ขั้นตอน */}
+          <section className="rounded-3xl border border-[#e5dfd3] bg-white p-7 sm:p-9 shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+              <div>
+                <h3 className="text-lg sm:text-xl font-extrabold text-[#1e1e1c]">
+                  เริ่มต้นใช้งานเว็บนี้อย่างไร?
+                </h3>
+                <p className="text-xs sm:text-sm text-[#6e6a63]">
+                  ออกแบบมาให้ใช้งานได้ทันทีทั้งผู้เรียนทั่วไป นักเรียนในห้องเรียน และครูผู้สอน
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href="/login"
+                  className="rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-3.5 py-2 text-xs font-bold text-[#2a4d3e] hover:bg-[#f2efe8]"
+                >
+                  เข้าสู่ระบบ
+                </Link>
+                <Link
+                  href="/login?mode=register"
+                  className="rounded-xl bg-[#2a4d3e] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#1f3b2f]"
+                >
+                  สมัครสมาชิกใหม่
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+              <div className="rounded-2xl border border-[#ece7dc] bg-[#faf8f4] p-5">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#2a4d3e] text-xs font-bold text-white">
+                  1
+                </span>
+                <h4 className="mt-3 text-sm font-bold text-[#1e1e1c]">
+                  เลือกโหมดที่ต้องการได้ทันที
+                </h4>
+                <p className="mt-1.5 text-xs leading-relaxed text-[#524f49]">
+                  ไม่ต้องล็อกอินก็สามารถเข้าดูคอร์สเรียนที่เผยแพร่แล้ว หรือทดลองวางโค้ดให้ระบบอธิบายได้ฟรี (5 ครั้ง/วันสำหรับผู้เยี่ยมชม)
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-[#ece7dc] bg-[#faf8f4] p-5">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#2a4d3e] text-xs font-bold text-white">
+                  2
+                </span>
+                <h4 className="mt-3 text-sm font-bold text-[#1e1e1c]">
+                  ล็อกอินเพื่อเก็บประวัติและเรียนต่อ
+                </h4>
+                <p className="mt-1.5 text-xs leading-relaxed text-[#524f49]">
+                  นักเรียนล็อกอินด้วยชื่อเล่นสมมติ + PIN 4 หลัก เพื่อบันทึกความคืบหน้าแต่ละบทเรียน เรียนต่อจากที่ค้างไว้ และเก็บประวัติการอธิบายโค้ด
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-[#ece7dc] bg-[#faf8f4] p-5">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#2a4d3e] text-xs font-bold text-white">
+                  3
+                </span>
+                <h4 className="mt-3 text-sm font-bold text-[#1e1e1c]">
+                  ครูสร้างคอร์สและติดตามผลได้เอง
+                </h4>
+                <p className="mt-1.5 text-xs leading-relaxed text-[#524f49]">
+                  ครูผู้สอนที่ได้รับอนุมัติสามารถสร้างคอร์สใหม่ เพิ่มบทเรียน Markdown ตัวอย่างโค้ด แบบทดสอบ และดูความคืบหน้าของนักเรียนรายคนได้
+                </p>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
   // ==================== 1. หน้าเข้าสู่ระบบแยกตาม Role: นักเรียน & ครูผู้สอน (สไตล์มินิมอล) ====================
   if (appMode === "student-login" || appMode === "teacher-login") {
     const isTeacherRole = appMode === "teacher-login";
@@ -1438,6 +1695,13 @@ export default function ExplainCodeApp() {
       <header className="bg-[#0b4f49] text-white sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setAppMode("landing")}
+              className="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-[12px] font-bold cursor-pointer"
+            >
+              ← หน้าแรก
+            </button>
             <button
               type="button"
               onClick={() => setStudentTab("quest")}

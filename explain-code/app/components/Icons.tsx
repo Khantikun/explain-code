@@ -24,7 +24,20 @@ export type IconName =
   | "close"
   | "home"
   | "gift"
-  | "eye";
+  | "eye"
+  | "sparkles"
+  | "clock"
+  | "trash"
+  | "award"
+  | "alert"
+  | "menu"
+  | "chevron-down"
+  | "gamepad"
+  | "sword"
+  | "volume-2"
+  | "volume-x"
+  | "pause"
+  | "heart";
 
 interface IconProps {
   name: IconName;
@@ -243,6 +256,104 @@ export function Icon({ name, size = 24, filled = false, className = "" }: IconPr
         <svg {...common}>
           <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
           <circle cx="12" cy="12" r="3" />
+        </svg>
+      );
+    case "sparkles":
+      return (
+        <svg {...common}>
+          <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
+        </svg>
+      );
+    case "clock":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      );
+    case "trash":
+      return (
+        <svg {...common}>
+          <path d="M3 6h18" />
+          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+        </svg>
+      );
+    case "award":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="8" r="6" />
+          <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+        </svg>
+      );
+    case "alert":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" x2="12" y1="8" y2="12" />
+          <line x1="12" x2="12.01" y1="16" y2="16" />
+        </svg>
+      );
+    case "menu":
+      return (
+        <svg {...common}>
+          <line x1="4" x2="20" y1="7" y2="7" />
+          <line x1="4" x2="20" y1="12" y2="12" />
+          <line x1="4" x2="20" y1="17" y2="17" />
+        </svg>
+      );
+    case "chevron-down":
+      return (
+        <svg {...common}>
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      );
+    case "gamepad":
+      return (
+        <svg {...common}>
+          <line x1="6" x2="10" y1="12" y2="12" />
+          <line x1="8" x2="8" y1="10" y2="14" />
+          <line x1="15" x2="15.01" y1="13" y2="13" />
+          <line x1="18" x2="18.01" y1="11" y2="11" />
+          <rect width="20" height="12" x="2" y="6" rx="2" />
+        </svg>
+      );
+    case "sword":
+      return (
+        <svg {...common}>
+          <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" />
+          <line x1="13" x2="19" y1="19" y2="13" />
+          <line x1="16" x2="20" y1="16" y2="20" />
+          <line x1="19" x2="21" y1="21" y2="19" />
+        </svg>
+      );
+    case "volume-2":
+      return (
+        <svg {...common}>
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+        </svg>
+      );
+    case "volume-x":
+      return (
+        <svg {...common}>
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <line x1="22" x2="16" y1="9" y2="15" />
+          <line x1="16" x2="22" y1="9" y2="15" />
+        </svg>
+      );
+    case "pause":
+      return (
+        <svg {...common}>
+          <rect x="6" y="4" width="4" height="16" />
+          <rect x="14" y="4" width="4" height="16" />
+        </svg>
+      );
+    case "heart":
+      return (
+        <svg {...common} fill={filled ? "currentColor" : "none"}>
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
         </svg>
       );
   }
