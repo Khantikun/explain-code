@@ -19,6 +19,7 @@ import { Icon, StatusCircle } from "./components/Icons";
 import { BlockModelGrid } from "./components/BlockModelGrid";
 import { PracticeArena } from "./components/PracticeArena";
 import { TeacherDashboard } from "./components/TeacherDashboard";
+import { DungeonRunScreen } from "./components/DungeonRunScreen";
 
 type AppMode =
   | "student-login"
@@ -26,7 +27,7 @@ type AppMode =
   | "student-portal"
   | "teacher-portal";
 
-type StudentTab = "quest" | "practice" | "learn" | "profile" | "ailog";
+type StudentTab = "quest" | "practice" | "learn" | "profile" | "ailog" | "dungeon";
 
 const STORAGE_STUDENTS_KEY = "explain_code_students_v2";
 const STORAGE_ROOMS_KEY = "explain_code_rooms_v2";
@@ -1406,6 +1407,31 @@ export default function ExplainCodeApp() {
     .filter((c) => (currentStudent.cellScores[c.id] ?? 0) < 60)
     .reverse();
 
+  if (studentTab === "dungeon") {
+    return (
+      <DungeonRunScreen
+        onBackToPortal={() => setStudentTab("quest")}
+        onRecordAttempt={(summary) => {
+          if (currentStudent) {
+            setStudents((prev) =>
+              prev.map((s) => {
+                if (s.id !== currentStudent.id) return s;
+                return {
+                  ...s,
+                  xp: s.xp + summary.earnedXp,
+                  cellScores: {
+                    ...s.cellScores,
+                    ...summary.cellScores,
+                  },
+                };
+              })
+            );
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#eef3f1] text-[#1b2a2f] flex flex-col">
       {/* แถบบนสีเขียวเข้ม #0b4f49 ตาม Design System */}
@@ -1430,6 +1456,7 @@ export default function ExplainCodeApp() {
             {[
               { id: "quest" as StudentTab, label: "เส้นทางเควสต์", icon: "route" as const },
               { id: "practice" as StudentTab, label: "ฝึกอ่านโค้ด", icon: "play" as const },
+              { id: "dungeon" as StudentTab, label: "ดันเจี้ยน Code Depths", icon: "shield" as const },
               { id: "learn" as StudentTab, label: "Block Model", icon: "book" as const },
               { id: "profile" as StudentTab, label: "โปรไฟล์", icon: "user" as const },
               { id: "ailog" as StudentTab, label: "บันทึก AI", icon: "clipboard" as const },
@@ -1557,6 +1584,38 @@ export default function ExplainCodeApp() {
                   <span>เข้าเล่นเรื่องที่ครูแนะนำ</span>
                 </button>
               </div>
+            </div>
+
+            {/* การ์ดโหมดใหม่: CODE DEPTHS ดันเจี้ยนแห่งการเข้าใจ (Roguelite Prototype) */}
+            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-2 border-indigo-500/50 rounded-2xl p-5 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center font-black text-xl shadow-lg shadow-indigo-500/30 shrink-0">
+                  CD
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-300 border border-indigo-400/40">
+                      โหมดใหม่ล่าสุด · Roguelite Mode
+                    </span>
+                    <span className="text-[11px] font-mono text-emerald-400">
+                      พร้อมให้ทดลองเล่น
+                    </span>
+                  </div>
+                  <h3 className="text-[18px] font-extrabold mt-1">
+                    CODE DEPTHS : ดันเจี้ยนแห่งการเข้าใจ
+                  </h3>
+                  <p className="text-[13px] text-slate-300 mt-0.5">
+                    &ldquo;AI ประกอบมนตร์ให้คุณได้ แต่คุณต้องเข้าใจมนตร์ก่อนร่าย&rdquo; — นำเข้าโค้ดของคุณเพื่อสร้างดันเจี้ยน 5 ชั้น เผชิญหน้ากับ Trace Slime, Off-by-one Bat และบอส The Core!
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStudentTab("dungeon")}
+                className="px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-400 hover:to-pink-400 text-white font-extrabold text-[14px] shadow-lg shadow-indigo-500/25 shrink-0 transition transform hover:-translate-y-0.5 cursor-pointer"
+              >
+                เข้าสู่ดันเจี้ยนโค้ด ➔
+              </button>
             </div>
 
             {/* เส้นทางเควสต์ 7 เรื่อง (ชุดโค้ดแยกตามเรื่อง 7 เรื่อง ดีไซน์มินิมอล ปุ่มเล่นเต็มการ์ด) */}
