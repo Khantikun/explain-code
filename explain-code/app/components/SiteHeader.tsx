@@ -12,6 +12,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { Icon } from "./Icons";
 import { GlassPanel } from "./GlassPanel";
 import { TeacherApprovalStatus, UserRole } from "../lib/supabase";
+import { useTheme } from "./ThemeProvider";
+import { ThemeToggle } from "./ThemeToggle";
 
 export const STORAGE_SESSION_KEY = "explain_code_auth_session_v2";
 
@@ -62,6 +64,7 @@ interface ActiveCapsuleStyle {
 export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { resolvedTheme, toggleTheme } = useTheme();
 
   const [session, setSession] = useState<ClientAuthSession | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -234,10 +237,10 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                   <Icon name="code" className="h-5 w-5" />
                 </div>
                 <div className="leading-tight">
-                  <span className="block text-sm sm:text-base font-extrabold tracking-tight text-[#14221e]">
+                  <span className="block text-sm sm:text-base font-extrabold tracking-tight text-[#14221e] dark:text-white">
                     โค้ดนี้ฉันอธิบายได้
                   </span>
-                  <span className="hidden sm:block text-[11px] font-semibold text-[#4a5d57]">
+                  <span className="hidden sm:block text-[11px] font-semibold text-[#4a5d57] dark:text-[#cbd5e1]">
                     Open Learning &amp; Code Explanation
                   </span>
                 </div>
@@ -248,7 +251,7 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
             <nav
               ref={navContainerRef}
               aria-label="เมนูหลัก"
-              className="relative hidden md:flex items-center justify-center gap-1 rounded-full bg-[#0b4f49]/10 p-1.5 border border-[#0f766e]/25 shadow-inner shrink-0"
+              className="relative hidden md:flex items-center justify-center gap-1 rounded-full bg-[#0b4f49]/10 dark:bg-white/10 p-1.5 border border-[#0f766e]/25 dark:border-white/20 shadow-inner shrink-0"
             >
               {navItems.map((item) => {
                 const isActive =
@@ -267,7 +270,7 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                     className={`liquid-press relative z-10 rounded-full px-4 py-1.5 text-sm font-extrabold tracking-wide focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f766e] ${
                       isActive
                         ? "liquid-active-nav-item text-white"
-                        : "text-[#062e2b] hover:text-[#032220] hover:bg-[#0f766e]/15"
+                        : "text-[#062e2b] dark:text-[#f1f5f9] hover:text-[#032220] dark:hover:text-white hover:bg-[#0f766e]/15 dark:hover:bg-white/10"
                     }`}
                   >
                     <span className="relative z-10 flex items-center justify-center">
@@ -278,8 +281,10 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
               })}
             </nav>
 
-            {/* Right: Auth Controls */}
+            {/* Right: Auth Controls & Theme Toggle */}
             <div className="flex flex-1 items-center justify-end gap-2">
+              <ThemeToggle />
+
               {mounted && session ? (
                 <div className="flex items-center gap-2">
                   {/* Role Quick Link on Desktop */}
@@ -289,7 +294,7 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                       className={`hidden lg:inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f766e] ${
                         pathname.startsWith("/my-learning")
                           ? "liquid-glass-primary-btn"
-                          : "liquid-glass-btn text-[#1b3b32]"
+                          : "liquid-glass-btn text-[#1b3b32] dark:text-white"
                       }`}
                     >
                       <Icon name="award" className="h-3.5 w-3.5" />
@@ -303,7 +308,7 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                       className={`hidden lg:inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f766e] ${
                         pathname.startsWith("/teacher")
                           ? "liquid-glass-primary-btn"
-                          : "liquid-glass-btn text-[#1b3b32]"
+                          : "liquid-glass-btn text-[#1b3b32] dark:text-white"
                       }`}
                     >
                       <Icon name="users" className="h-3.5 w-3.5" />
@@ -327,16 +332,16 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                           .toUpperCase()}
                       </div>
                       <div className="hidden sm:block leading-tight">
-                        <p className="max-w-[120px] truncate text-xs font-extrabold text-[#14221e]">
+                        <p className="max-w-[120px] truncate text-xs font-extrabold text-[#14221e] dark:text-white">
                           {session.displayName || session.username}
                         </p>
-                        <p className="text-[10px] font-semibold text-[#4a5d57]">
+                        <p className="text-[10px] font-semibold text-[#4a5d57] dark:text-[#cbd5e1]">
                           {getRoleLabel(session)}
                         </p>
                       </div>
                       <Icon
                         name="chevron-down"
-                        className={`h-3.5 w-3.5 text-[#3d4d48] transition-transform duration-200 ${
+                        className={`h-3.5 w-3.5 text-[#3d4d48] dark:text-[#cbd5e1] transition-transform duration-200 ${
                           isUserMenuOpen ? "rotate-180" : ""
                         }`}
                       />
@@ -349,11 +354,11 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                         aria-label="ตัวเลือกบัญชีผู้ใช้"
                         className="liquid-glass liquid-glass-scrolled absolute right-0 mt-2.5 w-60 rounded-2xl p-2 z-50 origin-top-right animate-in fade-in zoom-in-95 duration-150"
                       >
-                        <div className="border-b border-[#d8e3e0]/80 px-3 py-2.5 mb-1">
-                          <p className="truncate text-xs font-extrabold text-[#14221e]">
+                        <div className="border-b border-[#d8e3e0]/80 dark:border-white/15 px-3 py-2.5 mb-1">
+                          <p className="truncate text-xs font-extrabold text-[#14221e] dark:text-white">
                             {session.displayName || session.username}
                           </p>
-                          <p className="text-[11px] font-semibold text-[#0f766e]">
+                          <p className="text-[11px] font-semibold text-[#0f766e] dark:text-[#5eead4]">
                             บทบาท: {getRoleLabel(session)}
                           </p>
                         </div>
@@ -362,11 +367,11 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                           <Link
                             href="/my-learning"
                             role="menuitem"
-                            className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#14221e] hover:bg-white/75 transition-colors focus-visible:outline-2 focus-visible:outline-[#0f766e]"
+                            className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#14221e] dark:text-white hover:bg-white/75 dark:hover:bg-white/10 transition-colors focus-visible:outline-2 focus-visible:outline-[#0f766e]"
                           >
                             <Icon
                               name="award"
-                              className="h-4 w-4 text-[#0f766e]"
+                              className="h-4 w-4 text-[#0f766e] dark:text-[#5eead4]"
                             />
                             <span>การเรียนของฉัน</span>
                           </Link>
@@ -377,11 +382,11 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                           <Link
                             href="/teacher"
                             role="menuitem"
-                            className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#14221e] hover:bg-white/75 transition-colors focus-visible:outline-2 focus-visible:outline-[#0f766e]"
+                            className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#14221e] dark:text-white hover:bg-white/75 dark:hover:bg-white/10 transition-colors focus-visible:outline-2 focus-visible:outline-[#0f766e]"
                           >
                             <Icon
                               name="users"
-                              className="h-4 w-4 text-[#0f766e]"
+                              className="h-4 w-4 text-[#0f766e] dark:text-[#5eead4]"
                             />
                             <span>แดชบอร์ดครู</span>
                           </Link>
@@ -390,22 +395,52 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                         <Link
                           href="/my-history"
                           role="menuitem"
-                          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#14221e] hover:bg-white/75 transition-colors focus-visible:outline-2 focus-visible:outline-[#0f766e]"
+                          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#14221e] dark:text-white hover:bg-white/75 dark:hover:bg-white/10 transition-colors focus-visible:outline-2 focus-visible:outline-[#0f766e]"
                         >
                           <Icon
                             name="clock"
-                            className="h-4 w-4 text-[#0f766e]"
+                            className="h-4 w-4 text-[#0f766e] dark:text-[#5eead4]"
                           />
                           <span>ประวัติของฉัน</span>
                         </Link>
 
-                        <div className="my-1 border-t border-[#d8e3e0]/80" />
+                        <div className="my-1 border-t border-[#d8e3e0]/80 dark:border-white/15" />
+
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            toggleTheme();
+                          }}
+                          className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-bold text-[#14221e] dark:text-white hover:bg-white/75 dark:hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[#0f766e]"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <Icon
+                              name={resolvedTheme === "dark" ? "sun" : "moon"}
+                              className={`h-4 w-4 ${
+                                resolvedTheme === "dark"
+                                  ? "text-[#f6b73c]"
+                                  : "text-[#0f766e] dark:text-[#5eead4]"
+                              }`}
+                            />
+                            <span>
+                              {resolvedTheme === "dark"
+                                ? "สลับเป็นธีมสว่าง"
+                                : "สลับเป็นธีมมืด"}
+                            </span>
+                          </div>
+                          <span className="rounded-md bg-[#0f766e]/15 dark:bg-[#0f766e]/30 px-1.5 py-0.5 text-[10px] font-extrabold text-[#0f766e] dark:text-[#5eead4]">
+                            {resolvedTheme === "dark" ? "Dark" : "Light"}
+                          </span>
+                        </button>
+
+                        <div className="my-1 border-t border-[#d8e3e0]/80 dark:border-white/15" />
 
                         <button
                           type="button"
                           role="menuitem"
                           onClick={handleLogout}
-                          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#991b1b] hover:bg-[#fef2f2]/90 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[#991b1b]"
+                          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#991b1b] dark:text-[#f87171] hover:bg-[#fef2f2]/90 dark:hover:bg-[#451212]/40 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[#991b1b]"
                         >
                           <Icon name="logout" className="h-4 w-4" />
                           <span>ออกจากระบบ</span>
@@ -419,7 +454,7 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                 <div className="flex items-center gap-2">
                   <Link
                     href="/login"
-                    className="liquid-glass-btn liquid-press hidden sm:inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-extrabold text-[#0b4f49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f766e]"
+                    className="liquid-glass-btn liquid-press hidden sm:inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-extrabold text-[#0b4f49] dark:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0f766e]"
                   >
                     <span>เข้าสู่ระบบ</span>
                   </Link>
@@ -458,7 +493,7 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                 className={`liquid-press flex flex-col items-center justify-center gap-1 rounded-xl py-2 px-1 text-[11px] font-extrabold leading-none ${
                   isActive
                     ? "liquid-active-nav-item text-white"
-                    : "text-[#062e2b] hover:bg-[#0f766e]/15"
+                    : "text-[#062e2b] dark:text-[#f1f5f9] hover:bg-[#0f766e]/15 dark:hover:bg-white/10"
                 }`}
               >
                 <Icon name={item.icon} className="h-5 w-5" />
@@ -478,7 +513,7 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                 className={`liquid-press flex flex-col items-center justify-center gap-1 rounded-xl py-2 px-1 text-[11px] font-extrabold leading-none ${
                   pathname.startsWith("/teacher")
                     ? "liquid-active-nav-item text-white"
-                    : "text-[#062e2b] hover:bg-[#0f766e]/15"
+                    : "text-[#062e2b] dark:text-[#f1f5f9] hover:bg-[#0f766e]/15 dark:hover:bg-white/10"
                 }`}
               >
                 <Icon name="users" className="h-5 w-5" />
@@ -493,7 +528,7 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                 className={`liquid-press flex flex-col items-center justify-center gap-1 rounded-xl py-2 px-1 text-[11px] font-extrabold leading-none ${
                   pathname.startsWith("/my-learning")
                     ? "liquid-active-nav-item text-white"
-                    : "text-[#062e2b] hover:bg-[#0f766e]/15"
+                    : "text-[#062e2b] dark:text-[#f1f5f9] hover:bg-[#0f766e]/15 dark:hover:bg-white/10"
                 }`}
               >
                 <Icon name="award" className="h-5 w-5" />
@@ -507,7 +542,7 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
               className={`liquid-press flex flex-col items-center justify-center gap-1 rounded-xl py-2 px-1 text-[11px] font-extrabold leading-none ${
                 pathname.startsWith("/login")
                   ? "liquid-active-nav-item text-white"
-                  : "text-[#062e2b] hover:bg-[#0f766e]/15"
+                  : "text-[#062e2b] dark:text-[#f1f5f9] hover:bg-[#0f766e]/15 dark:hover:bg-white/10"
               }`}
             >
               <Icon name="user" className="h-5 w-5" />

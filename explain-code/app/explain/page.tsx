@@ -129,21 +129,21 @@ export default function ExplainCodePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf8f4] text-[#1e1e1c] flex flex-col">
+    <div className="min-h-screen bg-[#faf8f4] dark:bg-[#091312] text-[#1e1e1c] dark:text-white flex flex-col">
       <SiteHeader />
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         {/* Header Section */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f0ec] px-3 py-1 text-xs font-bold text-[#2a4d3e]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f0ec] dark:bg-[#0c2420] dark:border dark:border-[#5eead4]/30 px-3 py-1 text-xs font-bold text-[#2a4d3e] dark:text-[#5eead4]">
               <Icon name="sparkles" className="h-3.5 w-3.5" />
               เครื่องมือช่วยแกะและอธิบายโค้ดทีละบรรทัด
             </span>
-            <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#1e1e1c]">
+            <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#1e1e1c] dark:text-white">
               อธิบายโค้ด (Code Explainer)
             </h1>
-            <p className="mt-1 text-sm text-[#524f49]">
+            <p className="mt-1 text-sm text-[#524f49] dark:text-[#e2e8f0]">
               วางโค้ดที่คุณได้จาก AI หรือโค้ดที่กำลังศึกษา ระบบจะช่วยสรุปภาพรวม แยกอธิบายทีละบรรทัด และชี้จุดที่ควรระวัง
             </p>
           </div>
@@ -151,23 +151,23 @@ export default function ExplainCodePage() {
           {session ? (
             <Link
               href="/my-history"
-              className="inline-flex items-center gap-2 rounded-xl border border-[#d8d1c5] bg-white px-4 py-2.5 text-xs font-bold text-[#2a4d3e] shadow-2xs hover:bg-[#f2efe8] transition-colors"
+              className="inline-flex items-center gap-2 rounded-xl border border-[#d8d1c5] dark:border-white/15 bg-white dark:bg-[#12221f] px-4 py-2.5 text-xs font-bold text-[#2a4d3e] dark:text-[#5eead4] shadow-2xs hover:bg-[#f2efe8] dark:hover:bg-[#182e2a] transition-colors"
             >
               <Icon name="clock" className="h-4 w-4" />
               <span>ดูประวัติการอธิบายโค้ดของฉัน</span>
             </Link>
           ) : (
-            <div className="rounded-xl border border-[#e5dfd3] bg-white px-4 py-2.5 text-xs text-[#524f49] shadow-2xs">
-              <span className="font-bold text-[#2a4d3e]">โหมดผู้เยี่ยมชม (ใช้ฟรี 5 ครั้ง/วัน)</span>
+            <div className="rounded-xl border border-[#e5dfd3] dark:border-white/15 bg-white dark:bg-[#12221f] px-4 py-2.5 text-xs text-[#524f49] dark:text-[#e2e8f0] shadow-2xs dark:shadow-md">
+              <span className="font-bold text-[#2a4d3e] dark:text-[#5eead4]">โหมดผู้เยี่ยมชม (ใช้ฟรี 5 ครั้ง/วัน)</span>
               {guestQuota && (
-                <span className="ml-2 rounded-md bg-[#f4f1ea] px-2 py-0.5 font-mono font-bold text-[#1e1e1c]">
+                <span className="ml-2 rounded-md bg-[#f4f1ea] dark:bg-[#0b1614] dark:border dark:border-white/10 px-2 py-0.5 font-mono font-bold text-[#1e1e1c] dark:text-white">
                   คงเหลือ {guestQuota.remaining}/{guestQuota.limit} ครั้ง
                 </span>
               )}
               <div className="mt-1">
                 <Link
                   href="/login?redirect=/explain"
-                  className="font-bold text-[#2a4d3e] underline hover:text-[#1f3b2f]"
+                  className="font-bold text-[#2a4d3e] dark:text-[#5eead4] underline hover:text-[#1f3b2f] dark:hover:text-[#99f6e4]"
                 >
                   เข้าสู่ระบบ
                 </Link>{" "}
@@ -181,15 +181,15 @@ export default function ExplainCodePage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* Left Column: Code Input */}
           <div className="lg:col-span-5">
-            <div className="rounded-2xl border border-[#e5dfd3] bg-white p-5 shadow-xs">
+            <div className="rounded-2xl border border-[#e5dfd3] dark:border-white/15 bg-white dark:bg-[#12221f] p-5 shadow-xs dark:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)]">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-[#524f49]">
+                <label className="text-xs font-bold uppercase tracking-wider text-[#524f49] dark:text-[#e2e8f0]">
                   1. เลือกภาษาโปรแกรม
                 </label>
                 <select
                   value={language}
                   onChange={(e) => handleLanguageChange(e.target.value)}
-                  className="rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-3.5 py-2 text-xs font-bold text-[#1e1e1c] focus:border-[#2a4d3e] focus:outline-hidden"
+                  className="rounded-xl border border-[#d8d1c5] dark:border-white/20 bg-[#faf8f4] dark:bg-[#0b1614] px-3.5 py-2 text-xs font-bold text-[#1e1e1c] dark:text-white focus:border-[#2a4d3e] dark:focus:border-[#5eead4] focus:outline-hidden"
                 >
                   {LANGUAGE_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -200,7 +200,7 @@ export default function ExplainCodePage() {
               </div>
 
               <div className="mb-2 flex items-center justify-between">
-                <label className="text-xs font-bold uppercase tracking-wider text-[#524f49]">
+                <label className="text-xs font-bold uppercase tracking-wider text-[#524f49] dark:text-[#e2e8f0]">
                   2. วางโค้ดที่ต้องการให้อธิบาย
                 </label>
                 <div className="flex items-center gap-2">
@@ -208,7 +208,7 @@ export default function ExplainCodePage() {
                     <button
                       type="button"
                       onClick={() => setCode(SAMPLE_SNIPPETS[language])}
-                      className="text-[11px] font-semibold text-[#2a4d3e] underline hover:text-[#1f3b2f] cursor-pointer"
+                      className="text-[11px] font-semibold text-[#2a4d3e] dark:text-[#5eead4] underline hover:text-[#1f3b2f] dark:hover:text-[#99f6e4] cursor-pointer"
                     >
                       ใช้โค้ดตัวอย่าง
                     </button>
@@ -216,7 +216,7 @@ export default function ExplainCodePage() {
                   <button
                     type="button"
                     onClick={() => setCode("")}
-                    className="text-[11px] font-semibold text-[#6e6a63] hover:text-[#991b1b] cursor-pointer"
+                    className="text-[11px] font-semibold text-[#6e6a63] dark:text-[#94a3b8] hover:text-[#991b1b] dark:hover:text-[#f87171] cursor-pointer"
                   >
                     ล้างโค้ด
                   </button>
@@ -228,11 +228,11 @@ export default function ExplainCodePage() {
                 onChange={(e) => setCode(e.target.value)}
                 rows={13}
                 placeholder="วางโค้ดของคุณที่นี่..."
-                className="w-full rounded-xl border border-[#d8d1c5] bg-[#1e1e1c] p-4 font-mono text-xs leading-relaxed text-[#f8f8f2] focus:border-[#2a4d3e] focus:outline-hidden"
+                className="w-full rounded-xl border border-[#d8d1c5] dark:border-white/20 bg-[#1e1e1c] dark:bg-[#07110f] p-4 font-mono text-xs leading-relaxed text-[#f8f8f2] dark:text-white focus:border-[#2a4d3e] dark:focus:border-[#5eead4] dark:focus:ring-1 dark:focus:ring-[#5eead4] focus:outline-hidden"
               />
 
               {error && (
-                <div className="mt-4 rounded-xl border border-[#fecaca] bg-[#fef2f2] p-3.5 text-xs font-medium text-[#991b1b]">
+                <div className="mt-4 rounded-xl border border-[#fecaca] dark:border-[#f87171]/40 bg-[#fef2f2] dark:bg-[#451212]/40 p-3.5 text-xs font-medium text-[#991b1b] dark:text-[#fca5a5]">
                   <p>{error}</p>
                   {quotaExceeded && (
                     <Link
@@ -249,7 +249,7 @@ export default function ExplainCodePage() {
                 type="button"
                 onClick={handleExplain}
                 disabled={isLoading}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2a4d3e] py-3.5 text-sm font-bold text-white shadow-xs hover:bg-[#1f3b2f] disabled:opacity-60 transition-colors cursor-pointer"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2a4d3e] dark:bg-[#0f766e] dark:hover:bg-[#0d9488] py-3.5 text-sm font-bold text-white shadow-xs dark:shadow-md hover:bg-[#1f3b2f] disabled:opacity-60 transition-colors cursor-pointer"
               >
                 <Icon name="sparkles" className="h-4 w-4" />
                 <span>
@@ -262,23 +262,23 @@ export default function ExplainCodePage() {
           {/* Right Column: Explanation Output */}
           <div className="lg:col-span-7">
             {isLoading ? (
-              <div className="flex h-full min-h-[380px] flex-col items-center justify-center rounded-2xl border border-[#e5dfd3] bg-white p-8 text-center">
-                <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#e8f0ec] border-t-[#2a4d3e]" />
-                <p className="mt-4 text-sm font-bold text-[#1e1e1c]">
+              <div className="flex h-full min-h-[380px] flex-col items-center justify-center rounded-2xl border border-[#e5dfd3] dark:border-white/15 bg-white dark:bg-[#12221f] p-8 text-center dark:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)]">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#e8f0ec] dark:border-white/10 border-t-[#2a4d3e] dark:border-t-[#5eead4]" />
+                <p className="mt-4 text-sm font-bold text-[#1e1e1c] dark:text-white">
                   กำลังแกะโครงสร้างและอธิบายโค้ดทีละบรรทัด...
                 </p>
-                <p className="mt-1 text-xs text-[#6e6a63]">
+                <p className="mt-1 text-xs text-[#6e6a63] dark:text-[#cbd5e1]">
                   ระบบกำลังสรุปแนวคิดสำคัญ ขั้นตอนการทำงาน และจุดที่ควรระวัง
                 </p>
               </div>
             ) : result ? (
               <div className="space-y-5">
                 {savedNotice && (
-                  <div className="flex items-center justify-between rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-3 text-xs font-semibold text-[#166534]">
+                  <div className="flex items-center justify-between rounded-xl border border-[#bbf7d0] dark:border-[#22c55e]/30 bg-[#f0fdf4] dark:bg-[#0a2318] px-4 py-3 text-xs font-semibold text-[#166534] dark:text-[#86efac] dark:shadow-sm">
                     <span>บันทึกคำอธิบายโค้ดนี้ลงใน &ldquo;ประวัติของฉัน&rdquo; เรียบร้อยแล้ว</span>
                     <Link
                       href="/my-history"
-                      className="underline font-bold hover:text-[#14532d]"
+                      className="underline font-bold hover:text-[#14532d] dark:hover:text-[#bbf7d0]"
                     >
                       เปิดดูประวัติ →
                     </Link>
@@ -286,17 +286,17 @@ export default function ExplainCodePage() {
                 )}
 
                 {/* 1. ภาพรวมของโค้ด */}
-                <div className="rounded-2xl border border-[#e5dfd3] bg-white p-6 shadow-xs">
+                <div className="rounded-2xl border border-[#e5dfd3] dark:border-white/15 bg-white dark:bg-[#12221f] p-6 shadow-xs dark:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center justify-between gap-2 mb-3">
-                    <h2 className="text-base font-bold text-[#1e1e1c] flex items-center gap-2">
-                      <Icon name="book" className="h-4 w-4 text-[#2a4d3e]" />
+                    <h2 className="text-base font-bold text-[#1e1e1c] dark:text-white flex items-center gap-2">
+                      <Icon name="book" className="h-4 w-4 text-[#2a4d3e] dark:text-[#5eead4]" />
                       <span>สรุปภาพรวมการทำงาน</span>
                     </h2>
-                    <span className="rounded-lg bg-[#e8f0ec] px-2.5 py-1 text-[11px] font-bold uppercase text-[#2a4d3e]">
+                    <span className="rounded-lg bg-[#e8f0ec] dark:bg-[#0c2420] dark:border dark:border-[#5eead4]/30 px-2.5 py-1 text-[11px] font-bold uppercase text-[#2a4d3e] dark:text-[#5eead4]">
                       {result.language}
                     </span>
                   </div>
-                  <p className="text-sm leading-relaxed text-[#3d3b36]">
+                  <p className="text-sm leading-relaxed text-[#3d3b36] dark:text-[#f1f5f9]">
                     {result.summary}
                   </p>
 
@@ -305,7 +305,7 @@ export default function ExplainCodePage() {
                     {result.keyConcepts.map((concept, idx) => (
                       <span
                         key={idx}
-                        className="rounded-lg border border-[#d8d1c5] bg-[#faf8f4] px-2.5 py-1 text-xs font-semibold text-[#2a4d3e]"
+                        className="rounded-lg border border-[#d8d1c5] dark:border-white/15 bg-[#faf8f4] dark:bg-[#0a1513] px-2.5 py-1 text-xs font-semibold text-[#2a4d3e] dark:text-[#5eead4] dark:hover:border-[#5eead4]/40"
                       >
                         #{concept}
                       </span>
@@ -314,16 +314,16 @@ export default function ExplainCodePage() {
                 </div>
 
                 {/* 2. ลำดับขั้นตอนการทำงาน */}
-                <div className="rounded-2xl border border-[#e5dfd3] bg-white p-6 shadow-xs">
-                  <h3 className="text-sm font-bold text-[#1e1e1c] mb-3 flex items-center gap-2">
-                    <Icon name="play" className="h-4 w-4 text-[#2a4d3e]" />
+                <div className="rounded-2xl border border-[#e5dfd3] dark:border-white/15 bg-white dark:bg-[#12221f] p-6 shadow-xs dark:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)]">
+                  <h3 className="text-sm font-bold text-[#1e1e1c] dark:text-white mb-3 flex items-center gap-2">
+                    <Icon name="play" className="h-4 w-4 text-[#2a4d3e] dark:text-[#5eead4]" />
                     <span>ลำดับขั้นตอนการทำงาน (Execution Flow)</span>
                   </h3>
-                  <ul className="space-y-2 text-xs sm:text-sm text-[#3d3b36]">
+                  <ul className="space-y-2 text-xs sm:text-sm text-[#3d3b36] dark:text-[#f1f5f9]">
                     {result.stepByStepFlow.map((step, idx) => (
                       <li
                         key={idx}
-                        className="rounded-xl bg-[#faf8f4] px-3.5 py-2.5 border border-[#ece7dc]"
+                        className="rounded-xl bg-[#faf8f4] dark:bg-[#0a1513] px-3.5 py-2.5 border border-[#ece7dc] dark:border-white/15 dark:shadow-2xs text-[#3d3b36] dark:text-[#f1f5f9]"
                       >
                         {step}
                       </li>
@@ -332,26 +332,28 @@ export default function ExplainCodePage() {
                 </div>
 
                 {/* 3. คำอธิบายทีละบรรทัด */}
-                <div className="rounded-2xl border border-[#e5dfd3] bg-white p-6 shadow-xs">
-                  <h3 className="text-sm font-bold text-[#1e1e1c] mb-3 flex items-center gap-2">
-                    <Icon name="code" className="h-4 w-4 text-[#2a4d3e]" />
+                <div className="rounded-2xl border border-[#e5dfd3] dark:border-white/15 bg-white dark:bg-[#12221f] p-6 shadow-xs dark:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)]">
+                  <h3 className="text-sm font-bold text-[#1e1e1c] dark:text-white mb-3 flex items-center gap-2">
+                    <Icon name="code" className="h-4 w-4 text-[#2a4d3e] dark:text-[#5eead4]" />
                     <span>แกะโค้ดทีละบรรทัด (Line-by-Line Explanation)</span>
                   </h3>
-                  <div className="space-y-2.5">
+                  <div className="space-y-3">
                     {result.lineByLine.map((item) => (
                       <div
                         key={item.lineNumber}
-                        className="rounded-xl border border-[#e5dfd3] bg-[#faf8f4] p-3.5"
+                        className="rounded-xl border border-[#e5dfd3] dark:border-white/20 bg-[#faf8f4] dark:bg-[#0a1513] p-3.5 transition-all dark:hover:border-[#5eead4]/60 dark:hover:bg-[#0e1d1a] dark:shadow-2xs"
                       >
                         <div className="flex items-start gap-2.5">
-                          <span className="inline-flex h-6 min-w-7 items-center justify-center rounded-md bg-[#2a4d3e] px-1.5 font-mono text-[11px] font-bold text-white">
+                          <span className="inline-flex h-6 min-w-7 items-center justify-center rounded-md bg-[#2a4d3e] dark:bg-[#0f766e] dark:border dark:border-[#5eead4]/40 px-1.5 font-mono text-[11px] font-bold text-white shadow-2xs">
                             L{item.lineNumber}
                           </span>
-                          <code className="flex-1 overflow-x-auto font-mono text-xs font-semibold text-[#1e1e1c]">
-                            {item.code}
-                          </code>
+                          <div className="flex-1 overflow-x-auto rounded-lg bg-black/5 dark:bg-black/50 px-2.5 py-1 border border-black/5 dark:border-white/10">
+                            <code className="font-mono text-xs font-semibold text-[#1e1e1c] dark:text-white">
+                              {item.code}
+                            </code>
+                          </div>
                         </div>
-                        <p className="mt-2 pl-9 text-xs leading-relaxed text-[#524f49]">
+                        <p className="mt-2 pl-9 text-xs leading-relaxed text-[#524f49] dark:text-[#e2e8f0]">
                           → {item.explanation}
                         </p>
                       </div>
@@ -360,12 +362,12 @@ export default function ExplainCodePage() {
                 </div>
 
                 {/* 4. จุดที่ควรระวัง */}
-                <div className="rounded-2xl border border-[#fde68a] bg-[#fffbeb] p-5">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#92400e] mb-2 flex items-center gap-1.5">
-                    <Icon name="alert" className="h-4 w-4" />
+                <div className="rounded-2xl border border-[#fde68a] dark:border-amber-400/35 bg-[#fffbeb] dark:bg-[#20180a] p-5 dark:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)]">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#92400e] dark:text-amber-300 mb-2 flex items-center gap-1.5">
+                    <Icon name="alert" className="h-4 w-4 text-[#92400e] dark:text-amber-400" />
                     <span>จุดสังเกตและสิ่งที่ควรระวัง (Pitfalls &amp; Tips)</span>
                   </h3>
-                  <ul className="list-disc pl-5 space-y-1 text-xs text-[#78350f]">
+                  <ul className="list-disc pl-5 space-y-1 text-xs text-[#78350f] dark:text-amber-100/90 leading-relaxed">
                     {result.potentialPitfalls.map((pitfall, idx) => (
                       <li key={idx}>{pitfall}</li>
                     ))}
@@ -373,14 +375,14 @@ export default function ExplainCodePage() {
                 </div>
               </div>
             ) : (
-              <div className="flex h-full min-h-[380px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#d8d1c5] bg-white/70 p-8 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e8f0ec] text-[#2a4d3e]">
+              <div className="flex h-full min-h-[380px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#d8d1c5] dark:border-white/20 bg-white/70 dark:bg-[#12221f]/70 p-8 text-center dark:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)]">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e8f0ec] dark:bg-[#0c2420] dark:border dark:border-[#5eead4]/30 text-[#2a4d3e] dark:text-[#5eead4]">
                   <Icon name="code" className="h-6 w-6" />
                 </div>
-                <h2 className="mt-4 text-base font-bold text-[#1e1e1c]">
+                <h2 className="mt-4 text-base font-bold text-[#1e1e1c] dark:text-white">
                   พร้อมช่วยคุณแกะและอธิบายโค้ด
                 </h2>
-                <p className="mt-1 max-w-md text-xs leading-relaxed text-[#6e6a63]">
+                <p className="mt-1 max-w-md text-xs leading-relaxed text-[#6e6a63] dark:text-[#e2e8f0]">
                   วางโค้ดทางด้านซ้าย เลือกภาษาโปรแกรม แล้วกดปุ่ม &ldquo;อธิบายโค้ด&rdquo; เพื่อดูคำอธิบายแบบละเอียดทีละบรรทัด
                 </p>
               </div>

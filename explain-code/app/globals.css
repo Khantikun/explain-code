@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   /* เขียวหลัก (แบรนด์ การกระทำหลัก ผ่านแล้ว) */
   --teal-900: #0b4f49;
@@ -23,6 +25,7 @@
   /* กลางและพื้นหลัง */
   --bg: #eef3f1;
   --surface: #ffffff;
+  --surface-alt: #f4f7f6;
   --line: #cfe0dc;
   --line-strong: #b6c9c5;
   --locked: #d8e3e0;
@@ -36,6 +39,44 @@
   --mid-ink: #5c3704;
   --low-bg: #f8d9d4;
   --low-ink: #7d1d10;
+}
+
+.dark,
+[data-theme="dark"] {
+  /* Dark Mode Palette - Minimalist Obsidian & Clean White Typography */
+  --teal-900: #2dd4bf;
+  --teal-800: #5eead4;
+  --teal-700: #99f6e4;
+  --teal-shadow: #042f2e;
+  --teal-50: #0f2723;
+
+  --gold-500: #f59e0b;
+  --gold-400: #fbbf24;
+  --gold-shadow: #78350f;
+  --gold-50: #281d08;
+  --gold-ink: #ffffff;
+
+  --boss-600: #a855f7;
+  --boss-700: #c084fc;
+  --boss-shadow: #3b0764;
+
+  --bg: #091312;
+  --surface: #11201d;
+  --surface-alt: #162925;
+  --line: #1c3833;
+  --line-strong: #274d46;
+  --locked: #182a26;
+  --ink: #ffffff;
+  --muted: #e2e8f0;
+
+  --good-bg: #0f3020;
+  --good-ink: #86efac;
+  --mid-bg: #35260c;
+  --mid-ink: #fde047;
+  --low-bg: #361416;
+  --low-ink: #fca5a5;
+
+  color-scheme: dark;
 }
 
 html {
@@ -410,6 +451,364 @@ pre,
   .liquid-glass-primary-btn {
     transition: none !important;
     animation: none !important;
+  }
+}
+
+/* ==========================================================================
+   Liquid Glass & UI System - Dark Mode Support
+   ========================================================================== */
+
+.dark body {
+  background-color: var(--bg);
+  color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings and bold text in dark mode - Crisp High-Contrast Pure White */
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6,
+.dark strong,
+.dark b {
+  color: #ffffff !important;
+}
+
+/* Backgrounds in dark mode */
+.dark .bg-\[\#eef3f1\],
+.dark .bg-\[\#faf8f4\],
+.dark .bg-\[\#fbfaf8\],
+.dark .bg-\[\#f7f5f0\],
+.dark .bg-\[\#f8faf9\],
+.dark .bg-\[\#f8f6f0\],
+.dark .bg-\[\#f8fbfa\],
+.dark .bg-\[\#f4faf8\],
+.dark .bg-\[\#f3f4f6\] {
+  background-color: var(--bg) !important;
+}
+
+.dark .bg-white,
+.dark .bg-\[\#ffffff\] {
+  background-color: var(--surface) !important;
+}
+
+.dark .bg-\[\#e8f0ec\],
+.dark .bg-\[\#e3f1ee\],
+.dark .bg-\[\#f0f5f3\],
+.dark .bg-\[\#f4f1ea\],
+.dark .bg-\[\#f2efe8\],
+.dark .bg-\[\#e5dfd3\] {
+  background-color: var(--teal-50) !important;
+}
+
+/* Status Badges in Dark Mode */
+.dark .bg-\[\#d8efdc\],
+.dark .bg-\[\#dcfce7\],
+.dark .bg-\[\#f0fdf4\],
+.dark .bg-\[\#bbf7d0\] {
+  background-color: #0f3020 !important;
+  color: #86efac !important;
+}
+
+.dark .text-\[\#14532d\],
+.dark .text-\[\#166534\] {
+  color: #86efac !important;
+}
+
+.dark .bg-\[\#fbeacb\],
+.dark .bg-\[\#fef9c3\],
+.dark .bg-\[\#fffbeb\],
+.dark .bg-\[\#fff4d6\] {
+  background-color: #35260c !important;
+  color: #fde047 !important;
+}
+
+.dark .text-\[\#5c3704\],
+.dark .text-\[\#3d2603\],
+.dark .text-\[\#78350f\],
+.dark .text-\[\#854d0e\],
+.dark .text-\[\#92400e\] {
+  color: #fde047 !important;
+}
+
+.dark .bg-\[\#f8d9d4\],
+.dark .bg-\[\#fef2f2\],
+.dark .bg-\[\#fef8f8\],
+.dark .bg-\[\#fee2e2\] {
+  background-color: #361416 !important;
+  color: #fca5a5 !important;
+}
+
+.dark .text-\[\#7d1d10\],
+.dark .text-\[\#7f1d1d\],
+.dark .text-\[\#991b1b\],
+.dark .text-\[\#9a3412\] {
+  color: #fca5a5 !important;
+}
+
+.dark .bg-\[\#f6f0fd\],
+.dark .bg-\[\#faf5ff\] {
+  background-color: #2b1842 !important;
+  color: #d8b4fe !important;
+}
+
+.dark .text-\[\#5a2d91\],
+.dark .text-\[\#3f1f7d\] {
+  color: #d8b4fe !important;
+}
+
+/* Borders in dark mode */
+.dark .border-\[\#cfe0dc\],
+.dark .border-\[\#d8d1c5\],
+.dark .border-\[\#d8e3e0\],
+.dark .border-\[\#e5dfd3\],
+.dark .border-\[\#e2ded6\],
+.dark .border-\[\#eef3f1\],
+.dark .border-\[\#e8f0ec\],
+.dark .border-\[\#ece7dc\],
+.dark .border-\[\#b6c9c5\] {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+/* Card & Box Clear Minimalist Visibility in Dark Mode */
+.dark .rounded-2xl.border,
+.dark .rounded-3xl.border,
+.dark .rounded-xl.border {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.dark .rounded-2xl.bg-white,
+.dark .rounded-3xl.bg-white {
+  background-color: #12221f !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Distinct Inner Nested Boxes (Line-by-line explanation, execution steps, concept tags) */
+.dark .rounded-xl.bg-\[\#faf8f4\],
+.dark .rounded-xl.bg-\[\#f4f1ea\],
+.dark .rounded-lg.bg-\[\#faf8f4\],
+.dark li.bg-\[\#faf8f4\] {
+  background-color: #0a1513 !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.4) !important;
+}
+
+.dark .rounded-xl.bg-\[\#faf8f4\]:hover,
+.dark li.bg-\[\#faf8f4\]:hover {
+  border-color: rgba(94, 234, 212, 0.5) !important;
+  background-color: #0e1d1a !important;
+}
+
+/* Code editor canvas in dark mode */
+.dark textarea.font-mono,
+.dark pre.font-mono {
+  background-color: #07110f !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Dashed placeholder box in dark mode */
+.dark .border-dashed {
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  background-color: rgba(18, 34, 31, 0.65) !important;
+}
+
+.dark .border-\[\#d8c7ed\] {
+  border-color: #4a2870 !important;
+}
+.dark .border-\[\#bbf7d0\],
+.dark .border-\[\#86efac\] {
+  border-color: #14532d !important;
+}
+.dark .border-\[\#fcd34d\],
+.dark .border-\[\#fde68a\] {
+  border-color: #78350f !important;
+}
+.dark .border-\[\#fca5a5\],
+.dark .border-\[\#fecaca\] {
+  border-color: #7f1d1d !important;
+}
+
+/* Text colors in dark mode - Minimalist Crisp White & Soft Silver */
+.dark .text-\[\#1b2a2f\],
+.dark .text-\[\#1e1e1c\],
+.dark .text-\[\#14221e\],
+.dark .text-\[\#111827\],
+.dark .text-\[\#062e2b\],
+.dark .text-\[\#032220\],
+.dark .text-\[\#141413\],
+.dark .text-\[\#2c2a27\],
+.dark .text-\[\#3d3b36\] {
+  color: #ffffff !important;
+}
+
+.dark p {
+  color: #f1f5f9;
+}
+
+.dark .text-\[\#524f49\],
+.dark .text-\[\#475b60\],
+.dark .text-\[\#4a5d57\],
+.dark .text-\[\#6b6860\],
+.dark .text-\[\#6e6a63\],
+.dark .text-\[\#3d4d48\],
+.dark .text-\[\#4b5563\],
+.dark .text-\[\#8f908a\] {
+  color: #e2e8f0 !important;
+}
+
+.dark .text-\[\#2a4d3e\],
+.dark .text-\[\#0b4f49\],
+.dark .text-\[\#0b5e57\],
+.dark .text-\[\#1b3b32\],
+.dark .text-\[\#1f3b2f\] {
+  color: #5eead4 !important;
+}
+
+/* Code editor & pre in dark mode */
+.dark code:not([class*="language-"]),
+.dark kbd {
+  background-color: #0b1715;
+  color: #ffffff;
+}
+
+.dark pre {
+  background-color: #071210 !important;
+  border-color: #1c3833 !important;
+  color: #f8fafc !important;
+}
+
+/* Form inputs & controls in dark mode */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+.dark textarea,
+.dark select {
+  background-color: #0e1a18 !important;
+  color: #ffffff !important;
+  border-color: #203c36 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+.dark select option {
+  background-color: #11201d;
+  color: #ffffff;
+}
+
+/* Hover effects in dark mode */
+.dark .hover\:bg-\[\#f2efe8\]:hover,
+.dark .hover\:bg-\[\#f4f1ea\]:hover,
+.dark .hover\:bg-\[\#f8faf9\]:hover,
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-white\/75:hover {
+  background-color: #182e2a !important;
+}
+
+/* Secondary Button in Dark Mode */
+.dark .press-secondary {
+  background-color: #102925 !important;
+  border-color: #14b8a6 !important;
+  box-shadow: 0 3px 0 #0f766e !important;
+  color: #5eead4 !important;
+}
+
+.dark .press-secondary:hover:not(:disabled) {
+  background-color: #183c36 !important;
+}
+
+/* Liquid Glass Surfaces in Dark Mode */
+.dark .liquid-glass {
+  background: linear-gradient(
+    135deg,
+    rgba(14, 26, 24, 0.88) 0%,
+    rgba(10, 20, 18, 0.84) 50%,
+    rgba(17, 33, 30, 0.9) 100%
+  ) !important;
+  border-color: rgba(45, 120, 105, 0.35) !important;
+  box-shadow:
+    0 14px 36px -6px rgba(0, 0, 0, 0.6),
+    0 4px 14px -2px rgba(0, 0, 0, 0.4),
+    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1.5px 1.5px 0 rgba(20, 184, 166, 0.2) !important;
+}
+
+.dark .liquid-glass::before {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(20, 184, 166, 0.3) 55%,
+    rgba(240, 169, 46, 0.25) 100%
+  ) !important;
+}
+
+.dark .liquid-glass-scrolled {
+  background: linear-gradient(
+    135deg,
+    rgba(11, 22, 20, 0.95) 0%,
+    rgba(8, 17, 15, 0.93) 50%,
+    rgba(14, 28, 25, 0.96) 100%
+  ) !important;
+  border-color: rgba(45, 120, 105, 0.5) !important;
+  box-shadow:
+    0 18px 42px -8px rgba(0, 0, 0, 0.75),
+    0 6px 18px -4px rgba(0, 0, 0, 0.5),
+    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1.5px 2px 0 rgba(20, 184, 166, 0.25) !important;
+}
+
+.dark .liquid-glass-btn {
+  background: rgba(18, 33, 30, 0.85) !important;
+  border: 1.5px solid rgba(45, 120, 105, 0.4) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow:
+    0 4px 10px -2px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark .liquid-glass-btn:hover {
+  background: rgba(26, 48, 44, 0.95) !important;
+  border-color: #14b8a6 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.dark .liquid-glass-active-pill {
+  border-color: rgba(246, 183, 60, 0.85) !important;
+  box-shadow:
+    0 6px 16px -2px rgba(0, 0, 0, 0.7),
+    0 0 16px 0 rgba(20, 184, 166, 0.4),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+
+.dark .liquid-active-nav-item {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.95),
+    0 0 12px rgba(255, 255, 255, 0.35) !important;
+}
+
+.dark .shadow-xs,
+.dark .shadow-sm,
+.dark .shadow-2xs,
+.dark .shadow-md {
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* Reduced transparency support in dark mode */
+@media (prefers-reduced-transparency: reduce) {
+  .dark .liquid-glass,
+  .dark .liquid-glass-scrolled,
+  .dark .liquid-glass-btn {
+    background: #11201d !important;
+    border-color: #1c3833 !important;
   }
 }
 
