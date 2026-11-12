@@ -241,6 +241,36 @@ export default function DungeonHubPage() {
         </div>
       </section>
 
+      {/* CODE DEPTHS Roguelite Banner */}
+      <section className="retro-panel rounded-2xl p-6 sm:p-7 bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-950 border-2 border-indigo-500 shadow-xl">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="pixel-font text-xs text-white bg-indigo-600 px-2.5 py-0.5 rounded font-bold">
+                ROGUELITE MODE
+              </span>
+              <span className="text-xs font-semibold text-indigo-300">
+                นำเข้าโค้ดเป็นร่องรอยพลัง ท้าทาย 5 ชั้น
+              </span>
+            </div>
+            <h3 className="text-lg sm:text-xl font-extrabold text-[#f4efe6]">
+              CODE DEPTHS : ดันเจี้ยนแห่งการเข้าใจ
+            </h3>
+            <p className="text-xs sm:text-sm text-[#9a93ad] max-w-2xl leading-relaxed">
+              เลือกมนตร์อัลกอริทึม (SumPositive, FindMax, CountVowels, IsPalindrome, FizzBuzz) หรือวางโค้ดที่ AI สร้างขึ้น
+              ระบบจะสร้างดันเจี้ยน 5 ชั้น (ทำนายผล, แกะรอยแรม, อธิบายสาเหตุ, ดักจับบั๊กขอบเขต, หลอมโค้ด และปราบบอส 3 เฟส)
+            </p>
+          </div>
+
+          <Link
+            href="/depths"
+            className="retro-button px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs sm:text-sm font-extrabold pixel-font flex items-center gap-2 shrink-0 transition-all shadow-lg shadow-indigo-500/20"
+          >
+            <span>เข้าเล่น CODE DEPTHS →</span>
+          </Link>
+        </div>
+      </section>
+
       {/* Guest Trial Mode Banner */}
       <section className="retro-panel rounded-2xl p-6 sm:p-7 bg-gradient-to-r from-[#1c1b2b] via-[#252238] to-[#1c1b2b] border-2 border-[#9b5de5]">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">

@@ -1052,6 +1052,13 @@ export default function ExplainCodeApp() {
                   <span>วางโค้ดเพื่อให้อธิบายทันที →</span>
                 </Link>
                 <Link
+                  href="/depths"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3.5 text-xs font-bold text-indigo-900 hover:bg-indigo-100 transition-colors"
+                >
+                  <Icon name="shield" className="h-4 w-4 text-indigo-600" />
+                  <span>ดันเจี้ยน CODE DEPTHS</span>
+                </Link>
+                <Link
                   href="/my-history"
                   className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-4 py-3.5 text-xs font-bold text-[#524f49] hover:bg-[#f2efe8] transition-colors"
                 >
@@ -1094,15 +1101,22 @@ export default function ExplainCodeApp() {
 
               <div className="flex flex-col sm:flex-row md:flex-col gap-3 w-full md:w-auto shrink-0">
                 <Link
-                  href="/dungeon"
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#f6c945] px-6 py-4 text-sm font-black text-[#120f1c] shadow-md hover:bg-[#ffe27a] transition-all hover:scale-102"
+                  href="/depths"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 px-6 py-3.5 text-xs sm:text-sm font-black text-white shadow-md hover:opacity-95 transition-all hover:scale-102"
                 >
-                  <Icon name="gamepad" className="h-5 w-5" />
-                  <span>เข้าสู่โหมดดันเจี้ยน →</span>
+                  <Icon name="shield" className="h-4 w-4" />
+                  <span>เข้าเล่น CODE DEPTHS (Roguelite) →</span>
+                </Link>
+                <Link
+                  href="/dungeon"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#f6c945] px-6 py-3.5 text-xs sm:text-sm font-black text-[#120f1c] shadow-md hover:bg-[#ffe27a] transition-all hover:scale-102"
+                >
+                  <Icon name="gamepad" className="h-4 w-4" />
+                  <span>ดันเจี้ยนประจำคอร์ส →</span>
                 </Link>
                 <Link
                   href="/dungeon/trial"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-[#5c5470] bg-[#252238] px-4 py-2.5 text-xs font-bold text-[#f4efe6] hover:bg-[#322c4a] transition-colors"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-[#5c5470] bg-[#252238] px-4 py-2 text-xs font-bold text-[#f4efe6] hover:bg-[#322c4a] transition-colors"
                 >
                   <span>ลองเล่นห้องทดลอง (Guest)</span>
                 </Link>
@@ -1878,7 +1892,7 @@ export default function ExplainCodeApp() {
                 onClick={() => setStudentTab("dungeon")}
                 className="px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-400 hover:to-pink-400 text-white font-extrabold text-[14px] shadow-lg shadow-indigo-500/25 shrink-0 transition transform hover:-translate-y-0.5 cursor-pointer"
               >
-                เข้าสู่ดันเจี้ยนโค้ด ➔
+                เข้าสู่ดันเจี้ยนโค้ด -&gt;
               </button>
             </div>
 

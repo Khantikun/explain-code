@@ -11,6 +11,8 @@ import {
   generateDungeonPlan,
 } from "../lib/dungeon/dungeonPlanner";
 import { BlockCellId } from "../lib/curriculum";
+import { Icon } from "./Icons";
+import { dungeonSound } from "../lib/dungeon/sound";
 
 interface DungeonRunScreenProps {
   onBackToPortal: () => void;
@@ -37,7 +39,8 @@ export function DungeonRunScreen({
 
   // Encounter Interaction State
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
-  const [answerSubmitted, setAnswerSubmitted] = useState<boolean>(false);
+  const [attemptedWrongOptionIds, setAttemptedWrongOptionIds] = useState<string[]>([]);
+  const [encounterSolved, setEncounterSolved] = useState<boolean>(false);
   const [lastAnswerFeedback, setLastAnswerFeedback] = useState<{
     isCorrect: boolean;
     feedback: string;
@@ -49,7 +52,17 @@ export function DungeonRunScreen({
   const [revealedHint, setRevealedHint] = useState<boolean>(false);
   const [eliminatedOptionId, setEliminatedOptionId] = useState<string | null>(null);
   const [revealedTrace, setRevealedTrace] = useState<boolean>(false);
+  const [revealedSimulation, setRevealedSimulation] = useState<boolean>(false);
   const [relicNotice, setRelicNotice] = useState<string | null>(null);
+
+  // Sound State
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => dungeonSound.isEnabled());
+
+  const handleToggleSound = () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    dungeonSound.setEnabled(next);
+  };
 
   // Handle Preset Selection
   const handleSelectPreset = (presetId: string) => {
@@ -63,14 +76,23 @@ export function DungeonRunScreen({
 
   // Launch New Dungeon Run
   const handleStartRun = () => {
-    const plan = generateDungeonPlan(customCode, spellTitle);
+    if (!customCode.trim()) return;
+    const plan = generateDungeonPlan(
+      customCode,
+      spellTitle,
+      "เข้าใจโค้ดนี้และเตรียมป้องกันบั๊ก",
+      selectedPresetId
+    );
     setRunState(plan);
     setSelectedOptionId(null);
-    setAnswerSubmitted(false);
+    setAttemptedWrongOptionIds([]);
+    setEncounterSolved(false);
     setLastAnswerFeedback(null);
     setRevealedHint(false);
     setEliminatedOptionId(null);
     setRevealedTrace(false);
+    setRevealedSimulation(false);
+    setRelicNotice(null);
   };
 
   // Enter a Room from the Map
@@ -78,6 +100,8 @@ export function DungeonRunScreen({
     if (!runState) return;
     const room = runState.rooms[roomId];
     if (!room || room.status !== "available") return;
+
+    dungeonSound.playStep();
 
     setRunState((prev) => {
       if (!prev) return null;
@@ -97,17 +121,19 @@ export function DungeonRunScreen({
     });
 
     setSelectedOptionId(null);
-    setAnswerSubmitted(false);
+    setAttemptedWrongOptionIds([]);
+    setEncounterSolved(false);
     setLastAnswerFeedback(null);
     setRevealedHint(false);
     setEliminatedOptionId(null);
     setRevealedTrace(false);
+    setRevealedSimulation(false);
     setRelicNotice(null);
   };
 
   // Submit Answer in Current Encounter
   const handleSubmitAnswer = () => {
-    if (!runState || !runState.currentRoomId || !selectedOptionId || answerSubmitted) return;
+    if (!runState || !runState.currentRoomId || !selectedOptionId || encounterSolved) return;
 
     const currentRoom = runState.rooms[runState.currentRoomId];
     const currentEncounter = currentRoom.encounters[runState.currentEncounterIndex];
@@ -116,54 +142,73 @@ export function DungeonRunScreen({
     if (!chosenOption) return;
 
     const isCorrect = chosenOption.isCorrect;
-    const damage = isCorrect ? 0 : currentEncounter.damageOnFail;
-    const xp = isCorrect ? currentEncounter.xpReward : 5;
 
-    const newIntegrity = Math.max(0, runState.integrity - damage);
-    const newStatus = newIntegrity <= 0 ? "defeated" : runState.status;
+    if (isCorrect) {
+      dungeonSound.playHit();
+      const xp = currentEncounter.xpReward;
+      setEncounterSolved(true);
+      setLastAnswerFeedback({
+        isCorrect: true,
+        feedback: chosenOption.feedback,
+        damageTaken: 0,
+        xpEarned: xp,
+      });
 
-    setAnswerSubmitted(true);
-    setLastAnswerFeedback({
-      isCorrect,
-      feedback: chosenOption.feedback,
-      damageTaken: damage,
-      xpEarned: xp,
-    });
+      const cellId = currentEncounter.blockCell;
+      const currentDelta = runState.cellScoresDelta[cellId] || 50;
+      const newDelta = Math.min(100, currentDelta + 15);
 
-    // Update cell score delta
-    const cellId = currentEncounter.blockCell;
-    const currentDelta = runState.cellScoresDelta[cellId] || 50;
-    const newDelta = isCorrect ? Math.min(100, currentDelta + 15) : Math.max(0, currentDelta - 10);
+      setRunState((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          answersLog: [
+            ...prev.answersLog,
+            {
+              encounterId: currentEncounter.id,
+              roomName: currentRoom.name,
+              blockCell: currentEncounter.blockCell,
+              conceptId: currentEncounter.conceptId,
+              learningPillar: currentEncounter.learningPillar,
+              isCorrect: true,
+              tries: attemptedWrongOptionIds.length + 1,
+              usedHint: revealedHint,
+              xpEarned: xp,
+              timestamp: new Date().toISOString(),
+            },
+          ],
+          cellScoresDelta: {
+            ...prev.cellScoresDelta,
+            [cellId]: newDelta,
+          },
+        };
+      });
+    } else {
+      dungeonSound.playHurt();
+      const damage = currentEncounter.damageOnFail;
+      const newIntegrity = Math.max(0, runState.integrity - damage);
+      const isLethal = newIntegrity <= 0;
 
-    setRunState((prev) => {
-      if (!prev) return null;
-      const updatedLog = [
-        ...prev.answersLog,
-        {
-          encounterId: currentEncounter.id,
-          roomName: currentRoom.name,
-          blockCell: currentEncounter.blockCell,
-          conceptId: currentEncounter.conceptId,
-          learningPillar: currentEncounter.learningPillar,
-          isCorrect,
-          tries: 1,
-          usedHint: revealedHint,
-          xpEarned: xp,
-          timestamp: new Date().toISOString(),
-        },
-      ];
+      setAttemptedWrongOptionIds((prev) =>
+        prev.includes(chosenOption.id) ? prev : [...prev, chosenOption.id]
+      );
+      setSelectedOptionId(null);
+      setLastAnswerFeedback({
+        isCorrect: false,
+        feedback: chosenOption.feedback,
+        damageTaken: damage,
+        xpEarned: 0,
+      });
 
-      return {
-        ...prev,
-        integrity: newIntegrity,
-        status: newStatus,
-        answersLog: updatedLog,
-        cellScoresDelta: {
-          ...prev.cellScoresDelta,
-          [cellId]: newDelta,
-        },
-      };
-    });
+      setRunState((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          integrity: newIntegrity,
+          status: isLethal ? "defeated" : prev.status,
+        };
+      });
+    }
   };
 
   // Move to next encounter or complete room
@@ -171,6 +216,7 @@ export function DungeonRunScreen({
     if (!runState || !runState.currentRoomId) return;
 
     if (runState.integrity <= 0) {
+      dungeonSound.playHurt();
       setRunState((prev) => (prev ? { ...prev, status: "defeated" } : null));
       return;
     }
@@ -181,6 +227,7 @@ export function DungeonRunScreen({
 
     if (!isLastEncounterInRoom) {
       // Advance to next phase in this room (e.g. Boss phases)
+      dungeonSound.playHit();
       setRunState((prev) =>
         prev
           ? {
@@ -190,11 +237,13 @@ export function DungeonRunScreen({
           : null
       );
       setSelectedOptionId(null);
-      setAnswerSubmitted(false);
+      setAttemptedWrongOptionIds([]);
+      setEncounterSolved(false);
       setLastAnswerFeedback(null);
       setRevealedHint(false);
       setEliminatedOptionId(null);
       setRevealedTrace(false);
+      setRevealedSimulation(false);
       setRelicNotice(null);
       return;
     }
@@ -202,6 +251,7 @@ export function DungeonRunScreen({
     // Room is fully cleared!
     const isBossRoom = currentRoom.type === "boss";
     if (isBossRoom) {
+      dungeonSound.playVictory();
       setRunState((prev) => (prev ? { ...prev, status: "victory" } : null));
       if (onRecordAttempt) {
         onRecordAttempt({
@@ -215,13 +265,25 @@ export function DungeonRunScreen({
       return;
     }
 
-    // Unlock next rooms
+    // Unlock next rooms and lock sibling rooms on current and earlier floors
+    dungeonSound.playDoorOpen();
     const updatedRooms = { ...runState.rooms };
     updatedRooms[currentRoom.id] = {
       ...currentRoom,
       status: "cleared",
     };
 
+    // Lock all rooms on current floor and earlier that were not cleared
+    Object.values(updatedRooms).forEach((r) => {
+      if (r.floor <= currentRoom.floor && r.status !== "cleared") {
+        updatedRooms[r.id] = {
+          ...r,
+          status: "locked",
+        };
+      }
+    });
+
+    // Make next connected rooms available
     currentRoom.nextRoomIds.forEach((nextId) => {
       if (updatedRooms[nextId] && updatedRooms[nextId].status !== "cleared") {
         updatedRooms[nextId] = {
@@ -245,17 +307,19 @@ export function DungeonRunScreen({
     );
 
     setSelectedOptionId(null);
-    setAnswerSubmitted(false);
+    setAttemptedWrongOptionIds([]);
+    setEncounterSolved(false);
     setLastAnswerFeedback(null);
     setRevealedHint(false);
     setEliminatedOptionId(null);
     setRevealedTrace(false);
+    setRevealedSimulation(false);
     setRelicNotice(null);
   };
 
   // Relic: Rubber Duck Oracle
   const handleUseRubberDuck = () => {
-    if (!runState || !runState.currentRoomId) return;
+    if (!runState || !runState.currentRoomId || encounterSolved) return;
     const relic = runState.activeRelics.find((r) => r.id === "relic-rubber-duck");
     if (!relic || relic.usesLeft <= 0 || runState.focus < relic.focusCost) {
       setRelicNotice("Focus ไม่พอ หรือใช้พลังหมดแล้ว");
@@ -264,12 +328,15 @@ export function DungeonRunScreen({
 
     const currentRoom = runState.rooms[runState.currentRoomId];
     const encounter = currentRoom.encounters[runState.currentEncounterIndex];
-    const wrongOptions = encounter.options.filter((o) => !o.isCorrect);
+    const wrongOptions = encounter.options.filter(
+      (o) => !o.isCorrect && o.id !== eliminatedOptionId && !attemptedWrongOptionIds.includes(o.id)
+    );
 
     if (wrongOptions.length > 0) {
       setEliminatedOptionId(wrongOptions[0].id);
     }
     setRevealedHint(true);
+    dungeonSound.playCoin();
     setRelicNotice("สารวัตรเป็ดตัดตัวเลือกที่ไม่ใช่ออกให้ 1 ข้อ และเปิดเผยคำใบ้สำคัญ!");
 
     setRunState((prev) => {
@@ -286,7 +353,7 @@ export function DungeonRunScreen({
 
   // Relic: Trace Lens
   const handleUseTraceLens = () => {
-    if (!runState || !runState.currentRoomId) return;
+    if (!runState || !runState.currentRoomId || encounterSolved) return;
     const relic = runState.activeRelics.find((r) => r.id === "relic-trace-lens");
     if (!relic || relic.usesLeft <= 0 || runState.focus < relic.focusCost) {
       setRelicNotice("Focus ไม่พอ หรือใช้พลังหมดแล้ว");
@@ -294,7 +361,33 @@ export function DungeonRunScreen({
     }
 
     setRevealedTrace(true);
+    dungeonSound.playCoin();
     setRelicNotice("แว่นส่องสถานะแรม ส่องเห็นการเปลี่ยนแปลงของตัวแปรในหน่วยความจำแล้ว!");
+
+    setRunState((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        focus: Math.max(0, prev.focus - relic.focusCost),
+        activeRelics: prev.activeRelics.map((r) =>
+          r.id === relic.id ? { ...r, usesLeft: r.usesLeft - 1 } : r
+        ),
+      };
+    });
+  };
+
+  // Relic: Test Oracle
+  const handleUseTestOracle = () => {
+    if (!runState || !runState.currentRoomId || encounterSolved) return;
+    const relic = runState.activeRelics.find((r) => r.id === "relic-test-oracle");
+    if (!relic || relic.usesLeft <= 0 || runState.focus < relic.focusCost) {
+      setRelicNotice("Focus ไม่พอ หรือใช้พลังหมดแล้ว");
+      return;
+    }
+
+    setRevealedSimulation(true);
+    dungeonSound.playCoin();
+    setRelicNotice("ผลึกทดสอบเวท รันจำลองโค้ดใน Sandbox และแสดงผลการทำงานจริงแล้ว!");
 
     setRunState((prev) => {
       if (!prev) return null;
@@ -389,6 +482,15 @@ export function DungeonRunScreen({
           )}
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleToggleSound}
+              className="px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 transition flex items-center gap-1.5 cursor-pointer"
+              title="เปิด/ปิดเสียงเอฟเฟกต์ 8-bit"
+            >
+              <Icon name={soundEnabled ? "volume-2" : "volume-x"} size={14} />
+              <span className="hidden sm:inline">{soundEnabled ? "เสียงเปิด" : "ปิดเสียง"}</span>
+            </button>
             {runState && (
               <button
                 onClick={() => setRunState(null)}
@@ -399,7 +501,7 @@ export function DungeonRunScreen({
             )}
             <button
               onClick={onBackToPortal}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition border border-slate-700"
+              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition border border-slate-700 cursor-pointer"
             >
               กลับหน้าหลัก
             </button>
@@ -434,7 +536,7 @@ export function DungeonRunScreen({
               </div>
 
               {/* Presets List */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 mb-4">
                 {CODE_SPELL_PRESETS.map((preset) => (
                   <button
                     key={preset.id}
@@ -552,7 +654,12 @@ export function DungeonRunScreen({
               {/* Start Run Action Button */}
               <button
                 onClick={handleStartRun}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-extrabold text-base shadow-xl shadow-indigo-500/25 transition transform hover:-translate-y-0.5 active:translate-y-0"
+                disabled={!customCode.trim()}
+                className={`w-full py-4 rounded-2xl font-extrabold text-base shadow-xl transition transform ${
+                  customCode.trim()
+                    ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white shadow-indigo-500/25 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                    : "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
+                }`}
               >
                 เปิดประตูดันเจี้ยน CODE DEPTHS
               </button>
@@ -579,10 +686,17 @@ export function DungeonRunScreen({
 
             <div className="bg-slate-900 border border-slate-800 px-4 py-2.5 rounded-xl flex items-center gap-4 text-xs">
               <div>
-                <span className="text-slate-400 block text-[10px]">ห้องที่ผ่านแล้ว</span>
+                <span className="text-slate-400 block text-[10px]">ความคืบหน้า</span>
                 <span className="font-bold text-emerald-400">
-                  {Object.values(runState.rooms).filter((r) => r.status === "cleared").length} /{" "}
-                  {Object.values(runState.rooms).length}
+                  {Math.min(
+                    5,
+                    new Set(
+                      Object.values(runState.rooms)
+                        .filter((r) => r.status === "cleared")
+                        .map((r) => r.floor)
+                    ).size
+                  )}{" "}
+                  / 5 ชั้น
                 </span>
               </div>
               <div className="w-px h-6 bg-slate-800" />
@@ -648,12 +762,12 @@ export function DungeonRunScreen({
                                 : "bg-slate-800 text-slate-500"
                             }`}
                           >
-                            {room.type === "combat" && "⚔"}
-                            {room.type === "shrine" && "⛩"}
-                            {room.type === "trap" && "⚡"}
-                            {room.type === "transfer" && "🌀"}
-                            {room.type === "forge" && "🔨"}
-                            {room.type === "boss" && "👑"}
+                            {room.type === "combat" && <Icon name="sword" size={18} />}
+                            {room.type === "shrine" && <Icon name="sparkles" size={18} />}
+                            {room.type === "trap" && <Icon name="alert" size={18} />}
+                            {room.type === "transfer" && <Icon name="route" size={18} />}
+                            {room.type === "forge" && <Icon name="code" size={18} />}
+                            {room.type === "boss" && <Icon name="award" size={18} />}
                           </div>
 
                           <div className="flex-1 min-w-0">
@@ -662,8 +776,9 @@ export function DungeonRunScreen({
                                 {room.name}
                               </span>
                               {isCleared && (
-                                <span className="text-[10px] text-emerald-400 font-bold shrink-0">
-                                  ผ่านแล้ว ✓
+                                <span className="text-[10px] text-emerald-400 font-bold shrink-0 flex items-center gap-1">
+                                  <Icon name="check" size={12} />
+                                  <span>ผ่านแล้ว</span>
                                 </span>
                               )}
                               {isAvailable && (
@@ -711,7 +826,7 @@ export function DungeonRunScreen({
             {/* Relic Focus Bar & Quick Action */}
             <div className="flex flex-wrap items-center gap-2">
               {runState.activeRelics.map((relic) => {
-                const canUse = runState.focus >= relic.focusCost && relic.usesLeft > 0 && !answerSubmitted;
+                const canUse = runState.focus >= relic.focusCost && relic.usesLeft > 0 && !encounterSolved;
                 return (
                   <button
                     key={relic.id}
@@ -719,16 +834,24 @@ export function DungeonRunScreen({
                     onClick={() => {
                       if (relic.id === "relic-rubber-duck") handleUseRubberDuck();
                       if (relic.id === "relic-trace-lens") handleUseTraceLens();
+                      if (relic.id === "relic-test-oracle") handleUseTestOracle();
                     }}
                     title={`${relic.name} (ใช้ ${relic.focusCost} Focus) — ${relic.description}`}
                     className={`px-3 py-2 rounded-xl text-xs font-semibold border flex items-center gap-2 transition ${
                       canUse
-                        ? "bg-slate-800 hover:bg-slate-700 border-slate-700 text-cyan-300 hover:border-cyan-500 shadow-sm"
+                        ? "bg-slate-800 hover:bg-slate-700 border-slate-700 text-cyan-300 hover:border-cyan-500 shadow-sm cursor-pointer"
                         : "bg-slate-950/60 border-slate-800/60 text-slate-600 cursor-not-allowed"
                     }`}
                   >
-                    <span>
-                      {relic.id === "relic-rubber-duck" ? "🦆" : "🔍"} {relic.name}
+                    <span className="flex items-center gap-1.5">
+                      {relic.id === "relic-rubber-duck" ? (
+                        <Icon name="bulb" size={14} className="text-amber-400" />
+                      ) : relic.id === "relic-trace-lens" ? (
+                        <Icon name="eye" size={14} className="text-cyan-400" />
+                      ) : (
+                        <Icon name="play" size={14} className="text-emerald-400" />
+                      )}
+                      <span>{relic.name}</span>
                     </span>
                     <span className="text-[10px] bg-slate-900 px-1.5 py-0.5 rounded text-cyan-400 font-mono">
                       {relic.usesLeft} ครั้ง ({relic.focusCost} MP)
@@ -745,9 +868,10 @@ export function DungeonRunScreen({
               <span>{relicNotice}</span>
               <button
                 onClick={() => setRelicNotice(null)}
-                className="text-cyan-400 hover:text-white font-bold ml-2"
+                className="text-cyan-400 hover:text-white font-bold ml-2 p-1"
+                title="ปิดการแจ้งเตือน"
               >
-                ✕
+                <Icon name="close" size={14} />
               </button>
             </div>
           )}
@@ -793,8 +917,9 @@ export function DungeonRunScreen({
               {/* Trace Lens Exposed Variable State */}
               {(revealedTrace || currentEncounter.variableTrace) && (
                 <div className="mt-4 bg-cyan-950/20 border border-cyan-800/40 rounded-xl p-3.5">
-                  <span className="text-xs font-bold text-cyan-300 block mb-2">
-                    🔎 ค่าตัวแปรใน RAM (Variable State Inspection)
+                  <span className="text-xs font-bold text-cyan-300 flex items-center gap-1.5 mb-2">
+                    <Icon name="eye" size={14} className="text-cyan-400" />
+                    <span>ค่าตัวแปรใน RAM (Variable State Inspection)</span>
                   </span>
                   <div className="grid grid-cols-2 gap-2 text-xs font-mono">
                     {Object.entries(
@@ -819,8 +944,24 @@ export function DungeonRunScreen({
               {/* Hint Callout */}
               {revealedHint && (
                 <div className="mt-4 bg-amber-950/30 border border-amber-800/40 rounded-xl p-3.5 text-xs text-amber-300">
-                  <span className="font-bold block mb-1">💡 คำใบ้จากสารวัตรเป็ด:</span>
+                  <span className="font-bold flex items-center gap-1.5 mb-1">
+                    <Icon name="bulb" size={14} className="text-amber-400" />
+                    <span>คำใบ้จากสารวัตรเป็ด:</span>
+                  </span>
                   <p>{currentEncounter.hint}</p>
+                </div>
+              )}
+
+              {/* Test Oracle Simulation Output */}
+              {revealedSimulation && currentEncounter.testSimulation && (
+                <div className="mt-4 bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-3.5 text-xs text-emerald-300">
+                  <span className="font-bold flex items-center gap-1.5 mb-1 text-emerald-400">
+                    <Icon name="play" size={14} className="text-emerald-400" />
+                    <span>ผลึกทดสอบเวท (Sandbox Simulation Result):</span>
+                  </span>
+                  <p className="font-mono bg-slate-950/80 p-2 rounded border border-emerald-900/50 text-emerald-200">
+                    {currentEncounter.testSimulation}
+                  </p>
                 </div>
               )}
             </div>
@@ -845,26 +986,25 @@ export function DungeonRunScreen({
                   {currentEncounter.options.map((opt) => {
                     const isSelected = selectedOptionId === opt.id;
                     const isEliminated = eliminatedOptionId === opt.id;
+                    const isAttemptedWrong = attemptedWrongOptionIds.includes(opt.id);
 
                     let optionStyle =
-                      "bg-slate-950/70 border-slate-800 hover:bg-slate-800/70 text-slate-200";
+                      "bg-slate-950/70 border-slate-800 hover:bg-slate-800/70 text-slate-200 cursor-pointer";
 
-                    if (isSelected && !answerSubmitted) {
-                      optionStyle = "bg-indigo-950/80 border-indigo-500 text-white ring-1 ring-indigo-500";
+                    if (isSelected && !encounterSolved) {
+                      optionStyle = "bg-indigo-950/80 border-indigo-500 text-white ring-1 ring-indigo-500 cursor-pointer";
                     }
 
-                    if (answerSubmitted) {
+                    if (encounterSolved) {
                       if (opt.isCorrect) {
                         optionStyle =
                           "bg-emerald-950/80 border-emerald-500 text-emerald-200 font-semibold";
-                      } else if (isSelected && !opt.isCorrect) {
-                        optionStyle = "bg-rose-950/80 border-rose-500 text-rose-200";
                       } else {
-                        optionStyle = "bg-slate-950/40 border-slate-800/40 opacity-40";
+                        optionStyle = "bg-slate-950/40 border-slate-800/40 opacity-40 cursor-not-allowed";
                       }
-                    }
-
-                    if (isEliminated && !answerSubmitted) {
+                    } else if (isAttemptedWrong) {
+                      optionStyle = "bg-rose-950/60 border-rose-800 text-rose-300 opacity-60 line-through cursor-not-allowed";
+                    } else if (isEliminated) {
                       optionStyle =
                         "bg-slate-950/40 border-slate-900 text-slate-600 line-through opacity-50 cursor-not-allowed";
                     }
@@ -872,7 +1012,7 @@ export function DungeonRunScreen({
                     return (
                       <button
                         key={opt.id}
-                        disabled={answerSubmitted || isEliminated}
+                        disabled={encounterSolved || isEliminated || isAttemptedWrong}
                         onClick={() => setSelectedOptionId(opt.id)}
                         className={`w-full p-3.5 rounded-xl border text-left text-xs transition leading-relaxed flex items-start gap-3 ${optionStyle}`}
                       >
@@ -880,12 +1020,21 @@ export function DungeonRunScreen({
                           className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 text-[10px] mt-0.5 ${
                             isSelected
                               ? "border-indigo-400 bg-indigo-600 text-white"
+                              : isAttemptedWrong
+                              ? "border-rose-500 bg-rose-900 text-rose-300"
                               : "border-slate-700 text-slate-500"
                           }`}
                         >
                           {opt.id.replace("opt-", "")}
                         </div>
-                        <span className="flex-1">{opt.label}</span>
+                        <div className="flex-1">
+                          <span>{opt.label}</span>
+                          {isAttemptedWrong && !encounterSolved && (
+                            <span className="block text-[11px] text-rose-400 mt-1 font-sans">
+                              (เลือกผิดแล้ว: {opt.feedback})
+                            </span>
+                          )}
+                        </div>
                       </button>
                     );
                   })}
@@ -894,34 +1043,49 @@ export function DungeonRunScreen({
 
               {/* Bottom Result & Action Button */}
               <div className="mt-6 pt-4 border-t border-slate-800">
-                {lastAnswerFeedback ? (
-                  <div className="space-y-4">
-                    <div
-                      className={`p-4 rounded-xl border text-xs leading-relaxed ${
-                        lastAnswerFeedback.isCorrect
-                          ? "bg-emerald-950/40 border-emerald-800/60 text-emerald-200"
-                          : "bg-rose-950/40 border-rose-800/60 text-rose-200"
-                      }`}
-                    >
-                      <div className="font-bold text-sm mb-1">
-                        {lastAnswerFeedback.isCorrect
-                          ? "⚔️ โจมตีสำเร็จ! (Critical Hit)"
-                          : `💥 โดนโจมตีสวนกลับ! (-${lastAnswerFeedback.damageTaken}% Integrity)`}
-                      </div>
-                      <p>{lastAnswerFeedback.feedback}</p>
+                {lastAnswerFeedback && (
+                  <div
+                    className={`p-4 rounded-xl border text-xs leading-relaxed mb-4 ${
+                      lastAnswerFeedback.isCorrect
+                        ? "bg-emerald-950/40 border-emerald-800/60 text-emerald-200"
+                        : "bg-rose-950/40 border-rose-800/60 text-rose-200"
+                    }`}
+                  >
+                    <div className="font-bold text-sm mb-1 flex items-center gap-2">
+                      {lastAnswerFeedback.isCorrect ? (
+                        <>
+                          <Icon name="check" size={16} className="text-emerald-400" />
+                          <span>โจมตีสำเร็จ! การคำนวณถูกต้อง (Critical Hit)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Icon name="alert" size={16} className="text-rose-400" />
+                          <span>โดนโจมตีสวนกลับ! คำนวณผิดพลาด (-{lastAnswerFeedback.damageTaken}% Integrity)</span>
+                        </>
+                      )}
                     </div>
-
-                    <button
-                      onClick={handleProceedAfterAnswer}
-                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-lg transition"
-                    >
-                      {runState.currentEncounterIndex + 1 < currentRoom.encounters.length
-                        ? "เข้าสู่เฟสถัดไป ➔"
-                        : currentRoom.type === "boss"
-                        ? "ดูบทสรุปชัยชนะ 🏆"
-                        : "กลับสู่แผนที่ดันเจี้ยน ➔"}
-                    </button>
+                    <p>{lastAnswerFeedback.feedback}</p>
                   </div>
+                )}
+
+                {runState.integrity <= 0 ? (
+                  <button
+                    onClick={handleProceedAfterAnswer}
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold text-sm shadow-lg transition cursor-pointer"
+                  >
+                    ดูผลการท้าทาย (Integrity หมดลง) -&gt;
+                  </button>
+                ) : encounterSolved ? (
+                  <button
+                    onClick={handleProceedAfterAnswer}
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-lg transition cursor-pointer"
+                  >
+                    {runState.currentEncounterIndex + 1 < currentRoom.encounters.length
+                      ? "เข้าสู่เฟสถัดไป ->"
+                      : currentRoom.type === "boss"
+                      ? "ดูบทสรุปชัยชนะ ->"
+                      : "กลับสู่แผนที่ดันเจี้ยน ->"}
+                  </button>
                 ) : (
                   <button
                     disabled={!selectedOptionId}
@@ -947,8 +1111,8 @@ export function DungeonRunScreen({
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl text-center">
             {runState.status === "victory" ? (
               <>
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600 mx-auto flex items-center justify-center text-3xl shadow-xl shadow-amber-500/20 mb-4 animate-bounce">
-                  👑
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600 mx-auto flex items-center justify-center text-slate-950 shadow-xl shadow-amber-500/20 mb-4 animate-bounce">
+                  <Icon name="trophy" size={36} />
                 </div>
                 <span className="text-xs font-bold uppercase tracking-widest text-amber-400">
                   Dungeon Cleared
@@ -963,8 +1127,8 @@ export function DungeonRunScreen({
               </>
             ) : (
               <>
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-rose-600 to-red-800 mx-auto flex items-center justify-center text-3xl shadow-xl shadow-rose-500/20 mb-4">
-                  💀
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-rose-600 to-red-800 mx-auto flex items-center justify-center text-white shadow-xl shadow-rose-500/20 mb-4">
+                  <Icon name="alert" size={36} />
                 </div>
                 <span className="text-xs font-bold uppercase tracking-widest text-rose-400">
                   Program Integrity Depleted

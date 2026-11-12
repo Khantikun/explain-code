@@ -35,6 +35,7 @@ export interface EncounterSpec {
   codeSnippet: string;
   activeLine?: number;
   variableTrace?: Record<string, string>;
+  testSimulation?: string;
   options: EncounterOption[];
   hint: string;
   blockCell: BlockCellId;
