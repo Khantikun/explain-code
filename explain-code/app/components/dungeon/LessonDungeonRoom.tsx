@@ -6,7 +6,17 @@ import { AVATARS, getAvatar, DEFAULT_AVATAR, AvatarKey, COIN_SPRITE, HEART_SPRIT
 import { hashString } from "../../lib/dungeon/seed";
 import { generateDungeonRoom, DungeonRoom } from "../../lib/dungeon/mapgen";
 import { getMonsterDef, MonsterDef } from "../../lib/dungeon/monsters";
-import { getQuestionForFloor, DungeonQuestion } from "../../lib/dungeon/questions";
+import {
+  getQuestionForFloor,
+  SAMPLE_DUNGEON_QUESTIONS,
+  DungeonQuestion,
+} from "../../lib/dungeon/questions";
+import {
+  LearningLanguage,
+  LANGUAGE_TRACKS,
+  runCodeByLanguage,
+} from "../../lib/language-tracks";
+import { useUiLanguage } from "../LanguageProvider";
 import { GameCanvas } from "./GameCanvas";
 import { BattleOverlay } from "./BattleOverlay";
 import { MobileDpad } from "./MobileDpad";
@@ -33,6 +43,16 @@ interface LessonDungeonRoomProps {
   nextLessonUrl?: string;
 }
 
+function normalizeLearningLanguage(raw?: string): LearningLanguage {
+  const lower = (raw || "javascript").toLowerCase().trim();
+  if (lower === "c++" || lower === "cpp") return "cpp";
+  if (lower === "ts" || lower === "typescript") return "typescript";
+  if (lower === "py" || lower === "python") return "python";
+  if (lower === "sql") return "sql";
+  if (lower === "java") return "java";
+  return "javascript";
+}
+
 export function LessonDungeonRoom({
   course,
   lesson,
@@ -43,6 +63,8 @@ export function LessonDungeonRoom({
   onSwitchToContent,
   nextLessonUrl,
 }: LessonDungeonRoomProps) {
+  const { t } = useUiLanguage();
+
   // Avatar and sound
   const [avatarKey, setAvatarKey] = useState<AvatarKey>(DEFAULT_AVATAR);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
@@ -52,14 +74,44 @@ export function LessonDungeonRoom({
   const [coinsEarned, setCoinsEarned] = useState<number>(0);
   const [xpEarned, setXpEarned] = useState<number>(0);
   const [screenShake, setScreenShake] = useState<number>(0);
-  const [isRoomConquered, setIsRoomConquered] = useState<boolean>(isCompleted);
+  const [isRoomConquered, setIsRoomConquered] = useState<boolean>(
+    () => Boolean(getClientSession()) && isCompleted
+  );
 
   // Overlays
   const [isInBattle, setIsInBattle] = useState<boolean>(false);
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
 
-  // Load avatar and sound preference
+  const courseSeed = useMemo(() => hashString(course.id || "default"), [course.id]);
+  const isBossFloor = lessonIndex >= totalLessons - 1;
+
+  // Generate deterministic room for this lesson
+  const [room, setRoom] = useState<DungeonRoom>(() => {
+    const r = generateDungeonRoom(courseSeed, lessonIndex, totalLessons);
+    const hasSession = Boolean(getClientSession());
+    if (hasSession && isCompleted && r.entity) {
+      return {
+        ...r,
+        entity: { ...r.entity, hp: 0, isCompleted: true },
+        isDoorUnlocked: true,
+      };
+    }
+    return r;
+  });
+
+  // Load avatar/sound and enforce fresh room for guests (no saved completion)
   useEffect(() => {
+    const hasSession = Boolean(getClientSession());
+    if (!hasSession) {
+      setIsRoomConquered(false);
+      setHearts(3);
+      setCoinsEarned(0);
+      setXpEarned(0);
+      setIsInBattle(false);
+      setIsGameOver(false);
+      setRoom(generateDungeonRoom(courseSeed, lessonIndex, totalLessons));
+    }
+
     try {
       const savedAvatar = localStorage.getItem("explain_code_dungeon_avatar") as AvatarKey;
       if (savedAvatar && AVATARS.some((a) => a.key === savedAvatar)) {
@@ -73,25 +125,19 @@ export function LessonDungeonRoom({
     } catch {
       // ignore
     }
-  }, []);
-
-  const courseSeed = useMemo(() => hashString(course.id || "default"), [course.id]);
-  const isBossFloor = lessonIndex >= totalLessons - 1;
-
-  // Generate deterministic room for this lesson
-  const [room, setRoom] = useState<DungeonRoom>(() => {
-    const r = generateDungeonRoom(courseSeed, lessonIndex, totalLessons);
-    if (isCompleted && r.entity) {
-      return {
-        ...r,
-        entity: { ...r.entity, hp: 0, isCompleted: true },
-        isDoorUnlocked: true,
-      };
-    }
-    return r;
-  });
+  }, [courseSeed, lessonIndex, totalLessons]);
 
   const avatar = useMemo(() => getAvatar(avatarKey), [avatarKey]);
+
+  const lessonLang = useMemo(
+    () => normalizeLearningLanguage(lesson.programming_language),
+    [lesson.programming_language]
+  );
+
+  const trackMeta = useMemo(
+    () => LANGUAGE_TRACKS.find((tr) => tr.id === lessonLang) || LANGUAGE_TRACKS[0],
+    [lessonLang]
+  );
 
   const currentMonster: MonsterDef = useMemo(() => {
     if (room.entity?.monsterType) {
@@ -100,10 +146,61 @@ export function LessonDungeonRoom({
     return getMonsterDef(isBossFloor ? "boss" : "slime");
   }, [room.entity?.monsterType, isBossFloor]);
 
-  const currentQuestion: DungeonQuestion = useMemo(
-    () => getQuestionForFloor(lessonIndex, isBossFloor),
-    [lessonIndex, isBossFloor]
-  );
+  const lessonQuestions: DungeonQuestion[] = useMemo(() => {
+    const quizList = Array.isArray(lesson.quiz_questions)
+      ? lesson.quiz_questions
+      : [];
+
+    if (quizList.length > 0) {
+      let simulatedOut = "";
+      if (lesson.code_example) {
+        const sim = runCodeByLanguage(lesson.code_example, lessonLang);
+        if (sim.success && sim.finalOutput.trim()) {
+          simulatedOut = sim.finalOutput.trim();
+        }
+      }
+
+      return quizList.map((q, idx) => ({
+        id: q.id || `lesson-${lesson.id}-q-${idx}`,
+        language: lessonLang,
+        question: q.question,
+        codeSnippet: lesson.code_example || undefined,
+        choices: q.options,
+        correctIndex: q.correctIndex,
+        explanation:
+          q.explanation ||
+          t("คำตอบถูกต้องตามเนื้อหาบทเรียน", "Correct according to the lesson!"),
+        difficulty: isBossFloor ? "hard" : lessonIndex > 0 ? "medium" : "easy",
+        blockModelCell: "E2",
+        hint: t(
+          "ลองอ่านโค้ดตัวอย่างในบทเรียนและไล่ค่าทีละบรรทัด",
+          "Inspect the lesson code example line by line."
+        ),
+        hintEn: "Inspect the lesson code example line by line.",
+        expectedOutput: simulatedOut || undefined,
+        phaseLabel: `${lesson.title} (${idx + 1}/${quizList.length})`,
+      }));
+    }
+
+    return [getQuestionForFloor(lessonIndex, isBossFloor, lessonLang, course.id)];
+  }, [
+    lesson.quiz_questions,
+    lesson.id,
+    lesson.code_example,
+    lesson.title,
+    lessonLang,
+    isBossFloor,
+    lessonIndex,
+    course.id,
+    t,
+  ]);
+
+  const shouldUseLocalValidation = useMemo(() => {
+    if (lessonQuestions.length > 1) return true;
+    const first = lessonQuestions[0];
+    if (!first) return true;
+    return !SAMPLE_DUNGEON_QUESTIONS.some((sq) => sq.id === first.id);
+  }, [lessonQuestions]);
 
   const handleToggleSound = useCallback(() => {
     const next = !soundEnabled;
@@ -182,9 +279,9 @@ export function LessonDungeonRoom({
           };
           saveLocalEnrollments(updatedEnrolls);
         }
-      }
 
-      onLessonCompleted();
+        onLessonCompleted();
+      }
     },
     [currentMonster, course.id, lesson.id, onLessonCompleted]
   );
@@ -204,6 +301,9 @@ export function LessonDungeonRoom({
 
   const handleRetryRoom = useCallback(() => {
     setHearts(3);
+    setCoinsEarned(0);
+    setXpEarned(0);
+    setIsRoomConquered(false);
     setIsGameOver(false);
     setIsInBattle(false);
     setRoom(generateDungeonRoom(courseSeed, lessonIndex, totalLessons));
@@ -220,9 +320,18 @@ export function LessonDungeonRoom({
         <div className="flex items-center gap-3">
           <PixelSpriteView sprite={avatar.sprite} size={28} />
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="pixel-font text-[10px] text-[#ffe27a] uppercase">
-                ชั้นที่ {lessonIndex + 1}/{totalLessons}
+                {t(`ชั้นที่ ${lessonIndex + 1}/${totalLessons}`, `FLOOR ${lessonIndex + 1}/${totalLessons}`)}
+              </span>
+              <span
+                className="px-1.5 py-0.5 rounded text-[10px] font-extrabold"
+                style={{
+                  backgroundColor: trackMeta.bgTint,
+                  color: trackMeta.accentColor,
+                }}
+              >
+                {trackMeta.name}
               </span>
               {isBossFloor && (
                 <span className="pixel-font text-[9px] bg-[#5a2d91] text-[#ffe27a] px-1.5 py-0.5 rounded font-black">
@@ -231,7 +340,7 @@ export function LessonDungeonRoom({
               )}
             </div>
             <h3 className="text-xs sm:text-sm font-bold text-[#f4efe6] line-clamp-1">
-              ห้องดันเจี้ยน: {lesson.title}
+              {t("ห้องดันเจี้ยน:", "Dungeon Room:")} {lesson.title}
             </h3>
           </div>
         </div>
@@ -267,7 +376,7 @@ export function LessonDungeonRoom({
               onClick={onSwitchToContent}
               className="px-2.5 py-1 rounded-lg border border-[#4a4766] bg-[#252238] text-[11px] font-bold text-[#ffe27a] hover:bg-[#322c4a] cursor-pointer"
             >
-              อ่านบทเรียน
+              {t("อ่านบทเรียน & โค้ด", "Read Lesson & Code")}
             </button>
           )}
         </div>
@@ -292,29 +401,38 @@ export function LessonDungeonRoom({
             <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center p-4 text-center gap-3">
               <span className="pixel-font text-xs text-[#ff4d6d] font-bold">GAME OVER</span>
               <h4 className="text-sm sm:text-base font-bold text-[#f4efe6]">
-                หัวใจหมดในการต่อสู้บทเรียนนี้
+                {t("หัวใจหมดในการต่อสู้บทเรียนนี้", "Out of hearts in this lesson room")}
               </h4>
               <button
                 type="button"
                 onClick={handleRetryRoom}
                 className="retro-button px-4 py-2 rounded-xl bg-[#f6c945] text-[#120f1c] font-black pixel-font text-xs cursor-pointer"
               >
-                RETRY (ลองใหม่)
+                {t("RETRY (ลองใหม่)", "RETRY")}
               </button>
             </div>
           )}
         </div>
 
-        {/* Hint banner */}
-        <div className="w-full max-w-[560px] flex items-center justify-between text-[11px] text-[#9a93ad]">
-          <span className="hidden sm:inline">
-            เดินด้วย <strong>WASD</strong> หรือ <strong>ลูกศร</strong> · โต้ตอบด้วย <strong>Space/Enter</strong>
-          </span>
+        {/* Compact status & quick battle action */}
+        <div className="w-full max-w-[560px] flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#9a93ad]">
           <span className="text-[#ffe27a] font-bold">
             {room.isDoorUnlocked
-              ? "ประตูเปิดแล้ว! คุณพิชิตห้องนี้สำเร็จ"
-              : `เดินไปประจันหน้ากับ ${currentMonster.name} เพื่อตอบคำถาม`}
+              ? t("🚪 พิชิตห้องนี้สำเร็จแล้ว!", "🚪 Room cleared!")
+              : t(
+                  `⚔️ ${currentMonster.name} (${lessonQuestions.length} ข้อ)`,
+                  `⚔️ ${currentMonster.name} (${lessonQuestions.length} phase${lessonQuestions.length > 1 ? "s" : ""})`
+                )}
           </span>
+          {!room.entity?.isCompleted && (
+            <button
+              type="button"
+              onClick={handleEncounterEntity}
+              className="px-3 py-1 rounded-lg bg-[#9b5de5] hover:bg-[#b07af0] text-white font-bold text-[11px] cursor-pointer transition-colors"
+            >
+              {t("⚔️ สู้เลย", "⚔️ Battle")}
+            </button>
+          )}
         </div>
 
         {/* Room Cleared Celebration Card */}
@@ -322,23 +440,40 @@ export function LessonDungeonRoom({
           <div className="w-full max-w-[560px] p-3.5 rounded-xl border border-[#2fbf71]/50 bg-[#1a7a4a]/20 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2 text-[#2fbf71] font-bold">
               <Icon name="check" size={16} />
-              <span>พิชิตห้องดันเจี้ยนบทนี้สำเร็จ! บันทึกผลเรียนจบเรียบร้อย</span>
+              <span>
+                {getClientSession()
+                  ? t(
+                      "พิชิตห้องดันเจี้ยนบทนี้สำเร็จ! บันทึกผลเรียนจบเรียบร้อย",
+                      "Lesson Dungeon Room Cleared! Progress saved."
+                    )
+                  : t(
+                      "พิชิตห้องดันเจี้ยนสำเร็จ! (เข้าสู่ระบบเพื่อบันทึกความคืบหน้า)",
+                      "Cleared! Log in to save your progress."
+                    )}
+              </span>
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleRetryRoom}
+                className="px-3 py-1.5 rounded-lg border border-[#4a4766] bg-[#252238] hover:bg-[#322c4a] text-[#ffe27a] font-bold text-xs cursor-pointer transition-colors"
+              >
+                {t("เล่นซ้ำ", "Replay")}
+              </button>
               {nextLessonUrl ? (
                 <Link
                   href={nextLessonUrl}
                   className="px-3 py-1.5 rounded-lg bg-[#2fbf71] text-[#120f1c] font-black text-xs hover:bg-[#34d37d] transition-colors"
                 >
-                  บทเรียนถัดไป →
+                  {t("บทเรียนถัดไป →", "Next Lesson →")}
                 </Link>
               ) : (
                 <Link
                   href={`/courses/${course.id}`}
                   className="px-3 py-1.5 rounded-lg bg-[#2fbf71] text-[#120f1c] font-black text-xs hover:bg-[#34d37d] transition-colors"
                 >
-                  กลับสู่หน้าคอร์ส
+                  {t("กลับสู่หน้าคอร์ส", "Back to Course")}
                 </Link>
               )}
             </div>
@@ -350,20 +485,25 @@ export function LessonDungeonRoom({
           <MobileDpad
             disabled={isInBattle || isGameOver}
             onMove={(dx, dy) => {
+              const dirKey =
+                dx < 0
+                  ? "ArrowLeft"
+                  : dx > 0
+                  ? "ArrowRight"
+                  : dy < 0
+                  ? "ArrowUp"
+                  : "ArrowDown";
               const event = new KeyboardEvent("keydown", {
-                key:
-                  dx < 0
-                    ? "ArrowLeft"
-                    : dx > 0
-                    ? "ArrowRight"
-                    : dy < 0
-                    ? "ArrowUp"
-                    : "ArrowDown",
+                key: dirKey,
+                code: dirKey,
               });
               window.dispatchEvent(event);
             }}
             onAction={() => {
-              const event = new KeyboardEvent("keydown", { key: " " });
+              const event = new KeyboardEvent("keydown", {
+                key: " ",
+                code: "Space",
+              });
               window.dispatchEvent(event);
             }}
           />
@@ -375,12 +515,16 @@ export function LessonDungeonRoom({
         <BattleOverlay
           runId={`lesson-${lesson.id}`}
           monster={currentMonster}
-          question={currentQuestion}
-          monsterHp={room.entity?.isCompleted ? 0 : currentMonster.maxHp}
-          maxMonsterHp={currentMonster.maxHp}
+          question={lessonQuestions[0]}
+          questions={lessonQuestions}
+          monsterHp={room.entity?.isCompleted ? 0 : Math.max(currentMonster.maxHp, lessonQuestions.length)}
+          maxMonsterHp={Math.max(currentMonster.maxHp, lessonQuestions.length)}
           playerHearts={hearts}
+          initialFocus={3}
+          maxFocus={6}
           courseId={course.id}
           lessonId={lesson.id}
+          localValidation={shouldUseLocalValidation}
           onCorrectAnswer={handleCorrectAnswer}
           onWrongAnswer={handleWrongAnswer}
           onClose={() => setIsInBattle(false)}

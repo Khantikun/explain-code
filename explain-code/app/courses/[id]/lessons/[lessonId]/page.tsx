@@ -23,7 +23,11 @@ import {
   saveLocalEnrollments,
   saveLocalLessonProgress,
 } from "../../../../lib/lms-data";
-import { runJavaScriptReal } from "../../../../lib/curriculum";
+import {
+  runCodeByLanguage,
+  LearningLanguage,
+} from "../../../../lib/language-tracks";
+import { useUiLanguage } from "../../../../components/LanguageProvider";
 import { LessonDungeonRoom } from "../../../../components/dungeon/LessonDungeonRoom";
 import { PixelSpriteView } from "../../../../components/dungeon/PixelSpriteView";
 import { getMonsterDef } from "../../../../lib/dungeon/monsters";
@@ -34,11 +38,13 @@ function LessonViewContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useUiLanguage();
   const courseId = String(params?.id || "");
   const lessonId = String(params?.lessonId || "");
 
-  const initialTab = searchParams.get("mode") === "dungeon" ? "dungeon" : "content";
+  const initialTab = searchParams.get("mode") === "content" ? "content" : "dungeon";
   const [activeTab, setActiveTab] = useState<"content" | "dungeon">(initialTab);
+  const [showQuickNotes, setShowQuickNotes] = useState<boolean>(false);
 
   const [session, setSession] = useState<ClientAuthSession | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
@@ -143,26 +149,11 @@ function LessonViewContent() {
     }
   }, [courseId, lessonId]);
 
-  if (!course || !lesson) {
-    return (
-      <div className="min-h-screen bg-[#faf8f4] text-[#1e1e1c]">
-        <SiteHeader />
-        <main className="mx-auto max-w-4xl px-4 py-12 text-center">
-          <h1 className="text-xl font-bold">ไม่พบบทเรียนที่คุณต้องการ</h1>
-          <Link
-            href="/courses"
-            className="mt-4 inline-block rounded-xl bg-[#2a4d3e] px-4 py-2 text-xs font-bold text-white"
-          >
-            ← กลับไปหน้ารวมคอร์ส
-          </Link>
-        </main>
-      </div>
-    );
-  }
-
-  const currentIdx = courseLessons.findIndex((l) => l.id === lesson.id);
+  const currentIdx = lesson
+    ? courseLessons.findIndex((l) => l.id === lesson.id)
+    : -1;
   const totalLessons = Math.max(1, courseLessons.length);
-  const roomSeed = useMemo(() => hashString(course.id), [course.id]);
+  const roomSeed = useMemo(() => hashString(course?.id || courseId || "default"), [course?.id, courseId]);
   const currentRoom = useMemo(
     () => generateDungeonRoom(roomSeed, currentIdx >= 0 ? currentIdx : 0, totalLessons),
     [roomSeed, currentIdx, totalLessons]
@@ -176,6 +167,25 @@ function LessonViewContent() {
     [currentRoom.entity?.monsterType, currentIdx, totalLessons]
   );
 
+  if (!course || !lesson) {
+    return (
+      <div className="min-h-screen bg-[#0d0b14] text-[#f4efe6]">
+        <SiteHeader />
+        <main className="mx-auto max-w-4xl px-4 py-12 text-center">
+          <h1 className="text-xl font-bold text-[#f4efe6]">
+            {t("ไม่พบบทเรียนที่คุณต้องการ", "Lesson not found")}
+          </h1>
+          <Link
+            href="/courses"
+            className="mt-4 inline-block rounded-xl bg-[#2fbf71] px-4 py-2 text-xs font-extrabold text-[#0b0b14] hover:bg-[#34d37d] transition-colors"
+          >
+            {t("← กลับไปหน้ารวมคอร์ส", "← Back to Courses")}
+          </Link>
+        </main>
+      </div>
+    );
+  }
+
   const prevLesson = currentIdx > 0 ? courseLessons[currentIdx - 1] : null;
   const nextLesson =
     currentIdx >= 0 && currentIdx < courseLessons.length - 1
@@ -183,20 +193,33 @@ function LessonViewContent() {
       : null;
 
   const handleRunCode = () => {
-    if (lesson.programming_language === "javascript") {
-      const res = runJavaScriptReal(lesson.code_example);
-      setRunOutput(
-        res.error
-          ? `Error: ${res.error}`
-          : res.outputs.join("\n") ||
-              res.finalOutput ||
-              "(รันสำเร็จ ไม่มีข้อความออกทาง console.log)"
-      );
-    } else {
-      setRunOutput(
-        `[จำลองการรันภาษา ${lesson.programming_language.toUpperCase()}] โค้ดทำงานตามลำดับคำสั่งเรียบร้อย`
-      );
-    }
+    const rawLang = (lesson.programming_language || "javascript")
+      .toLowerCase()
+      .trim();
+    const normalizedLang: LearningLanguage =
+      rawLang === "c++" || rawLang === "cpp"
+        ? "cpp"
+        : rawLang === "ts" || rawLang === "typescript"
+        ? "typescript"
+        : rawLang === "py" || rawLang === "python"
+        ? "python"
+        : rawLang === "sql"
+        ? "sql"
+        : rawLang === "java"
+        ? "java"
+        : "javascript";
+
+    const res = runCodeByLanguage(lesson.code_example, normalizedLang);
+    setRunOutput(
+      res.error
+        ? `Error: ${res.error}`
+        : res.outputs.join("\n") ||
+            res.finalOutput ||
+            t(
+              "(รันสำเร็จ ไม่มีข้อความออกทางหน้าจอ)",
+              "(Executed successfully with no output)"
+            )
+    );
   };
 
   const handleMarkCompleted = async (calculatedScore?: number | null) => {
@@ -285,123 +308,190 @@ function LessonViewContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf8f4] text-[#1e1e1c]">
+    <div className="min-h-screen bg-[#0d0b14] text-[#f4efe6]">
       <SiteHeader />
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         {/* Breadcrumb */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-[#6e6a63]">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-[#9a93ad]">
           <div>
-            <Link href="/courses" className="hover:text-[#1e1e1c]">
-              คอร์สทั้งหมด
+            <Link href="/courses" className="hover:text-[#f4efe6] transition-colors">
+              {t("คอร์สทั้งหมด", "All Courses")}
             </Link>{" "}
             /{" "}
             <Link
               href={`/courses/${course.id}`}
-              className="font-semibold text-[#2a4d3e] hover:underline"
+              className="font-semibold text-[#f6c945] hover:underline"
             >
               {course.title}
             </Link>
           </div>
           <span>
-            บทเรียนที่ {currentIdx + 1} จาก {courseLessons.length}
+            {t(
+              `บทเรียนที่ ${currentIdx + 1} จาก ${courseLessons.length}`,
+              `Lesson ${currentIdx + 1} of ${courseLessons.length}`
+            )}
           </span>
         </div>
 
         {/* Dual Mode Switcher Tabs */}
-        <div className="mb-5 flex items-center gap-2 border-b border-[#e5dfd3] pb-1">
-          <button
-            type="button"
-            onClick={() => setActiveTab("content")}
-            className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "content"
-                ? "border-[#2a4d3e] text-[#2a4d3e]"
-                : "border-transparent text-[#6e6a63] hover:text-[#1e1e1c]"
-            }`}
-          >
-            <Icon name="book" size={15} />
-            <span>อ่านบทเรียน &amp; โค้ดตัวอย่าง</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("dungeon")}
-            className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
-              activeTab === "dungeon"
-                ? "border-[#9b5de5] text-[#5a2d91]"
-                : "border-transparent text-[#6e6a63] hover:text-[#1e1e1c]"
-            }`}
-          >
-            <Icon name="gamepad" size={15} />
-            <span>ห้องดันเจี้ยนประจำบทเรียน</span>
-            {isCompleted && (
-              <span className="text-[10px] bg-[#dcfce7] text-[#166534] px-1.5 py-0.2 rounded font-bold">
-                พิชิตแล้ว
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-2 border-b border-[#2f2d45] pb-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab("dungeon")}
+              className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                activeTab === "dungeon"
+                  ? "border-[#9b5de5] text-[#ffe27a]"
+                  : "border-transparent text-[#9a93ad] hover:text-[#f4efe6]"
+              }`}
+            >
+              <Icon name="gamepad" size={15} />
+              <span>{t("ห้องดันเจี้ยนประจำบทเรียน", "Lesson Dungeon Room")}</span>
+              {isCompleted && (
+                <span className="text-[10px] border border-[#2fbf71]/40 bg-[#102a1e] text-[#86efac] px-1.5 py-0.2 rounded font-bold">
+                  {t("พิชิตแล้ว", "Cleared")}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("content")}
+              className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                activeTab === "content"
+                  ? "border-[#2fbf71] text-[#2fbf71]"
+                  : "border-transparent text-[#9a93ad] hover:text-[#f4efe6]"
+              }`}
+            >
+              <Icon name="book" size={15} />
+              <span>{t("อ่านบทเรียน & โค้ดตัวอย่าง", "Lesson Notes & Code")}</span>
+            </button>
+          </div>
+
+          {activeTab === "dungeon" && (
+            <button
+              type="button"
+              onClick={() => setShowQuickNotes((prev) => !prev)}
+              className="mb-1.5 inline-flex items-center gap-1.5 rounded-lg border border-[#3d395a] bg-[#1c1b2b] px-3 py-1.5 text-[11px] font-bold text-[#f6c945] hover:border-[#f6c945] hover:bg-[#252238] transition-colors cursor-pointer whitespace-nowrap"
+            >
+              <Icon name="book" size={13} />
+              <span>
+                {showQuickNotes
+                  ? t("ซ่อนสรุปบทเรียน", "Hide Lesson Notes")
+                  : t("ดูสรุปบทเรียน & โค้ดตัวอย่าง", "Show Lesson Notes & Code")}
               </span>
-            )}
-          </button>
+            </button>
+          )}
         </div>
 
         {activeTab === "dungeon" ? (
-          <LessonDungeonRoom
-            course={course}
-            lesson={lesson}
-            lessonIndex={currentIdx >= 0 ? currentIdx : 0}
-            totalLessons={totalLessons}
-            isCompleted={isCompleted}
-            onLessonCompleted={() => setIsCompleted(true)}
-            onSwitchToContent={() => setActiveTab("content")}
-            nextLessonUrl={nextLesson ? `/courses/${course.id}/lessons/${nextLesson.id}` : undefined}
-          />
+          <div className="space-y-4">
+            {showQuickNotes && (
+              <div className="rounded-2xl border border-[#2f2d45] bg-[#141220] p-5 shadow-lg space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#2f2d45] pb-3">
+                  <h2 className="text-sm sm:text-base font-bold text-[#f4efe6]">
+                    {lesson.title}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("content")}
+                    className="text-xs font-bold text-[#2fbf71] hover:underline cursor-pointer whitespace-nowrap"
+                  >
+                    {t("เปิดหน้าบทเรียนเต็ม →", "Open Full Lesson →")}
+                  </button>
+                </div>
+                <div className="text-xs sm:text-sm leading-relaxed text-[#e8e1cf] whitespace-pre-line">
+                  {lesson.content_md}
+                </div>
+                {lesson.code_example && (
+                  <div className="rounded-xl border border-[#3d395a] bg-[#120f1c] p-4 text-[#f4efe6]">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#f6c945]">
+                        {t("ตัวอย่างโค้ด", "Code Example")} ({lesson.programming_language})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleRunCode}
+                        className="inline-flex items-center gap-1 rounded-lg bg-[#2fbf71] px-2.5 py-1 text-[11px] font-extrabold text-[#0b0b14] hover:bg-[#34d37d] transition-colors cursor-pointer whitespace-nowrap"
+                      >
+                        <Icon name="play" className="h-3 w-3" />
+                        <span>{t("รันโค้ด", "Run Code")}</span>
+                      </button>
+                    </div>
+                    <pre className="overflow-x-auto font-mono text-xs leading-relaxed text-[#f4efe6]">
+                      {lesson.code_example}
+                    </pre>
+                    {runOutput && (
+                      <div className="mt-3 rounded-lg border border-[#2f2d45] bg-[#0d0b14] p-2.5 font-mono text-xs text-[#ffe27a]">
+                        {runOutput}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <LessonDungeonRoom
+              course={course}
+              lesson={lesson}
+              lessonIndex={currentIdx >= 0 ? currentIdx : 0}
+              totalLessons={totalLessons}
+              isCompleted={isCompleted}
+              onLessonCompleted={() => setIsCompleted(true)}
+              onSwitchToContent={() => setActiveTab("content")}
+              nextLessonUrl={nextLesson ? `/courses/${course.id}/lessons/${nextLesson.id}` : undefined}
+            />
+          </div>
         ) : (
           /* Lesson Content Card */
-          <div className="rounded-2xl border border-[#e5dfd3] bg-white p-6 sm:p-8 shadow-xs space-y-6">
-          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#ece7dc] pb-4">
+          <div className="rounded-2xl border border-[#2f2d45] bg-[#141220] p-6 sm:p-8 shadow-lg space-y-6">
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#2f2d45] pb-4">
             <div>
-              <span className="rounded-md bg-[#e8f0ec] px-2.5 py-1 text-xs font-bold text-[#2a4d3e]">
+              <span className="rounded-md border border-[#3d395a] bg-[#1c1b2b] px-2.5 py-1 text-xs font-bold text-[#f6c945]">
                 บทที่ {lesson.order_index}
               </span>
-              <h1 className="mt-2 text-xl sm:text-2xl font-bold text-[#1e1e1c]">
+              <h1 className="mt-2 text-xl sm:text-2xl font-bold text-[#f4efe6]">
                 {lesson.title}
               </h1>
             </div>
 
             {isCompleted && (
-              <span className="inline-flex items-center gap-1.5 rounded-xl bg-[#dcfce7] px-3 py-1.5 text-xs font-bold text-[#166534]">
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-[#2fbf71]/40 bg-[#102a1e] px-3 py-1.5 text-xs font-bold text-[#86efac]">
                 ✓ เรียนจบบทเรียนนี้แล้ว
               </span>
             )}
           </div>
 
           {/* Markdown-like Formatted Content */}
-          <div className="space-y-3 text-sm leading-relaxed text-[#2c2a27] whitespace-pre-line">
+          <div className="space-y-3 text-sm leading-relaxed text-[#e8e1cf] whitespace-pre-line">
             {lesson.content_md}
           </div>
 
           {/* Code Example Box */}
           {lesson.code_example && (
-            <div className="rounded-2xl border border-[#d8d1c5] bg-[#1e1e1c] p-5 text-[#f8f8f2]">
+            <div className="rounded-2xl border border-[#3d395a] bg-[#120f1c] p-5 text-[#f4efe6]">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#a6e22e]">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#f6c945]">
                   ตัวอย่างโค้ด ({lesson.programming_language})
                 </span>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={handleRunCode}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#2a4d3e] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#1f3b2f] cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-[#2fbf71] px-3 py-1.5 text-xs font-extrabold text-[#0b0b14] hover:bg-[#34d37d] transition-colors cursor-pointer whitespace-nowrap"
                   >
                     <Icon name="play" className="h-3.5 w-3.5" />
                     <span>รันโค้ดตัวอย่าง</span>
                   </button>
                 </div>
               </div>
-              <pre className="overflow-x-auto font-mono text-xs sm:text-sm leading-relaxed">
+              <pre className="overflow-x-auto font-mono text-xs sm:text-sm leading-relaxed text-[#f4efe6]">
                 {lesson.code_example}
               </pre>
 
               {runOutput && (
-                <div className="mt-4 rounded-xl border border-[#3e3d32] bg-[#141413] p-3.5 font-mono text-xs text-[#e6db74]">
-                  <span className="block text-[10px] uppercase text-[#8f908a] mb-1">
+                <div className="mt-4 rounded-xl border border-[#2f2d45] bg-[#0d0b14] p-3.5 font-mono text-xs text-[#ffe27a]">
+                  <span className="block text-[10px] uppercase text-[#9a93ad] mb-1">
                     ผลลัพธ์จากการรันจริง (Console Output):
                   </span>
                   {runOutput}
@@ -412,13 +502,13 @@ function LessonViewContent() {
 
           {/* External / Video Links */}
           {(lesson.external_url || lesson.video_url) && (
-            <div className="flex flex-wrap gap-3 rounded-xl border border-[#ece7dc] bg-[#faf8f4] p-4">
+            <div className="flex flex-wrap gap-3 rounded-xl border border-[#2f2d45] bg-[#1c1b2b] p-4">
               {lesson.external_url && (
                 <a
                   href={lesson.external_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#d8d1c5] bg-white px-3.5 py-2 text-xs font-bold text-[#2a4d3e] hover:bg-[#f2efe8]"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#3d395a] bg-[#141220] px-3.5 py-2 text-xs font-bold text-[#f6c945] hover:border-[#f6c945] hover:bg-[#252238] transition-colors whitespace-nowrap"
                 >
                   🔗 เอกสารอ้างอิงเพิ่มเติม ↗
                 </a>
@@ -428,7 +518,7 @@ function LessonViewContent() {
                   href={lesson.video_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#d8d1c5] bg-white px-3.5 py-2 text-xs font-bold text-[#2a4d3e] hover:bg-[#f2efe8]"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#3d395a] bg-[#141220] px-3.5 py-2 text-xs font-bold text-[#f6c945] hover:border-[#f6c945] hover:bg-[#252238] transition-colors whitespace-nowrap"
                 >
                   🎬 วิดีโอประกอบบทเรียน ↗
                 </a>
@@ -439,14 +529,14 @@ function LessonViewContent() {
           {/* Quiz Section */}
           {Array.isArray(lesson.quiz_questions) &&
             lesson.quiz_questions.length > 0 && (
-              <div className="rounded-2xl border border-[#d8d1c5] bg-[#faf8f4] p-5 sm:p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base font-bold text-[#1e1e1c] flex items-center gap-2">
-                    <Icon name="award" className="h-4 w-4 text-[#2a4d3e]" />
+              <div className="rounded-2xl border border-[#2f2d45] bg-[#1c1b2b] p-5 sm:p-6 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-base font-bold text-[#f4efe6] flex items-center gap-2">
+                    <Icon name="award" className="h-4 w-4 text-[#f6c945]" />
                     <span>แบบทดสอบท้ายบทเรียน ({lesson.quiz_questions.length} ข้อ)</span>
                   </h2>
                   {quizScore !== null && (
-                    <span className="rounded-lg bg-[#e8f0ec] px-3 py-1 text-xs font-bold text-[#2a4d3e]">
+                    <span className="rounded-lg border border-[#2fbf71]/40 bg-[#102a1e] px-3 py-1 text-xs font-bold text-[#86efac]">
                       คะแนนล่าสุด: {quizScore}%
                     </span>
                   )}
@@ -455,9 +545,9 @@ function LessonViewContent() {
                 {lesson.quiz_questions.map((q, qIdx) => (
                   <div
                     key={q.id || qIdx}
-                    className="rounded-xl border border-[#e5dfd3] bg-white p-4 space-y-2.5"
+                    className="rounded-xl border border-[#2f2d45] bg-[#141220] p-4 space-y-2.5"
                   >
-                    <p className="text-xs sm:text-sm font-bold text-[#1e1e1c]">
+                    <p className="text-xs sm:text-sm font-bold text-[#f4efe6]">
                       ข้อที่ {qIdx + 1}: {q.question}
                     </p>
                     <div className="space-y-1.5">
@@ -477,13 +567,13 @@ function LessonViewContent() {
                             className={`w-full text-left rounded-lg border px-3.5 py-2 text-xs font-medium transition-colors cursor-pointer ${
                               quizSubmitted
                                 ? isCorrect
-                                  ? "border-[#166534] bg-[#dcfce7] font-bold text-[#166534]"
+                                  ? "border-[#2fbf71] bg-[#102a1e] font-bold text-[#86efac]"
                                   : isPicked
-                                  ? "border-[#991b1b] bg-[#fef2f2] text-[#991b1b]"
-                                  : "border-[#e5dfd3] bg-[#faf8f4] text-[#524f49]"
+                                  ? "border-[#c0283a] bg-[#2d141c] text-[#fca5a5]"
+                                  : "border-[#2f2d45] bg-[#1c1b2b] text-[#9a93ad]"
                                 : isPicked
-                                ? "border-[#2a4d3e] bg-[#e8f0ec] font-bold text-[#2a4d3e]"
-                                : "border-[#e5dfd3] bg-[#faf8f4] hover:bg-[#f2efe8]"
+                                ? "border-[#9b5de5] bg-[#5a2d91]/35 font-bold text-[#ffe27a]"
+                                : "border-[#2f2d45] bg-[#1c1b2b] text-[#e8e1cf] hover:border-[#9b5de5] hover:bg-[#252238]"
                             }`}
                           >
                             {opt}
@@ -492,8 +582,8 @@ function LessonViewContent() {
                       })}
                     </div>
                     {quizSubmitted && q.explanation && (
-                      <p className="mt-2 rounded-lg bg-[#f8f6f0] p-2.5 text-xs text-[#524f49]">
-                        💡 <strong>เฉลย:</strong> {q.explanation}
+                      <p className="mt-2 rounded-lg border border-[#2f2d45] bg-[#1c1b2b] p-2.5 text-xs text-[#c4bdd6]">
+                        💡 <strong className="text-[#f6c945]">เฉลย:</strong> {q.explanation}
                       </p>
                     )}
                   </div>
@@ -502,7 +592,7 @@ function LessonViewContent() {
                 <button
                   type="button"
                   onClick={handleSubmitQuiz}
-                  className="rounded-xl bg-[#2a4d3e] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#1f3b2f] transition-colors cursor-pointer"
+                  className="rounded-xl bg-[#2fbf71] px-5 py-2.5 text-xs font-extrabold text-[#0b0b14] hover:bg-[#34d37d] transition-colors cursor-pointer"
                 >
                   ตรวจคำตอบและบันทึกผลเรียนจบ
                 </button>
@@ -512,11 +602,11 @@ function LessonViewContent() {
           {/* Dungeon Practice Callout Box */}
           <div className="rounded-2xl border border-[#9b5de5]/30 bg-gradient-to-r from-[#252238] to-[#1c1b2b] p-5 text-[#f4efe6] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
             <div className="flex items-center gap-3.5">
-              <div className="p-2.5 rounded-xl bg-[#120f1c] border border-[#4a4766]">
+              <div className="p-2.5 rounded-xl bg-[#120f1c] border border-[#4a4766] shrink-0">
                 <PixelSpriteView sprite={monsterDef.sprite} size={40} animateBounce />
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="pixel-font text-[10px] text-[#ffe27a] uppercase">
                     DUNGEON CHALLENGE · ชั้นที่ {currentIdx + 1}
                   </span>
@@ -538,7 +628,7 @@ function LessonViewContent() {
             <button
               type="button"
               onClick={() => setActiveTab("dungeon")}
-              className="px-4 py-2.5 rounded-xl bg-[#9b5de5] hover:bg-[#b07af0] text-[#f4efe6] text-xs font-bold shrink-0 cursor-pointer flex items-center gap-1.5 transition-colors"
+              className="px-4 py-2.5 rounded-xl bg-[#9b5de5] hover:bg-[#b07af0] text-[#f4efe6] text-xs font-bold shrink-0 cursor-pointer flex items-center gap-1.5 transition-colors whitespace-nowrap"
             >
               <Icon name="gamepad" size={14} />
               <span>เข้าสู่ห้องดันเจี้ยน</span>
@@ -546,31 +636,31 @@ function LessonViewContent() {
           </div>
 
           {/* Bottom Actions: Mark Completed & Next/Prev Lesson */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#ece7dc] pt-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#2f2d45] pt-5">
             <div>
               {prevLesson ? (
                 <Link
                   href={`/courses/${course.id}/lessons/${prevLesson.id}`}
-                  className="rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-4 py-2.5 text-xs font-bold text-[#1e1e1c] hover:bg-[#f2efe8]"
+                  className="inline-block rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-4 py-2.5 text-xs font-bold text-[#f4efe6] hover:border-[#f6c945] hover:bg-[#252238] transition-colors whitespace-nowrap"
                 >
                   ← บทก่อนหน้า
                 </Link>
               ) : (
                 <Link
                   href={`/courses/${course.id}`}
-                  className="rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-4 py-2.5 text-xs font-bold text-[#1e1e1c] hover:bg-[#f2efe8]"
+                  className="inline-block rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-4 py-2.5 text-xs font-bold text-[#f4efe6] hover:border-[#f6c945] hover:bg-[#252238] transition-colors whitespace-nowrap"
                 >
                   ← สารบัญคอร์ส
                 </Link>
               )}
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5">
               {!isCompleted && (
                 <button
                   type="button"
                   onClick={() => handleMarkCompleted()}
-                  className="rounded-xl border border-[#2a4d3e] bg-[#e8f0ec] px-4 py-2.5 text-xs font-bold text-[#2a4d3e] hover:bg-[#d5e5dc] cursor-pointer"
+                  className="rounded-xl border border-[#2fbf71]/50 bg-[#102a1e] px-4 py-2.5 text-xs font-bold text-[#86efac] hover:bg-[#1a3d2d] transition-colors cursor-pointer whitespace-nowrap"
                 >
                   ✓ บันทึกว่าเรียนจบบทนี้แล้ว
                 </button>
@@ -579,7 +669,7 @@ function LessonViewContent() {
               {nextLesson && (
                 <Link
                   href={`/courses/${course.id}/lessons/${nextLesson.id}`}
-                  className="rounded-xl bg-[#2a4d3e] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#1f3b2f]"
+                  className="rounded-xl bg-[#2fbf71] px-5 py-2.5 text-xs font-extrabold text-[#0b0b14] hover:bg-[#34d37d] transition-colors whitespace-nowrap"
                 >
                   บทเรียนถัดไป →
                 </Link>
@@ -597,7 +687,7 @@ export default function LessonViewPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#faf8f4] flex items-center justify-center text-sm font-bold text-[#524f49]">
+        <div className="min-h-screen bg-[#0d0b14] flex items-center justify-center text-sm font-bold text-[#9a93ad]">
           กำลังโหลดบทเรียน...
         </div>
       }

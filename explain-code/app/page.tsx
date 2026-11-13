@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { SiteHeader } from "./components/SiteHeader";
+import { useUiLanguage } from "./components/LanguageProvider";
 import {
   TOPICS,
   BLOCK_MODEL_CELLS,
@@ -21,7 +22,6 @@ import { Icon, StatusCircle } from "./components/Icons";
 import { BlockModelGrid } from "./components/BlockModelGrid";
 import { PracticeArena } from "./components/PracticeArena";
 import { TeacherDashboard } from "./components/TeacherDashboard";
-import { DungeonRunScreen } from "./components/DungeonRunScreen";
 
 type AppMode =
   | "landing"
@@ -30,7 +30,7 @@ type AppMode =
   | "student-portal"
   | "teacher-portal";
 
-type StudentTab = "quest" | "practice" | "learn" | "profile" | "ailog" | "dungeon";
+type StudentTab = "quest" | "practice" | "learn" | "profile" | "ailog";
 
 const STORAGE_STUDENTS_KEY = "explain_code_students_v2";
 const STORAGE_ROOMS_KEY = "explain_code_rooms_v2";
@@ -61,6 +61,7 @@ function formatAttemptTimestamp(isoStr?: string): string {
 }
 
 export default function ExplainCodeApp() {
+  const { t } = useUiLanguage();
   const [appMode, setAppMode] = useState<AppMode>("landing");
   const [studentTab, setStudentTab] = useState<StudentTab>("quest");
   const [authSession, setAuthSession] = useState<AuthSession | null>(null);
@@ -935,256 +936,217 @@ export default function ExplainCodeApp() {
     };
 
     return (
-      <div className="min-h-screen bg-[#faf8f4] text-[#1e1e1c] flex flex-col">
+      <div className="min-h-screen bg-[#0d0b14] text-[#f4efe6] flex flex-col">
         <SiteHeader onOpenClassicPortal={openClassicPortal} />
 
-        <main className="mx-auto flex-1 max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
-          {/* Hero Section: แนะนำเว็บและวิธีใช้งาน */}
-          <section className="text-center max-w-3xl mx-auto mb-12">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#d8d1c5] bg-[#e8f0ec] px-3.5 py-1.5 text-xs font-bold text-[#2a4d3e]">
-              <Icon name="sparkles" className="h-3.5 w-3.5" />
-              แพลตฟอร์มการเรียนรู้และแกะโค้ดระบบเปิด (Open Platform)
+        <main className="mx-auto flex-1 max-w-5xl w-full px-4 py-10 sm:px-6 sm:py-16">
+          {/* Hero Section */}
+          <section className="text-center max-w-2xl mx-auto mb-12">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-1 text-xs font-bold text-[#ffe27a] whitespace-nowrap">
+              <Icon name="sparkles" className="h-3.5 w-3.5 shrink-0 text-[#f6c945]" />
+              <span>{t("แพลตฟอร์มอ่านโค้ด 6 ภาษา", "6-Language Code Platform")}</span>
             </span>
-            <h1 className="mt-4 text-3xl sm:text-5xl font-extrabold tracking-tight text-[#1e1e1c] leading-tight">
-              เขียนโค้ดด้วย AI ได้{" "}
-              <span className="text-[#2a4d3e] underline decoration-[#b7d3c6] underline-offset-8">
-                ต้องอ่านและอธิบายได้ด้วย
+            <h1 className="mt-4 text-3xl sm:text-5xl font-extrabold tracking-tight text-[#f4efe6] leading-tight">
+              {t("เขียนโค้ดด้วย AI ได้ ", "AI Writes Code — ")}
+              <span className="text-[#f6c945] underline decoration-[#9b5de5] underline-offset-8">
+                {t("ต้องอ่านและอธิบายได้ด้วย", "You Must Understand It")}
               </span>
             </h1>
-            <p className="mt-4 text-sm sm:text-base leading-relaxed text-[#524f49]">
-              <strong>&ldquo;โค้ดนี้ฉันอธิบายได้&rdquo;</strong>{" "}
-              คือพื้นที่ฝึกทักษะการอ่านโค้ดตามแนวคิด{" "}
-              <strong>Block Model &amp; PRIMM</strong> สำหรับนักเรียนและครูยุคใหม่
-              คุณสามารถเข้ามาเลือกเรียนคอร์สต่างๆ หรือวางโค้ดเพื่อให้ระบบช่วยแกะทีละบรรทัดได้ทันทีโดยไม่ต้องล็อกอิน
-              หรือเข้าสู่ระบบเพื่อบันทึกความคืบหน้าและประวัติส่วนตัว
+            <p className="mt-4 text-sm sm:text-base text-[#9a93ad]">
+              {t(
+                "ฝึกอ่านโค้ดผ่านดันเจี้ยน RPG หรือวางโค้ดให้ช่วยอธิบายทีละบรรทัด",
+                "Train code reading in 2D RPG dungeons or explain any snippet line by line."
+              )}
             </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/courses"
+                className="retro-button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#f6c945] px-5 py-2.5 text-sm font-extrabold text-[#120f1c] shadow-xs hover:bg-[#ffe27a] transition-colors"
+              >
+                <Icon name="play" className="h-4 w-4 shrink-0" filled />
+                <span>{t("เข้าสู่ดันเจี้ยน", "Enter Dungeon")}</span>
+              </Link>
+              <Link
+                href="/explain"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-5 py-2.5 text-sm font-bold text-[#f4efe6] hover:border-[#f6c945]/70 hover:bg-[#252238] transition-colors"
+              >
+                <Icon name="code" className="h-4 w-4 shrink-0 text-[#c084fc]" />
+                <span>{t("อธิบายโค้ด", "Explain Code")}</span>
+              </Link>
+            </div>
           </section>
 
-          {/* การ์ด 2 ใบเป็นทางเลือกหลัก: "การเรียนรู้" และ "อธิบายโค้ด" */}
-          <section className="grid grid-cols-1 gap-6 md:grid-cols-2 mb-14">
-            {/* การ์ดที่ 1: การเรียนรู้ (รวมเควสต์ PRIMM & คอร์สเรียน) */}
-            <div className="group relative flex flex-col justify-between rounded-3xl border-2 border-[#d8d1c5] bg-white p-7 sm:p-8 shadow-xs transition-all hover:border-[#2a4d3e] hover:shadow-md">
+          {/* 2 Core Choices: Learning Dungeon & Explain Code */}
+          <section className="grid grid-cols-1 gap-6 md:grid-cols-2 mb-12">
+            {/* Card 1: Learning Dungeon */}
+            <div className="group flex flex-col justify-between rounded-2xl border border-[#2f2d45] bg-[#141220] p-6 sm:p-7 transition-all hover:border-[#f6c945]/60 shadow-lg">
               <div>
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e8f0ec] text-[#2a4d3e] transition-transform group-hover:scale-105">
-                    <Icon name="book" className="h-7 w-7" />
-                  </div>
-                  <span className="rounded-full bg-[#e8f0ec] px-3 py-1 text-xs font-bold text-[#2a4d3e]">
-                    ทางเลือกที่ 1 · เควสต์ PRIMM &amp; คอร์สเรียน
-                  </span>
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#281d08] border border-[#f6c945]/40 text-[#f6c945] mb-4">
+                  <Icon name="gamepad" className="h-5 w-5" />
                 </div>
 
-                <h2 className="text-2xl font-extrabold text-[#1e1e1c]">
-                  การเรียนรู้ (Learning &amp; Quests)
+                <h2 className="text-xl font-extrabold text-[#f4efe6]">
+                  {t("ดันเจี้ยนการเรียนรู้", "Learning Dungeon")}
                 </h2>
-                <p className="mt-2.5 text-sm leading-relaxed text-[#524f49]">
-                  ฝึกทำเควสต์อ่านโค้ด 4 ขั้น (PRIMM) ทั้ง 7 ด่าน วัดความเข้าใจด้วยตาราง Block Model 12 ช่อง พร้อมศึกษาคอร์สและบทเรียนที่ครูผู้สอนจัดเตรียมไว้ในพื้นที่เดียว
+                <p className="mt-2 text-sm text-[#9a93ad] leading-relaxed">
+                  {t(
+                    "เลือกภาษาที่ต้องการ แล้วตะลุยด่านพิกเซลด้วยคำถาม Block Model ทั้ง 6 ภาษา",
+                    "Pick a language and raid 2D pixel floors with Block Model challenges."
+                  )}
                 </p>
-
-                <ul className="mt-5 space-y-2 text-xs font-semibold text-[#3d3b36]">
-                  <li className="flex items-center gap-2">
-                    <span className="text-[#2a4d3e]">✓</span>
-                    ตะลุยเส้นทางเควสต์อ่านโค้ด 7 เรื่อง (PRIMM) และสะสม XP / ตราเกียรติยศ
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-[#2a4d3e]">✓</span>
-                    วัดความเข้าใจเชิงลึกด้วยแผนที่ Block Model 12 ช่อง (Text · Execution · Function)
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-[#2a4d3e]">✓</span>
-                    เรียนคอร์สเสริมจากครูผู้สอน เข้าร่วมด้วยรหัสห้องเรียน และบันทึกความคืบหน้าอัตโนมัติ
-                  </li>
-                </ul>
               </div>
 
-              <div className="mt-8 flex flex-col sm:flex-row gap-3 pt-4 border-t border-[#ece7dc]">
+              <div className="mt-6 pt-4 border-t border-[#2f2d45] flex items-center">
                 <Link
                   href="/courses"
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#2a4d3e] px-5 py-3.5 text-sm font-bold text-white shadow-xs hover:bg-[#1f3b2f] transition-colors"
+                  className="retro-button w-full inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#f6c945] px-5 py-3 text-sm font-extrabold text-[#120f1c] hover:bg-[#ffe27a] transition-colors"
                 >
-                  <Icon name="play" className="h-4 w-4" filled />
-                  <span>เข้าสู่การเรียนรู้และฝึกเควสต์ →</span>
+                  <Icon name="play" className="h-4 w-4 shrink-0" filled />
+                  <span>{t("เลือกภาษาและเริ่มลุย →", "Choose Language →")}</span>
                 </Link>
               </div>
             </div>
 
-            {/* การ์ดที่ 2: อธิบายโค้ด */}
-            <div className="group relative flex flex-col justify-between rounded-3xl border-2 border-[#d8d1c5] bg-white p-7 sm:p-8 shadow-xs transition-all hover:border-[#2a4d3e] hover:shadow-md">
+            {/* Card 2: Explain Code */}
+            <div className="group flex flex-col justify-between rounded-2xl border border-[#2f2d45] bg-[#141220] p-6 sm:p-7 transition-all hover:border-[#9b5de5]/70 shadow-lg">
               <div>
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e8f0ec] text-[#2a4d3e] transition-transform group-hover:scale-105">
-                    <Icon name="code" className="h-7 w-7" />
-                  </div>
-                  <span className="rounded-full bg-[#e8f0ec] px-3 py-1 text-xs font-bold text-[#2a4d3e]">
-                    ทางเลือกที่ 2 · เครื่องมือวิเคราะห์โค้ด
-                  </span>
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#25193b] border border-[#9b5de5]/45 text-[#c084fc] mb-4">
+                  <Icon name="code" className="h-5 w-5" />
                 </div>
 
-                <h2 className="text-2xl font-extrabold text-[#1e1e1c]">
-                  อธิบายโค้ด (Code Explainer)
+                <h2 className="text-xl font-extrabold text-[#f4efe6]">
+                  {t("อธิบายโค้ด", "Explain Code")}
                 </h2>
-                <p className="mt-2.5 text-sm leading-relaxed text-[#524f49]">
-                  วางโค้ดที่คุณสงสัยหรือโค้ดที่ได้จาก AI แล้วเลือกภาษาโปรแกรม ระบบจะช่วยสรุปภาพรวม แยกอธิบายหน้าที่ของแต่ละบรรทัด และชี้จุดที่ควรระวังให้อ่านเข้าใจง่าย
+                <p className="mt-2 text-sm text-[#9a93ad] leading-relaxed">
+                  {t(
+                    "วางโค้ดจาก AI เพื่อสรุปภาพรวม ไล่การทำงานทีละบรรทัด และตรวจจับจุดเสี่ยง",
+                    "Paste AI code for instant summaries, line-by-line flow, and risk alerts."
+                  )}
                 </p>
-
-                <ul className="mt-5 space-y-2 text-xs font-semibold text-[#3d3b36]">
-                  <li className="flex items-center gap-2">
-                    <span className="text-[#2a4d3e]">✓</span>
-                    รองรับหลายภาษา: JavaScript, TypeScript, Python, Java, C/C++, SQL
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-[#2a4d3e]">✓</span>
-                    แยกลำดับการทำงาน (Execution Flow) และอธิบายโค้ดรายบรรทัด
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-[#2a4d3e]">✓</span>
-                    บันทึกประวัติการอธิบายโค้ดไว้ดูย้อนหลังได้เมื่อเข้าสู่ระบบ
-                  </li>
-                </ul>
               </div>
 
-              <div className="mt-8 flex flex-col sm:flex-row gap-3 pt-4 border-t border-[#ece7dc]">
+              <div className="mt-6 pt-4 border-t border-[#2f2d45] flex flex-wrap items-center gap-2.5">
                 <Link
                   href="/explain"
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#2a4d3e] px-5 py-3.5 text-sm font-bold text-white shadow-xs hover:bg-[#1f3b2f] transition-colors"
+                  className="retro-button flex-1 min-w-[160px] inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#2fbf71] px-5 py-3 text-sm font-extrabold text-[#120f1c] hover:bg-[#34d37d] transition-colors"
                 >
-                  <Icon name="sparkles" className="h-4 w-4" />
-                  <span>วางโค้ดเพื่อให้อธิบายทันที →</span>
-                </Link>
-                <Link
-                  href="/depths"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3.5 text-xs font-bold text-indigo-900 hover:bg-indigo-100 transition-colors"
-                >
-                  <Icon name="shield" className="h-4 w-4 text-indigo-600" />
-                  <span>ดันเจี้ยน CODE DEPTHS</span>
+                  <Icon name="sparkles" className="h-4 w-4 shrink-0" />
+                  <span>{t("เริ่มอธิบายโค้ด →", "Explain Code →")}</span>
                 </Link>
                 <Link
                   href="/my-history"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-4 py-3.5 text-xs font-bold text-[#524f49] hover:bg-[#f2efe8] transition-colors"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-4 py-3 text-sm font-bold text-[#c4bdd6] hover:bg-[#252238] hover:text-[#f4efe6] transition-colors"
                 >
-                  <span>ประวัติของฉัน</span>
+                  {t("ประวัติ", "History")}
                 </Link>
               </div>
             </div>
           </section>
 
-          {/* แบนเนอร์พิเศษ: ดันเจี้ยนอ่านโค้ด สไตล์พิกเซล (Dungeon Crawler) */}
-          <section className="mb-14 rounded-3xl border-2 border-[#5c5470] bg-[#1c1b2b] p-7 sm:p-9 text-[#f4efe6] shadow-lg relative overflow-hidden">
-            <div className="absolute top-2 right-4 text-7xl opacity-5 select-none pointer-events-none font-mono font-black text-[#f6c945]">
-              PIXEL RPG
-            </div>
+          {/* Pixel RPG Dungeon Banner */}
+          <section className="mb-12 rounded-2xl border border-[#3d395a] bg-[#1c1b2b] p-6 sm:p-8 text-[#f4efe6] shadow-md relative overflow-hidden">
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-              <div className="space-y-3 max-w-2xl">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-[#5a2d91] px-3 py-1 text-xs font-bold text-[#ffe27a]">
-                    โหมดเกมการเรียนรู้ใหม่ · Pixel Dungeon Crawler
-                  </span>
-                  <span className="rounded-full bg-[#2fbf71]/20 border border-[#2fbf71]/50 px-2.5 py-0.5 text-[11px] font-bold text-[#2fbf71]">
-                    เล่นได้ทันที
-                  </span>
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#f6c945]">
-                  ดันเจี้ยนอ่านโค้ด: ตะลุยเขาวงกตพิกเซล ปราบมอนสเตอร์ด้วยคำถาม
+              <div className="space-y-2 max-w-xl">
+                <span className="inline-block rounded-full bg-[#5a2d91] border border-[#9b5de5]/60 px-3 py-1 text-xs font-bold text-[#ffe27a] whitespace-nowrap">
+                  Pixel RPG Dungeon
+                </span>
+                <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#f6c945]">
+                  {t(
+                    "ตะลุยเขาวงกตพิกเซล ปราบมอนสเตอร์ด้วยโค้ด",
+                    "Explore Pixel Mazes & Defeat Monsters with Code"
+                  )}
                 </h2>
-                <p className="text-xs sm:text-sm leading-relaxed text-[#9a93ad]">
-                  เปลี่ยนการฝึกอ่านโค้ดให้เป็นการผจญภัยแนว RPG พิกเซลมุมมอง Top-down!
-                  1 คอร์ส = 1 ดันเจี้ยน, 1 บทเรียน = 1 ห้อง เดินสำรวจ ตอบคำถาม Block Model เพื่อโจมตีมอนสเตอร์
-                  ไขปริศนาเติมโค้ด และปราบบอสท้ายคอร์สเพื่อรับเหรียญรางวัลและตราเกียรติยศ
+                <p className="text-xs sm:text-sm text-[#c4bdd6]">
+                  {t(
+                    "เลือกฮีโร่ 4 คลาส ใช้ Relics & Focus MP แก้ปริศนา Predict / Trace / Modify ครบ 6 ภาษา",
+                    "Pick 1 of 4 Pixel Heroes, use Relics & Focus MP, and conquer Predict / Trace / Modify battles."
+                  )}
                 </p>
-                <div className="flex flex-wrap items-center gap-4 text-xs text-[#e8e1cf]">
-                  <span>• 3 หัวใจต่อรอบ</span>
-                  <span>• มอนสเตอร์และปริศนาโค้ด</span>
-                  <span>• เลือกตัวละครได้ 4 คลาส</span>
-                  <span>• มีโหมดทดลองเล่นฟรี</span>
-                </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row md:flex-col gap-3 w-full md:w-auto shrink-0">
+              <div className="flex flex-wrap md:flex-col gap-2.5 w-full md:w-auto shrink-0">
                 <Link
-                  href="/depths"
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 px-6 py-3.5 text-xs sm:text-sm font-black text-white shadow-md hover:opacity-95 transition-all hover:scale-102"
+                  href="/courses"
+                  className="retro-button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#f6c945] px-5 py-3 text-xs sm:text-sm font-black text-[#120f1c] hover:bg-[#ffe27a] transition-colors"
                 >
-                  <Icon name="shield" className="h-4 w-4" />
-                  <span>เข้าเล่น CODE DEPTHS (Roguelite) →</span>
-                </Link>
-                <Link
-                  href="/dungeon"
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#f6c945] px-6 py-3.5 text-xs sm:text-sm font-black text-[#120f1c] shadow-md hover:bg-[#ffe27a] transition-all hover:scale-102"
-                >
-                  <Icon name="gamepad" className="h-4 w-4" />
-                  <span>ดันเจี้ยนประจำคอร์ส →</span>
+                  <Icon name="gamepad" className="h-4 w-4 shrink-0" />
+                  <span>{t("เข้าสู่ดันเจี้ยน →", "Enter Dungeon →")}</span>
                 </Link>
                 <Link
                   href="/dungeon/trial"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-[#5c5470] bg-[#252238] px-4 py-2 text-xs font-bold text-[#f4efe6] hover:bg-[#322c4a] transition-colors"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-xl border border-[#4a4766] bg-[#252238] px-4 py-2.5 text-xs font-bold text-[#f4efe6] hover:border-[#f6c945]/70 hover:bg-[#322c4a] transition-colors"
                 >
-                  <span>ลองเล่นห้องทดลอง (Guest)</span>
+                  {t("ทดลองเล่น 1 ห้อง", "1-Room Trial")}
                 </Link>
               </div>
             </div>
           </section>
 
-          {/* แนะนำการใช้งานเว็บไซต์ 3 ขั้นตอน */}
-          <section className="rounded-3xl border border-[#e5dfd3] bg-white p-7 sm:p-9 shadow-xs">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-              <div>
-                <h3 className="text-lg sm:text-xl font-extrabold text-[#1e1e1c]">
-                  เริ่มต้นใช้งานเว็บนี้อย่างไร?
-                </h3>
-                <p className="text-xs sm:text-sm text-[#6e6a63]">
-                  ออกแบบมาให้ใช้งานได้ทันทีทั้งผู้เรียนทั่วไป นักเรียนในห้องเรียน และครูผู้สอน
-                </p>
-              </div>
+          {/* Compact 3-Step Guide */}
+          <section className="rounded-2xl border border-[#2f2d45] bg-[#141220] p-6 sm:p-7 shadow-lg">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
+              <h3 className="text-lg font-extrabold text-[#f4efe6]">
+                {t("เริ่มต้นใน 3 ขั้นตอน", "Get Started in 3 Steps")}
+              </h3>
               <div className="flex flex-wrap gap-2">
                 <Link
                   href="/login"
-                  className="rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-3.5 py-2 text-xs font-bold text-[#2a4d3e] hover:bg-[#f2efe8]"
+                  className="whitespace-nowrap rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-4 py-2 text-xs font-bold text-[#f4efe6] hover:border-[#f6c945]/60 hover:bg-[#252238] transition-colors"
                 >
-                  เข้าสู่ระบบ
+                  {t("เข้าสู่ระบบ", "Login")}
                 </Link>
                 <Link
                   href="/login?mode=register"
-                  className="rounded-xl bg-[#2a4d3e] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#1f3b2f]"
+                  className="whitespace-nowrap rounded-xl bg-[#2fbf71] px-4 py-2 text-xs font-extrabold text-[#120f1c] hover:bg-[#34d37d] transition-colors"
                 >
-                  สมัครสมาชิกใหม่
+                  {t("สมัครสมาชิก", "Sign Up")}
                 </Link>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-              <div className="rounded-2xl border border-[#ece7dc] bg-[#faf8f4] p-5">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#2a4d3e] text-xs font-bold text-white">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl border border-[#2f2d45] bg-[#1c1b2b] p-4">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#5a2d91] border border-[#9b5de5]/60 text-xs font-bold text-[#ffe27a]">
                   1
                 </span>
-                <h4 className="mt-3 text-sm font-bold text-[#1e1e1c]">
-                  เลือกโหมดที่ต้องการได้ทันที
+                <h4 className="mt-2.5 text-sm font-bold text-[#f4efe6]">
+                  {t("เลือกภาษาหรือวางโค้ด", "Pick a Language or Paste Code")}
                 </h4>
-                <p className="mt-1.5 text-xs leading-relaxed text-[#524f49]">
-                  ไม่ต้องล็อกอินก็สามารถเข้าดูคอร์สเรียนที่เผยแพร่แล้ว หรือทดลองวางโค้ดให้ระบบอธิบายได้ฟรี (5 ครั้ง/วันสำหรับผู้เยี่ยมชม)
+                <p className="mt-1 text-xs text-[#9a93ad]">
+                  {t(
+                    "เล่นดันเจี้ยนหรือวิเคราะห์โค้ดได้ทันทีโดยไม่ต้องล็อกอิน",
+                    "Jump into any dungeon or code explainer without logging in."
+                  )}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-[#ece7dc] bg-[#faf8f4] p-5">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#2a4d3e] text-xs font-bold text-white">
+              <div className="rounded-2xl border border-[#2f2d45] bg-[#1c1b2b] p-4">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#5a2d91] border border-[#9b5de5]/60 text-xs font-bold text-[#ffe27a]">
                   2
                 </span>
-                <h4 className="mt-3 text-sm font-bold text-[#1e1e1c]">
-                  ล็อกอินเพื่อเก็บประวัติและเรียนต่อ
+                <h4 className="mt-2.5 text-sm font-bold text-[#f4efe6]">
+                  {t("ล็อกอินเก็บ XP และประวัติ", "Log In to Save XP & History")}
                 </h4>
-                <p className="mt-1.5 text-xs leading-relaxed text-[#524f49]">
-                  นักเรียนล็อกอินด้วยชื่อเล่นสมมติ + PIN 4 หลัก เพื่อบันทึกความคืบหน้าแต่ละบทเรียน เรียนต่อจากที่ค้างไว้ และเก็บประวัติการอธิบายโค้ด
+                <p className="mt-1 text-xs text-[#9a93ad]">
+                  {t(
+                    "ใช้ชื่อเล่น + PIN 4 หลักเพื่อสะสม XP ตราเกียรติยศ และเรียนต่อ",
+                    "Use nickname + 4-digit PIN to save XP, badges, and progress."
+                  )}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-[#ece7dc] bg-[#faf8f4] p-5">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#2a4d3e] text-xs font-bold text-white">
+              <div className="rounded-2xl border border-[#2f2d45] bg-[#1c1b2b] p-4">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#5a2d91] border border-[#9b5de5]/60 text-xs font-bold text-[#ffe27a]">
                   3
                 </span>
-                <h4 className="mt-3 text-sm font-bold text-[#1e1e1c]">
-                  ครูสร้างคอร์สและติดตามผลได้เอง
+                <h4 className="mt-2.5 text-sm font-bold text-[#f4efe6]">
+                  {t("ครูสร้างคอร์สและติดตามผล", "Teachers Build & Track Courses")}
                 </h4>
-                <p className="mt-1.5 text-xs leading-relaxed text-[#524f49]">
-                  ครูผู้สอนที่ได้รับอนุมัติสามารถสร้างคอร์สใหม่ เพิ่มบทเรียน Markdown ตัวอย่างโค้ด แบบทดสอบ และดูความคืบหน้าของนักเรียนรายคนได้
+                <p className="mt-1 text-xs text-[#9a93ad]">
+                  {t(
+                    "สร้างบทเรียน แบบทดสอบ และดูพัฒนาการ Block Model ของผู้เรียนได้",
+                    "Create lessons, quizzes, and monitor student Block Model mastery."
+                  )}
                 </p>
               </div>
             </div>
@@ -1194,29 +1156,23 @@ export default function ExplainCodeApp() {
     );
   }
 
-  // ==================== 1. หน้าเข้าสู่ระบบแยกตาม Role: นักเรียน & ครูผู้สอน (สไตล์มินิมอล) ====================
+  // ==================== 1. หน้าเข้าสู่ระบบแยกตาม Role: นักเรียน & ครูผู้สอน ====================
   if (appMode === "student-login" || appMode === "teacher-login") {
     const isTeacherRole = appMode === "teacher-login";
 
     return (
-      <div className="min-h-screen bg-[#eef3f1] flex flex-col">
-        {/* แถบบนมินิมอล */}
-        <header
-          className={`px-6 py-4 flex items-center justify-between transition ${
-            isTeacherRole
-              ? "bg-white border-b-2 border-[#cfe0dc] text-[#0b4f49]"
-              : "bg-[#0b4f49] text-white"
-          }`}
-        >
-          <div className="flex items-center gap-2.5 text-[20px] font-extrabold tracking-tight">
-            <Icon name="code" size={24} />
+      <div className="min-h-screen bg-[#0d0b14] text-[#f4efe6] flex flex-col">
+        {/* แถบบนสไตล์ Dark Dungeon */}
+        <header className="bg-[#141220] border-b border-[#2f2d45] text-[#f4efe6] px-6 py-4 flex items-center justify-between transition">
+          <div className="flex items-center gap-2.5 text-[20px] font-extrabold tracking-tight text-[#ffe27a]">
+            <Icon name="code" size={24} className="text-[#f6c945]" />
             <span>
               โค้ดนี้ฉันอธิบายได้ {isTeacherRole ? "· ครูผู้สอน" : "· นักเรียน"}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="hidden sm:inline text-[13px] font-bold opacity-80">
+            <span className="hidden sm:inline text-[13px] font-bold text-[#9a93ad]">
               สลับบทบาท (Role):
             </span>
             <button
@@ -1226,11 +1182,7 @@ export default function ExplainCodeApp() {
                 setTeacherAuthError("");
                 setAppMode(isTeacherRole ? "student-login" : "teacher-login");
               }}
-              className={`px-4 py-2 rounded-xl text-[13px] font-extrabold flex items-center gap-1.5 transition cursor-pointer ${
-                isTeacherRole
-                  ? "press-teal"
-                  : "bg-white text-[#0b4f49] hover:bg-[#e3f1ee]"
-              }`}
+              className="press-secondary px-4 py-2 rounded-xl text-[13px] font-extrabold flex items-center gap-1.5 transition cursor-pointer"
             >
               <Icon name={isTeacherRole ? "user" : "users"} size={18} />
               <span>
@@ -1241,9 +1193,9 @@ export default function ExplainCodeApp() {
         </header>
 
         <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
-          <div className="bg-white border-2 border-[#cfe0dc] rounded-[24px] p-6 sm:p-8 max-w-[470px] w-full flex flex-col gap-5 shadow-[0_12px_32px_rgba(11,79,73,0.06)]">
-            {/* แถบเลือก Role หลัก (นักเรียน / ครูผู้สอน) มินิมอลเห็นชัด */}
-            <div className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-[#eef3f1] border border-[#cfe0dc]">
+          <div className="bg-[#141220] border-2 border-[#2f2d45] rounded-[24px] p-6 sm:p-8 max-w-[470px] w-full flex flex-col gap-5 shadow-2xl">
+            {/* แถบเลือก Role หลัก (นักเรียน / ครูผู้สอน) */}
+            <div className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-[#1c1b2b] border border-[#2f2d45]">
               <button
                 type="button"
                 onClick={() => {
@@ -1252,8 +1204,8 @@ export default function ExplainCodeApp() {
                 }}
                 className={`py-2.5 px-3 rounded-xl text-[14px] font-extrabold flex items-center justify-center gap-2 transition cursor-pointer ${
                   !isTeacherRole
-                    ? "bg-[#0f766e] text-white shadow-sm"
-                    : "text-[#475b60] hover:text-[#1b2a2f]"
+                    ? "bg-[#5a2d91] text-[#ffe27a] border border-[#f6c945]/75 shadow-sm"
+                    : "text-[#9a93ad] hover:text-[#f4efe6]"
                 }`}
               >
                 <Icon name="user" size={18} />
@@ -1268,8 +1220,8 @@ export default function ExplainCodeApp() {
                 }}
                 className={`py-2.5 px-3 rounded-xl text-[14px] font-extrabold flex items-center justify-center gap-2 transition cursor-pointer ${
                   isTeacherRole
-                    ? "bg-[#0b4f49] text-white shadow-sm"
-                    : "text-[#475b60] hover:text-[#1b2a2f]"
+                    ? "bg-[#5a2d91] text-[#ffe27a] border border-[#f6c945]/75 shadow-sm"
+                    : "text-[#9a93ad] hover:text-[#f4efe6]"
                 }`}
               >
                 <Icon name="users" size={18} />
@@ -1281,12 +1233,12 @@ export default function ExplainCodeApp() {
             {!isTeacherRole && (
               <>
                 <div>
-                  <h1 className="text-[26px] font-extrabold text-[#1b2a2f] tracking-tight">
+                  <h1 className="text-[26px] font-extrabold text-[#f4efe6] tracking-tight">
                     {studentAuthTab === "login"
                       ? "พร้อมลุยเควสต์?"
                       : "สมัครเข้าห้องเรียนใหม่"}
                   </h1>
-                  <p className="text-[14px] text-[#475b60] mt-0.5">
+                  <p className="text-[14px] text-[#9a93ad] mt-0.5">
                     อ่านโค้ดทีละขั้น เก็บ XP และตรา แล้วดูว่าตัวเองเข้าใจโค้ดตรงไหน
                   </p>
                 </div>
@@ -1301,8 +1253,8 @@ export default function ExplainCodeApp() {
                     }}
                     className={`py-2.5 px-3 rounded-xl text-[14px] font-extrabold border-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${
                       studentAuthTab === "login"
-                        ? "bg-[#e3f1ee] border-[#0f766e] text-[#0b4f49]"
-                        : "bg-white border-[#cfe0dc] text-[#475b60]"
+                        ? "bg-[#25193b] border-[#9b5de5] text-[#ffe27a]"
+                        : "bg-[#1c1b2b] border-[#2f2d45] text-[#9a93ad]"
                     }`}
                   >
                     <Icon name="play" size={16} filled={studentAuthTab === "login"} />
@@ -1317,8 +1269,8 @@ export default function ExplainCodeApp() {
                     }}
                     className={`py-2.5 px-3 rounded-xl text-[14px] font-extrabold border-2 transition flex items-center justify-center gap-1.5 cursor-pointer ${
                       studentAuthTab === "register"
-                        ? "bg-[#fff4d6] border-[#f0a92e] text-[#3d2603]"
-                        : "bg-white border-[#cfe0dc] text-[#475b60]"
+                        ? "bg-[#281d08] border-[#f6c945] text-[#ffe27a]"
+                        : "bg-[#1c1b2b] border-[#2f2d45] text-[#9a93ad]"
                     }`}
                   >
                     <Icon name="user" size={16} />
@@ -1330,8 +1282,8 @@ export default function ExplainCodeApp() {
                   <div
                     className={`p-3.5 rounded-xl text-[13px] font-bold border ${
                       authMessage.type === "error"
-                        ? "bg-[#f8d9d4] text-[#7d1d10] border-[#fca5a5]"
-                        : "bg-[#d8efdc] text-[#14532d] border-[#86efac]"
+                        ? "bg-[#2d141c] text-[#fca5a5] border-[#c0283a]"
+                        : "bg-[#102a1e] text-[#86efac] border-[#2fbf71]/50"
                     }`}
                   >
                     {authMessage.text}
@@ -1345,10 +1297,10 @@ export default function ExplainCodeApp() {
                   >
                     <div className="flex flex-col gap-1.5">
                       <div className="flex items-center justify-between">
-                        <label className="text-[14px] font-extrabold text-[#1b2a2f]">
+                        <label className="text-[14px] font-extrabold text-[#f4efe6]">
                           ชื่อเล่นสมมติ
                         </label>
-                        <span className="text-[12px] font-semibold text-[#475b60]">
+                        <span className="text-[12px] font-semibold text-[#9a93ad]">
                           ห้ามใช้ชื่อจริงหรืออีเมล (PDPA)
                         </span>
                       </div>
@@ -1357,12 +1309,12 @@ export default function ExplainCodeApp() {
                         value={loginNickname}
                         onChange={(e) => setLoginNickname(e.target.value)}
                         placeholder="เช่น แมวส้ม"
-                        className="w-full px-4 py-3.5 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[16px] font-bold text-[#1b2a2f] focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                        className="w-full px-4 py-3.5 rounded-xl bg-[#0d0b14] border-2 border-[#2f2d45] text-[16px] font-bold text-[#f4efe6] focus:outline-none focus:border-[#f6c945]"
                       />
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[14px] font-extrabold text-[#1b2a2f]">
+                      <label className="text-[14px] font-extrabold text-[#f4efe6]">
                         รหัส PIN 4 หลัก
                       </label>
                       <input
@@ -1373,14 +1325,14 @@ export default function ExplainCodeApp() {
                         value={loginPin}
                         onChange={(e) => setLoginPin(e.target.value.replace(/\D/g, ""))}
                         placeholder="••••"
-                        className="w-full px-4 py-3.5 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[16px] font-bold text-[#1b2a2f] tracking-widest focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                        className="w-full px-4 py-3.5 rounded-xl bg-[#0d0b14] border-2 border-[#2f2d45] text-[16px] font-bold text-[#f4efe6] tracking-widest focus:outline-none focus:border-[#f6c945]"
                       />
                     </div>
 
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="press-teal disabled:opacity-60 w-full py-4 rounded-2xl text-[18px] font-extrabold flex items-center justify-center gap-2.5 cursor-pointer mt-1"
+                      className="press-gold disabled:opacity-60 w-full py-4 rounded-2xl text-[18px] font-extrabold flex items-center justify-center gap-2.5 cursor-pointer mt-1"
                     >
                       <Icon name="play" size={22} filled />
                       <span>{isSubmitting ? "กำลังตรวจสอบ..." : "เริ่มเล่นเลย"}</span>
@@ -1392,7 +1344,7 @@ export default function ExplainCodeApp() {
                     className="flex flex-col gap-4"
                   >
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[14px] font-extrabold text-[#1b2a2f]">
+                      <label className="text-[14px] font-extrabold text-[#f4efe6]">
                         1. ตั้งชื่อเล่นสมมติของคุณ (PDPA)
                       </label>
                       <input
@@ -1400,29 +1352,29 @@ export default function ExplainCodeApp() {
                         value={loginNickname}
                         onChange={(e) => setLoginNickname(e.target.value)}
                         placeholder="เช่น เสือน้อย, โลมาสีฟ้า"
-                        className="w-full px-4 py-3 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[16px] font-bold text-[#1b2a2f] focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                        className="w-full px-4 py-3 rounded-xl bg-[#0d0b14] border-2 border-[#2f2d45] text-[16px] font-bold text-[#f4efe6] focus:outline-none focus:border-[#f6c945]"
                       />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[14px] font-extrabold text-[#1b2a2f]">
+                        <label className="text-[14px] font-extrabold text-[#f4efe6]">
                           2. ตั้งรหัส PIN 4 หลัก
                         </label>
                         <input
                           type="password"
                           maxLength={4}
-                        inputMode="numeric"
-                        autoComplete="off"
+                          inputMode="numeric"
+                          autoComplete="off"
                           value={loginPin}
                           onChange={(e) => setLoginPin(e.target.value.replace(/\D/g, ""))}
                           placeholder="••••"
-                          className="w-full px-4 py-3 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[16px] font-bold text-[#1b2a2f] tracking-widest focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                          className="w-full px-4 py-3 rounded-xl bg-[#0d0b14] border-2 border-[#2f2d45] text-[16px] font-bold text-[#f4efe6] tracking-widest focus:outline-none focus:border-[#f6c945]"
                         />
                       </div>
 
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[14px] font-extrabold text-[#1b2a2f]">
+                        <label className="text-[14px] font-extrabold text-[#f4efe6]">
                           3. รหัสห้องจากครู
                         </label>
                         <input
@@ -1430,7 +1382,7 @@ export default function ExplainCodeApp() {
                           value={signupRoomCode}
                           onChange={(e) => setSignupRoomCode(e.target.value)}
                           placeholder="เช่น ABC123"
-                          className="w-full px-4 py-3 rounded-xl bg-[#fff4d6]/60 border-2 border-[#f0a92e] font-code font-extrabold text-[16px] text-[#3d2603] focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                          className="w-full px-4 py-3 rounded-xl bg-[#281d08] border-2 border-[#f6c945] font-code font-extrabold text-[16px] text-[#ffe27a] focus:outline-none focus:border-[#ffe27a]"
                         />
                       </div>
                     </div>
@@ -1447,7 +1399,7 @@ export default function ExplainCodeApp() {
                 )}
 
                 {/* แถบเลือกบัญชีตัวอย่างคลิกเดียวเข้าเล่น */}
-                <div className="pt-2 border-t border-[#cfe0dc] flex flex-wrap items-center justify-center gap-1.5 text-[12px] text-[#475b60]">
+                <div className="pt-2 border-t border-[#2f2d45] flex flex-wrap items-center justify-center gap-1.5 text-[12px] text-[#9a93ad]">
                   <span className="font-bold">บัญชีนักเรียนตัวอย่าง (PIN 1234):</span>
                   {students.slice(0, 4).map((s) => (
                     <button
@@ -1461,8 +1413,8 @@ export default function ExplainCodeApp() {
                       className={`px-2.5 py-1 rounded-lg font-extrabold transition cursor-pointer ${
                         loginNickname === s.nickname &&
                         studentAuthTab === "login"
-                          ? "bg-[#0b4f49] text-white"
-                          : "bg-[#e3f1ee] text-[#0b4f49] hover:bg-[#cfe0dc]"
+                          ? "bg-[#5a2d91] text-[#ffe27a] border border-[#f6c945]/75"
+                          : "bg-[#1c1b2b] text-[#c4bdd6] border border-[#2f2d45] hover:border-[#f6c945]/60 hover:text-[#f4efe6]"
                       }`}
                     >
                       {s.nickname}
@@ -1476,12 +1428,12 @@ export default function ExplainCodeApp() {
             {isTeacherRole && (
               <>
                 <div>
-                  <h1 className="text-[24px] font-extrabold text-[#1b2a2f]">
+                  <h1 className="text-[24px] font-extrabold text-[#f4efe6]">
                     {teacherAuthTab === "login"
                       ? "เข้าสู่ระบบสำหรับครู"
                       : "สมัครบัญชีครูผู้สอนใหม่"}
                   </h1>
-                  <p className="text-[13px] font-semibold text-[#475b60] mt-0.5">
+                  <p className="text-[13px] font-semibold text-[#9a93ad] mt-0.5">
                     สร้างห้องเรียน ดูแผนที่ Block Model เฉลี่ยทั้งห้อง และปรับการสอน
                   </p>
                 </div>
@@ -1495,8 +1447,8 @@ export default function ExplainCodeApp() {
                     }}
                     className={`py-2.5 px-3 rounded-xl text-[14px] font-extrabold border-2 transition cursor-pointer ${
                       teacherAuthTab === "login"
-                        ? "bg-[#e3f1ee] border-[#0f766e] text-[#0b4f49]"
-                        : "bg-white border-[#cfe0dc] text-[#475b60]"
+                        ? "bg-[#25193b] border-[#9b5de5] text-[#ffe27a]"
+                        : "bg-[#1c1b2b] border-[#2f2d45] text-[#9a93ad]"
                     }`}
                   >
                     เข้าสู่ระบบครู
@@ -1510,8 +1462,8 @@ export default function ExplainCodeApp() {
                     }}
                     className={`py-2.5 px-3 rounded-xl text-[14px] font-extrabold border-2 transition cursor-pointer ${
                       teacherAuthTab === "register"
-                        ? "bg-[#fff4d6] border-[#f0a92e] text-[#3d2603]"
-                        : "bg-white border-[#cfe0dc] text-[#475b60]"
+                        ? "bg-[#281d08] border-[#f6c945] text-[#ffe27a]"
+                        : "bg-[#1c1b2b] border-[#2f2d45] text-[#9a93ad]"
                     }`}
                   >
                     สมัครบัญชีครูใหม่
@@ -1519,7 +1471,7 @@ export default function ExplainCodeApp() {
                 </div>
 
                 {teacherAuthError && (
-                  <div className="p-3 rounded-xl bg-[#f8d9d4] text-[#7d1d10] border border-[#fca5a5] text-[13px] font-bold">
+                  <div className="p-3 rounded-xl bg-[#2d141c] text-[#fca5a5] border border-[#c0283a] text-[13px] font-bold">
                     {teacherAuthError}
                   </div>
                 )}
@@ -1533,7 +1485,7 @@ export default function ExplainCodeApp() {
                   className="flex flex-col gap-4"
                 >
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[14px] font-extrabold text-[#1b2a2f]">
+                    <label className="text-[14px] font-extrabold text-[#f4efe6]">
                       ชื่อผู้ใช้ (ครู)
                     </label>
                     <input
@@ -1542,13 +1494,13 @@ export default function ExplainCodeApp() {
                       autoComplete="username"
                       onChange={(e) => setTeacherUsername(e.target.value)}
                       placeholder="เช่น ครูตัวอย่าง"
-                      className="w-full px-4 py-3 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[15px] font-bold text-[#1b2a2f] focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                      className="w-full px-4 py-3 rounded-xl bg-[#0d0b14] border-2 border-[#2f2d45] text-[15px] font-bold text-[#f4efe6] focus:outline-none focus:border-[#f6c945]"
                     />
                   </div>
 
                   {teacherAuthTab === "register" && (
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[14px] font-extrabold text-[#1b2a2f]">
+                      <label className="text-[14px] font-extrabold text-[#f4efe6]">
                         ชื่อที่แสดงในระบบ
                       </label>
                       <input
@@ -1556,13 +1508,13 @@ export default function ExplainCodeApp() {
                         value={teacherDisplayName}
                         onChange={(e) => setTeacherDisplayName(e.target.value)}
                         placeholder="เช่น ครูสมศรี (วิทยาการคำนวณ)"
-                        className="w-full px-4 py-3 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[15px] font-bold text-[#1b2a2f] focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                        className="w-full px-4 py-3 rounded-xl bg-[#0d0b14] border-2 border-[#2f2d45] text-[15px] font-bold text-[#f4efe6] focus:outline-none focus:border-[#f6c945]"
                       />
                     </div>
                   )}
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[14px] font-extrabold text-[#1b2a2f]">
+                    <label className="text-[14px] font-extrabold text-[#f4efe6]">
                       รหัสผ่าน
                     </label>
                     <div className="relative">
@@ -1576,19 +1528,19 @@ export default function ExplainCodeApp() {
                         }
                         onChange={(e) => setTeacherPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full pl-4 pr-20 py-3 rounded-xl bg-[#f8fbfa] border-2 border-[#b6c9c5] text-[15px] font-bold text-[#1b2a2f] focus:bg-white focus:outline-none focus:border-[#0f766e]"
+                        className="w-full pl-4 pr-20 py-3 rounded-xl bg-[#0d0b14] border-2 border-[#2f2d45] text-[15px] font-bold text-[#f4efe6] focus:outline-none focus:border-[#f6c945]"
                       />
                       <button
                         type="button"
                         onClick={() => setShowSecret((v) => !v)}
                         aria-label={showSecret ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg text-[12px] font-extrabold text-[#0b4f49] bg-[#e3f1ee] hover:bg-[#cfe0dc] cursor-pointer"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg text-[12px] font-extrabold text-[#ffe27a] bg-[#252238] border border-[#3d395a] hover:border-[#f6c945] cursor-pointer"
                       >
                         {showSecret ? "ซ่อน" : "แสดง"}
                       </button>
                     </div>
                     {teacherAuthTab === "register" && (
-                      <p className="text-[12px] font-semibold text-[#475b60]">
+                      <p className="text-[12px] font-semibold text-[#9a93ad]">
                         ตั้งรหัสผ่านอย่างน้อย 4 ตัวอักษร
                       </p>
                     )}
@@ -1612,10 +1564,10 @@ export default function ExplainCodeApp() {
                   </button>
                 </form>
 
-                <p className="text-[12px] font-semibold text-[#475b60] leading-relaxed text-center">
+                <p className="text-[12px] font-semibold text-[#9a93ad] leading-relaxed text-center">
                   หน้านี้แสดงเฉพาะชื่อเล่นสมมติและคะแนน ไม่แสดงข้อมูลส่วนบุคคลจริงของนักเรียน
                 </p>
-                <div className="pt-2 border-t border-[#cfe0dc] flex items-center justify-center gap-2 text-[12px] text-[#475b60]">
+                <div className="pt-2 border-t border-[#2f2d45] flex items-center justify-center gap-2 text-[12px] text-[#9a93ad]">
                   <span className="font-bold">บัญชีทดสอบ:</span>
                   <button
                     type="button"
@@ -1625,7 +1577,7 @@ export default function ExplainCodeApp() {
                       setTeacherUsername("ครูตัวอย่าง");
                       setTeacherPassword("12345678");
                     }}
-                    className="px-2.5 py-1 rounded-lg font-extrabold bg-[#e3f1ee] text-[#0b4f49] hover:bg-[#cfe0dc] cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg font-extrabold bg-[#1c1b2b] border border-[#3d395a] text-[#ffe27a] hover:border-[#f6c945] cursor-pointer"
                   >
                     ใช้บัญชีครูตัวอย่าง
                   </button>
@@ -1678,53 +1630,28 @@ export default function ExplainCodeApp() {
     .filter((c) => (currentStudent.cellScores[c.id] ?? 0) < 60)
     .reverse();
 
-  if (studentTab === "dungeon") {
-    return (
-      <DungeonRunScreen
-        onBackToPortal={() => setStudentTab("quest")}
-        onRecordAttempt={(summary) => {
-          if (currentStudent) {
-            setStudents((prev) =>
-              prev.map((s) => {
-                if (s.id !== currentStudent.id) return s;
-                return {
-                  ...s,
-                  xp: s.xp + summary.earnedXp,
-                  cellScores: {
-                    ...s.cellScores,
-                    ...summary.cellScores,
-                  },
-                };
-              })
-            );
-          }
-        }}
-      />
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-[#eef3f1] text-[#1b2a2f] flex flex-col">
-      {/* แถบบนสีเขียวเข้ม #0b4f49 ตาม Design System */}
-      <header className="bg-[#0b4f49] text-white sticky top-0 z-30">
+    <div className="min-h-screen bg-[#0d0b14] text-[#f4efe6] flex flex-col">
+      {/* แถบบนสไตล์ Dark Dungeon */}
+      <header className="bg-[#141220] border-b border-[#2f2d45] text-[#f4efe6] sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <button
               type="button"
               onClick={() => setAppMode("landing")}
-              className="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-[12px] font-bold cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-[#1c1b2b] border border-[#3d395a] hover:border-[#f6c945]/60 text-[12px] font-bold text-[#f4efe6] cursor-pointer"
             >
               ← หน้าแรก
             </button>
             <button
               type="button"
               onClick={() => setStudentTab("quest")}
-              className="text-[20px] font-extrabold tracking-tight flex items-center gap-2 cursor-pointer"
+              className="text-[20px] font-extrabold tracking-tight text-[#ffe27a] flex items-center gap-2 cursor-pointer"
             >
-              <Icon name="code" size={24} />
+              <Icon name="code" size={24} className="text-[#f6c945]" />
               <span>โค้ดนี้ฉันอธิบายได้</span>
             </button>
-            <span className="px-2.5 py-0.5 rounded-full bg-[#0f766e] border border-white/20 text-[12px] font-extrabold">
+            <span className="px-2.5 py-0.5 rounded-full bg-[#25193b] border border-[#9b5de5]/60 text-[#e9d5ff] text-[12px] font-extrabold">
               นักเรียน: {currentStudent.nickname} (ห้อง {currentStudent.roomCode})
             </span>
           </div>
@@ -1734,7 +1661,6 @@ export default function ExplainCodeApp() {
             {[
               { id: "quest" as StudentTab, label: "เส้นทางเควสต์", icon: "route" as const },
               { id: "practice" as StudentTab, label: "ฝึกอ่านโค้ด", icon: "play" as const },
-              { id: "dungeon" as StudentTab, label: "ดันเจี้ยน Code Depths", icon: "shield" as const },
               { id: "learn" as StudentTab, label: "Block Model", icon: "book" as const },
               { id: "profile" as StudentTab, label: "โปรไฟล์", icon: "user" as const },
               { id: "ailog" as StudentTab, label: "บันทึก AI", icon: "clipboard" as const },
@@ -1747,8 +1673,8 @@ export default function ExplainCodeApp() {
                   onClick={() => setStudentTab(tab.id)}
                   className={`px-3 py-1.5 rounded-xl text-[13px] font-extrabold flex items-center gap-1.5 transition cursor-pointer ${
                     active
-                      ? "bg-[#f6b73c] text-[#3d2603] shadow-[0_2px_0_#b97a0c]"
-                      : "bg-white/10 hover:bg-white/20 text-white"
+                      ? "bg-[#5a2d91] text-[#ffe27a] border border-[#f6c945]/80"
+                      : "bg-[#1c1b2b] hover:bg-[#252238] text-[#c4bdd6] border border-[#2f2d45]"
                   }`}
                 >
                   <Icon name={tab.icon} size={17} />
@@ -1760,7 +1686,7 @@ export default function ExplainCodeApp() {
 
           {/* แถบ XP, สตรีค และปุ่มออกจากระบบ */}
           <div className="flex items-center gap-2">
-            <div className="px-3 py-1 rounded-xl bg-[#fff4d6] text-[#3d2603] text-[13px] font-extrabold flex items-center gap-1.5">
+            <div className="px-3 py-1 rounded-xl bg-[#281d08] border border-[#f6c945]/60 text-[#ffe27a] text-[13px] font-extrabold flex items-center gap-1.5">
               <Icon name="star" size={16} filled />
               <span>
                 Lv.{studentLevel} · {currentStudent.xp} XP
@@ -1768,7 +1694,7 @@ export default function ExplainCodeApp() {
             </div>
 
             <div
-              className="px-2.5 py-1 rounded-xl bg-white/15 text-[#f6b73c] text-[13px] font-extrabold flex items-center gap-1"
+              className="px-2.5 py-1 rounded-xl bg-[#1c1b2b] border border-[#3d395a] text-[#f6c945] text-[13px] font-extrabold flex items-center gap-1"
               title="สตรีคการฝึกต่อเนื่อง"
             >
               <Icon name="flame" size={16} filled />
@@ -1778,7 +1704,7 @@ export default function ExplainCodeApp() {
             <button
               type="button"
               onClick={handleLogout}
-              className="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-[12px] font-extrabold flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-[#1c1b2b] hover:bg-[#2d141c] border border-[#3d395a] hover:border-[#c0283a] text-[#f4efe6] hover:text-[#fca5a5] text-[12px] font-extrabold flex items-center gap-1.5 cursor-pointer"
               title="ออกจากระบบหรือสลับบทบาท"
             >
               <Icon name="logout" size={16} />
@@ -1789,24 +1715,24 @@ export default function ExplainCodeApp() {
       </header>
 
       <main className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 flex-1 flex flex-col gap-6">
-        {/* ==================== TAB 1: เส้นทางเควสต์ (หน้าแรกนักเรียน สไตล์มินิมอล ปุ่มเล่นชัดเจน) ==================== */}
+        {/* ==================== TAB 1: เส้นทางเควสต์ ==================== */}
         {studentTab === "quest" && (
           <div className="flex flex-col gap-6">
-            {/* การ์ดเควสต์ประจำวัน + คำแนะนำทบทวนจากครู (ปุ่มกดเล่นเด่นชัด) */}
+            {/* การ์ดเควสต์ประจำวัน + คำแนะนำทบทวนจากครู */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <div className="lg:col-span-7 bg-[#fff4d6] border-2 border-[#f0a92e] rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="lg:col-span-7 bg-[#281d08] border-2 border-[#f6c945]/70 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-start gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-[#f6b73c] border-2 border-[#b97a0c] text-[#3d2603] flex items-center justify-center shrink-0">
+                  <div className="w-12 h-12 rounded-2xl bg-[#f6c945] border-2 border-[#b8860b] text-[#120f1c] flex items-center justify-center shrink-0">
                     <Icon name="target" size={24} />
                   </div>
                   <div>
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#3d2603] text-[#fff4d6] text-[11px] font-extrabold">
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#120f1c] border border-[#f6c945]/50 text-[#ffe27a] text-[11px] font-extrabold">
                       เควสต์ประจำวัน · โบนัส +30 XP
                     </span>
-                    <h3 className="text-[18px] font-extrabold text-[#3d2603] mt-1">
+                    <h3 className="text-[18px] font-extrabold text-[#f4efe6] mt-1">
                       ฝึกอ่านโค้ดและตอบคำถามช่องการทำงานจริง (E1–E4)
                     </h3>
-                    <p className="text-[13px] font-semibold text-[#5c3704] mt-0.5">
+                    <p className="text-[13px] font-semibold text-[#ffe27a]/90 mt-0.5">
                       สะสม XP จากความเข้าใจโดยตรง ไม่คิดคะแนนจากความเร็ว
                     </p>
                   </div>
@@ -1822,7 +1748,7 @@ export default function ExplainCodeApp() {
                     setSelectedTopicId(nextTopicId);
                     setStudentTab("practice");
                   }}
-                  className="press-teal px-6 py-3.5 rounded-xl text-[15px] font-extrabold flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                  className="press-gold px-6 py-3.5 rounded-xl text-[15px] font-extrabold flex items-center justify-center gap-2 cursor-pointer shrink-0"
                 >
                   <Icon name="play" size={18} filled />
                   <span>เริ่มเล่นเควสต์วันนี้</span>
@@ -1830,21 +1756,21 @@ export default function ExplainCodeApp() {
               </div>
 
               {/* การ์ดเรื่องที่ครูปักหมุดให้ทบทวนประจำห้อง */}
-              <div className="lg:col-span-5 bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 flex flex-col justify-between gap-3">
+              <div className="lg:col-span-5 bg-[#141220] border-2 border-[#2f2d45] rounded-2xl p-5 flex flex-col justify-between gap-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="text-[12px] font-extrabold text-[#0f766e]">
+                    <span className="text-[12px] font-extrabold text-[#ffe27a]">
                       คำแนะนำจากครู ({currentStudentRoom?.roomName || currentStudent.roomCode})
                     </span>
-                    <h4 className="text-[16px] font-extrabold text-[#1b2a2f] mt-0.5">
+                    <h4 className="text-[16px] font-extrabold text-[#f4efe6] mt-0.5">
                       {TOPICS.find(
                         (t) => t.id === currentStudentRoom?.pinnedReviewTopicId
                       )?.title || "เรื่องที่ 4 · วนซ้ำ while"}
                     </h4>
                   </div>
-                  <Icon name="bulb" size={22} className="text-[#f0a92e] shrink-0" />
+                  <Icon name="bulb" size={22} className="text-[#f6c945] shrink-0" />
                 </div>
-                <p className="text-[13px] text-[#475b60]">
+                <p className="text-[13px] text-[#9a93ad]">
                   {currentStudentRoom?.pinnedReviewNote ||
                     "ฝึกเดินโค้ดดูค่าตัวแปรและเงื่อนไขการหยุดลูป"}
                 </p>
@@ -1864,46 +1790,14 @@ export default function ExplainCodeApp() {
               </div>
             </div>
 
-            {/* การ์ดโหมดใหม่: CODE DEPTHS ดันเจี้ยนแห่งการเข้าใจ (Roguelite Prototype) */}
-            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-2 border-indigo-500/50 rounded-2xl p-5 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center font-black text-xl shadow-lg shadow-indigo-500/30 shrink-0">
-                  CD
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-300 border border-indigo-400/40">
-                      โหมดใหม่ล่าสุด · Roguelite Mode
-                    </span>
-                    <span className="text-[11px] font-mono text-emerald-400">
-                      พร้อมให้ทดลองเล่น
-                    </span>
-                  </div>
-                  <h3 className="text-[18px] font-extrabold mt-1">
-                    CODE DEPTHS : ดันเจี้ยนแห่งการเข้าใจ
-                  </h3>
-                  <p className="text-[13px] text-slate-300 mt-0.5">
-                    &ldquo;AI ประกอบมนตร์ให้คุณได้ แต่คุณต้องเข้าใจมนตร์ก่อนร่าย&rdquo; — นำเข้าโค้ดของคุณเพื่อสร้างดันเจี้ยน 5 ชั้น เผชิญหน้ากับ Trace Slime, Off-by-one Bat และบอส The Core!
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setStudentTab("dungeon")}
-                className="px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-400 hover:to-pink-400 text-white font-extrabold text-[14px] shadow-lg shadow-indigo-500/25 shrink-0 transition transform hover:-translate-y-0.5 cursor-pointer"
-              >
-                เข้าสู่ดันเจี้ยนโค้ด -&gt;
-              </button>
-            </div>
-
-            {/* เส้นทางเควสต์ 7 เรื่อง (ชุดโค้ดแยกตามเรื่อง 7 เรื่อง ดีไซน์มินิมอล ปุ่มเล่นเต็มการ์ด) */}
-            <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 sm:p-6 flex flex-col gap-5">
+            {/* เส้นทางเควสต์ 7 เรื่อง */}
+            <div className="bg-[#141220] border-2 border-[#2f2d45] rounded-2xl p-5 sm:p-6 flex flex-col gap-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-[24px] font-extrabold text-[#1b2a2f]">
+                  <h2 className="text-[24px] font-extrabold text-[#f4efe6]">
                     เส้นทางเควสต์ 7 เรื่อง
                   </h2>
-                  <p className="text-[14px] font-semibold text-[#475b60]">
+                  <p className="text-[14px] font-semibold text-[#9a93ad]">
                     ผ่านแล้ว {currentStudent.completedTopics.length}/7 เรื่อง · บอสด่านเปิดเมื่อผ่านอย่างน้อย 4 เรื่อง
                   </p>
                 </div>
@@ -1913,7 +1807,7 @@ export default function ExplainCodeApp() {
                   onClick={() => setUnlockAllDemo(!unlockAllDemo)}
                   className={`px-4 py-2 rounded-xl text-[13px] font-extrabold border-2 transition cursor-pointer ${
                     unlockAllDemo
-                      ? "bg-[#d8efdc] border-[#14532d] text-[#14532d]"
+                      ? "bg-[#102a1e] border-[#2fbf71] text-[#86efac]"
                       : "press-secondary"
                   }`}
                 >
@@ -1937,13 +1831,13 @@ export default function ExplainCodeApp() {
                       className={`rounded-2xl border-2 p-5 flex flex-col justify-between gap-4 transition ${
                         isBoss
                           ? unlocked
-                            ? "bg-[#6d3fc0]/5 border-[#6d3fc0] md:col-span-2 lg:col-span-3"
-                            : "bg-[#eef3f1] border-[#cfe0dc] md:col-span-2 lg:col-span-3 opacity-85"
+                            ? "bg-[#25193b] border-[#9b5de5] md:col-span-2 lg:col-span-3"
+                            : "bg-[#1c1b2b] border-[#2f2d45] md:col-span-2 lg:col-span-3 opacity-80"
                           : isPassed
-                          ? "bg-[#f4faf8] border-[#0f766e]"
+                          ? "bg-[#102a1e]/60 border-[#2fbf71]/60"
                           : unlocked
-                          ? "bg-white border-[#f0a92e] shadow-sm"
-                          : "bg-[#eef3f1] border-[#cfe0dc] opacity-80"
+                          ? "bg-[#1c1b2b] border-[#f6c945]/75 shadow-sm"
+                          : "bg-[#161426] border-[#2f2d45] opacity-75"
                       }`}
                     >
                       <div className="flex items-start gap-3.5">
@@ -1968,12 +1862,12 @@ export default function ExplainCodeApp() {
                             <span
                               className={`px-2.5 py-0.5 rounded-full text-[12px] font-extrabold ${
                                 isBoss
-                                  ? "bg-[#6d3fc0] text-white"
+                                  ? "bg-[#5a2d91] text-[#ffe27a] border border-[#9b5de5]"
                                   : isPassed
-                                  ? "bg-[#d8efdc] text-[#14532d]"
+                                  ? "bg-[#102a1e] text-[#86efac] border border-[#2fbf71]/50"
                                   : unlocked
-                                  ? "bg-[#fff4d6] text-[#3d2603]"
-                                  : "bg-[#d8e3e0] text-[#475b60]"
+                                  ? "bg-[#281d08] text-[#ffe27a] border border-[#f6c945]/50"
+                                  : "bg-[#252238] text-[#9a93ad]"
                               }`}
                             >
                               {isPassed
@@ -1987,23 +1881,23 @@ export default function ExplainCodeApp() {
                                 : "ล็อก"}
                             </span>
 
-                            <span className="text-[12px] font-bold text-[#475b60]">
+                            <span className="text-[12px] font-bold text-[#9a93ad]">
                               ช่อง{" "}
                               {topic.questions.map((q) => q.cellId).join(", ")}
                             </span>
                           </div>
 
-                          <h3 className="text-[18px] font-extrabold text-[#1b2a2f] mt-1.5">
+                          <h3 className="text-[18px] font-extrabold text-[#f4efe6] mt-1.5">
                             {topic.title}
                           </h3>
-                          <p className="text-[14px] text-[#475b60] mt-0.5">
+                          <p className="text-[14px] text-[#9a93ad] mt-0.5">
                             {topic.subtitle}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#cfe0dc]">
-                        <span className="text-[13px] font-extrabold text-[#0b4f49] flex items-center gap-1.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#2f2d45]">
+                        <span className="text-[13px] font-extrabold text-[#ffe27a] flex items-center gap-1.5">
                           <Icon name="shield" size={16} />
                           <span>ตรา: {topic.badgeReward.name}</span>
                         </span>
@@ -2060,37 +1954,37 @@ export default function ExplainCodeApp() {
         {/* ==================== TAB 3: หน้าอธิบาย Block Model 12 ช่อง & ทดลองรันโค้ดจริง ==================== */}
         {studentTab === "learn" && (
           <div className="flex flex-col gap-6">
-            <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-6 flex flex-col gap-4">
-              <h2 className="text-[24px] font-extrabold text-[#1b2a2f] flex items-center gap-2">
-                <Icon name="book" size={24} className="text-[#0f766e]" />
+            <div className="bg-[#141220] border-2 border-[#2f2d45] rounded-2xl p-6 flex flex-col gap-4">
+              <h2 className="text-[24px] font-extrabold text-[#f4efe6] flex items-center gap-2">
+                <Icon name="book" size={24} className="text-[#f6c945]" />
                 <span>รู้จัก Block Model 12 ช่อง และวิธีเรียน 4 ขั้น (PRIMM)</span>
               </h2>
-              <p className="text-[15px] text-[#475b60]">
-                เวลาเราสั่ง AI ให้เขียนโค้ดให้ การจะบอกว่าเรา &ldquo;เข้าใจโค้ดนั้นจริง&rdquo; ไม่ใช่แค่อ่านออกทีละคำ แต่ต้องเข้าใจครบทั้ง <strong>3 มิติ</strong> ในทุกระดับของโค้ด ตั้งแต่บรรทัดเดี่ยวไปจนถึงภาพรวมทั้งโปรแกรม รวมเป็น <strong>12 ช่องของ Block Model</strong>
+              <p className="text-[15px] text-[#9a93ad]">
+                เวลาเราสั่ง AI ให้เขียนโค้ดให้ การจะบอกว่าเรา &ldquo;เข้าใจโค้ดนั้นจริง&rdquo; ไม่ใช่แค่อ่านออกทีละคำ แต่ต้องเข้าใจครบทั้ง <strong className="text-[#f4efe6]">3 มิติ</strong> ในทุกระดับของโค้ด ตั้งแต่บรรทัดเดี่ยวไปจนถึงภาพรวมทั้งโปรแกรม รวมเป็น <strong className="text-[#ffe27a]">12 ช่องของ Block Model</strong>
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-1">
-                <div className="p-4 rounded-xl bg-[#e3f1ee] border border-[#0f766e]/40">
-                  <div className="text-[15px] font-extrabold text-[#0b4f49]">
+                <div className="p-4 rounded-xl bg-[#25193b] border border-[#9b5de5]/60">
+                  <div className="text-[15px] font-extrabold text-[#e9d5ff]">
                     มิติที่ 1 · โครงสร้างโค้ด (Text Surface: T1–T4)
                   </div>
-                  <p className="text-[14px] text-[#1b2a2f] mt-1">
+                  <p className="text-[14px] text-[#f4efe6]/90 mt-1">
                     อ่านไวยากรณ์ เครื่องหมาย ขอบเขตบล็อก `if/else`, ลูป `for/while` และการเชื่อมโยงพารามิเตอร์ออกอย่างถูกต้อง
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-[#fff4d6] border border-[#f0a92e]">
-                  <div className="text-[15px] font-extrabold text-[#3d2603]">
+                <div className="p-4 rounded-xl bg-[#281d08] border border-[#f6c945]/60">
+                  <div className="text-[15px] font-extrabold text-[#ffe27a]">
                     มิติที่ 2 · การทำงานเมื่อรันจริง (Execution: E1–E4)
                   </div>
-                  <p className="text-[14px] text-[#3d2603] mt-1">
+                  <p className="text-[14px] text-[#f4efe6]/90 mt-1">
                     แกะรอยได้ว่าเมื่อรันจริง โค้ดเดินไปบรรทัดไหนบ้าง ค่าตัวแปรเปลี่ยนเป็นเท่าไหร่ และพิมพ์ผลลัพธ์อะไรออกมา
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-[#d8efdc] border border-[#86efac]">
-                  <div className="text-[15px] font-extrabold text-[#14532d]">
+                <div className="p-4 rounded-xl bg-[#102a1e] border border-[#2fbf71]/60">
+                  <div className="text-[15px] font-extrabold text-[#86efac]">
                     มิติที่ 3 · หน้าที่และเป้าหมาย (Function: F1–F4)
                   </div>
-                  <p className="text-[14px] text-[#14532d] mt-1">
+                  <p className="text-[14px] text-[#f4efe6]/90 mt-1">
                     อธิบายได้ว่าแต่ละบรรทัด แต่ละบล็อก และทั้งโปรแกรมมีไว้ทำไม แก้ปัญหาอะไร และตรวจจับบั๊กที่ขัดกับเป้าหมายได้
                   </p>
                 </div>
@@ -2107,13 +2001,13 @@ export default function ExplainCodeApp() {
             />
 
             {/* กล่องทดลองวางโค้ด JavaScript จาก AI เพื่อรันจริง */}
-            <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-6 flex flex-col gap-4">
+            <div className="bg-[#141220] border-2 border-[#2f2d45] rounded-2xl p-6 flex flex-col gap-4">
               <div>
-                <h3 className="text-[18px] font-extrabold text-[#1b2a2f] flex items-center gap-2">
-                  <Icon name="code" size={20} className="text-[#0f766e]" />
+                <h3 className="text-[18px] font-extrabold text-[#f4efe6] flex items-center gap-2">
+                  <Icon name="code" size={20} className="text-[#f6c945]" />
                   <span>ห้องทดลองรันโค้ด JavaScript จริง (ตรวจสอบโค้ดที่ AI เขียนให้)</span>
                 </h3>
-                <p className="text-[13px] font-semibold text-[#475b60]">
+                <p className="text-[13px] font-semibold text-[#9a93ad]">
                   วางโค้ด JavaScript ที่คุณได้มาจาก AI แล้วกดรันจริงเพื่อดูผลลัพธ์จาก console.log โดยไม่ใช้การเดา
                 </p>
               </div>
@@ -2122,7 +2016,7 @@ export default function ExplainCodeApp() {
                 rows={6}
                 value={playgroundCode}
                 onChange={(e) => setPlaygroundCode(e.target.value)}
-                className="w-full p-4 rounded-xl bg-[#eef3f1] border-2 border-[#b6c9c5] font-code font-bold text-[#1b2a2f]"
+                className="w-full p-4 rounded-xl bg-[#0d0b14] border-2 border-[#2f2d45] font-code font-bold text-[#f4efe6]"
               />
 
               <div className="flex items-center gap-3">
@@ -2136,7 +2030,7 @@ export default function ExplainCodeApp() {
                         : `ข้อผิดพลาด: ${res.error}`
                     );
                   }}
-                  className="press-teal px-5 py-2.5 rounded-xl text-[14px] font-extrabold flex items-center gap-2 cursor-pointer"
+                  className="press-gold px-5 py-2.5 rounded-xl text-[14px] font-extrabold flex items-center gap-2 cursor-pointer"
                 >
                   <Icon name="play" size={18} />
                   <span>รันโค้ดจริง</span>
@@ -2144,9 +2038,9 @@ export default function ExplainCodeApp() {
               </div>
 
               {playgroundOutput && (
-                <div className="p-4 rounded-xl bg-[#d8efdc] border-2 border-[#86efac] text-[#14532d]">
+                <div className="p-4 rounded-xl bg-[#102a1e] border-2 border-[#2fbf71]/50 text-[#86efac]">
                   <div className="text-[13px] font-extrabold">ผลลัพธ์จากการรันโค้ดจริง:</div>
-                  <pre className="font-code font-extrabold text-[16px] mt-1">
+                  <pre className="font-code font-extrabold text-[16px] mt-1 !bg-transparent !border-0 !p-0">
                     {playgroundOutput}
                   </pre>
                 </div>
@@ -2155,23 +2049,23 @@ export default function ExplainCodeApp() {
           </div>
         )}
 
-        {/* ==================== TAB 4: โปรไฟล์นักเรียน (ตามโฟลขั้นที่ 7) ==================== */}
+        {/* ==================== TAB 4: โปรไฟล์นักเรียน ==================== */}
         {studentTab === "profile" && (
           <div className="flex flex-col gap-6">
             {/* การ์ดข้อมูลสรุปนักเรียน */}
-            <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
+            <div className="bg-[#141220] border-2 border-[#2f2d45] rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <StatusCircle variant="badge" size="lg" label="โปรไฟล์นักเรียน" />
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-[24px] font-extrabold text-[#1b2a2f]">
+                    <h2 className="text-[24px] font-extrabold text-[#f4efe6]">
                       โปรไฟล์ของ {currentStudent.nickname}
                     </h2>
-                    <span className="px-3 py-0.5 rounded-full bg-[#e3f1ee] text-[#0b4f49] text-[13px] font-extrabold">
+                    <span className="px-3 py-0.5 rounded-full bg-[#25193b] border border-[#9b5de5]/60 text-[#e9d5ff] text-[13px] font-extrabold">
                       รหัสห้อง {currentStudent.roomCode}
                     </span>
                   </div>
-                  <p className="text-[14px] font-semibold text-[#475b60] mt-0.5">
+                  <p className="text-[14px] font-semibold text-[#9a93ad] mt-0.5">
                     เลเวล {studentLevel} · สะสม {currentStudent.xp} XP · ต่อเนื่อง {currentStudent.streak} วัน · ผ่านแล้ว{" "}
                     {currentStudent.completedTopics.length}/7 เรื่อง · ความเข้าใจเฉลี่ย{" "}
                     {studentAvgMastery}% ({getMasteryStatus(studentAvgMastery).label})
@@ -2182,7 +2076,7 @@ export default function ExplainCodeApp() {
               <button
                 type="button"
                 onClick={() => setStudentTab("quest")}
-                className="press-teal px-4 py-2.5 rounded-xl text-[14px] font-extrabold flex items-center gap-2 cursor-pointer"
+                className="press-gold px-4 py-2.5 rounded-xl text-[14px] font-extrabold flex items-center gap-2 cursor-pointer"
               >
                 <Icon name="route" size={18} />
                 <span>ไปฝึกเรื่องถัดไป</span>
@@ -2191,7 +2085,7 @@ export default function ExplainCodeApp() {
 
             {/* สรุปด้านที่เก่ง & ด้านที่ควรทบทวน */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-[#d8efdc] border-2 border-[#86efac] rounded-2xl p-5 text-[#14532d]">
+              <div className="bg-[#102a1e] border-2 border-[#2fbf71]/50 rounded-2xl p-5 text-[#86efac]">
                 <div className="flex items-center gap-2 font-extrabold text-[16px]">
                   <Icon name="check" size={20} />
                   <span>ด้านที่เก่ง (เข้าใจ 80% ขึ้นไป)</span>
@@ -2201,12 +2095,12 @@ export default function ExplainCodeApp() {
                     strongStudentCells.slice(0, 4).map((c) => (
                       <div
                         key={c.id}
-                        className="p-2.5 rounded-xl bg-white/80 flex items-center justify-between text-[14px] font-bold"
+                        className="p-2.5 rounded-xl bg-[#0d0b14]/70 border border-[#2fbf71]/30 flex items-center justify-between text-[14px] font-bold text-[#f4efe6]"
                       >
                         <span>
                           ช่อง {c.id} · {c.shortTitle}
                         </span>
-                        <span className="font-extrabold">
+                        <span className="font-extrabold text-[#86efac]">
                           {currentStudent.cellScores[c.id]}%
                         </span>
                       </div>
@@ -2219,7 +2113,7 @@ export default function ExplainCodeApp() {
                 </div>
               </div>
 
-              <div className="bg-[#f8d9d4] border-2 border-[#fca5a5] rounded-2xl p-5 text-[#7d1d10]">
+              <div className="bg-[#2d141c] border-2 border-[#c0283a]/60 rounded-2xl p-5 text-[#fca5a5]">
                 <div className="flex items-center gap-2 font-extrabold text-[16px]">
                   <Icon name="bulb" size={20} />
                   <span>ด้านที่ควรทบทวนเพิ่มเติม</span>
@@ -2229,7 +2123,7 @@ export default function ExplainCodeApp() {
                     reviewStudentCells.slice(0, 4).map((c) => (
                       <div
                         key={c.id}
-                        className="p-2.5 rounded-xl bg-white/85 flex items-center justify-between gap-2 text-[14px] font-bold"
+                        className="p-2.5 rounded-xl bg-[#0d0b14]/70 border border-[#c0283a]/30 flex items-center justify-between gap-2 text-[14px] font-bold text-[#f4efe6]"
                       >
                         <span>
                           ช่อง {c.id} · {c.shortTitle} ({currentStudent.cellScores[c.id]}%)
@@ -2240,7 +2134,7 @@ export default function ExplainCodeApp() {
                             setSelectedTopicId(c.relatedTopicId);
                             setStudentTab("practice");
                           }}
-                          className="px-2.5 py-1 rounded-lg bg-[#7d1d10] text-white text-[12px] font-extrabold cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-[#c0283a] hover:bg-[#e11d48] text-white text-[12px] font-extrabold cursor-pointer"
                         >
                           ฝึกทบทวน →
                         </button>
@@ -2267,9 +2161,9 @@ export default function ExplainCodeApp() {
 
             {/* ตราที่ได้รับ (Badges) และประวัติการเล่น */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-              <div className="lg:col-span-6 bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 flex flex-col gap-3">
-                <h3 className="text-[17px] font-extrabold text-[#1b2a2f] flex items-center gap-2">
-                  <Icon name="shield" size={20} className="text-[#0f766e]" />
+              <div className="lg:col-span-6 bg-[#141220] border-2 border-[#2f2d45] rounded-2xl p-5 flex flex-col gap-3">
+                <h3 className="text-[17px] font-extrabold text-[#f4efe6] flex items-center gap-2">
+                  <Icon name="shield" size={20} className="text-[#f6c945]" />
                   <span>ตราความสำเร็จที่ได้รับ ({currentStudent.badges.length}/7)</span>
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -2282,8 +2176,8 @@ export default function ExplainCodeApp() {
                         key={t.badgeReward.id}
                         className={`p-3 rounded-xl border flex items-center gap-3 ${
                           unlocked
-                            ? "bg-[#e3f1ee] border-[#0f766e] text-[#0b4f49]"
-                            : "bg-[#eef3f1] border-[#cfe0dc] text-[#475b60] opacity-65"
+                            ? "bg-[#25193b] border-[#9b5de5] text-[#f4efe6]"
+                            : "bg-[#1c1b2b] border-[#2f2d45] text-[#9a93ad] opacity-65"
                         }`}
                       >
                         <StatusCircle
@@ -2295,7 +2189,7 @@ export default function ExplainCodeApp() {
                           <div className="text-[14px] font-extrabold truncate">
                             {t.badgeReward.name}
                           </div>
-                          <div className="text-[12px] truncate">
+                          <div className="text-[12px] truncate text-[#9a93ad]">
                             {t.badgeReward.description}
                           </div>
                         </div>
@@ -2305,9 +2199,9 @@ export default function ExplainCodeApp() {
                 </div>
               </div>
 
-              <div className="lg:col-span-6 bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 flex flex-col gap-3">
-                <h3 className="text-[17px] font-extrabold text-[#1b2a2f] flex items-center gap-2">
-                  <Icon name="chart" size={20} className="text-[#0f766e]" />
+              <div className="lg:col-span-6 bg-[#141220] border-2 border-[#2f2d45] rounded-2xl p-5 flex flex-col gap-3">
+                <h3 className="text-[17px] font-extrabold text-[#f4efe6] flex items-center gap-2">
+                  <Icon name="chart" size={20} className="text-[#f6c945]" />
                   <span>ประวัติการฝึกอ่านโค้ดล่าสุด</span>
                 </h3>
                 {currentStudent.history.length > 0 ? (
@@ -2315,24 +2209,24 @@ export default function ExplainCodeApp() {
                     {currentStudent.history.map((h, i) => (
                       <div
                         key={i}
-                        className="p-3 rounded-xl bg-[#eef3f1] border border-[#cfe0dc] flex items-center justify-between gap-2"
+                        className="p-3 rounded-xl bg-[#1c1b2b] border border-[#2f2d45] flex items-center justify-between gap-2"
                       >
                         <div>
-                          <div className="text-[14px] font-extrabold text-[#1b2a2f]">
+                          <div className="text-[14px] font-extrabold text-[#f4efe6]">
                             {h.topicTitle}
                           </div>
-                          <div className="text-[12px] text-[#475b60]">
+                          <div className="text-[12px] text-[#9a93ad]">
                             {h.timestamp} · ความเข้าใจ {h.scorePercent}%
                           </div>
                         </div>
-                        <span className="px-2.5 py-1 rounded-lg bg-[#fff4d6] text-[#3d2603] border border-[#f0a92e] text-[13px] font-extrabold">
+                        <span className="px-2.5 py-1 rounded-lg bg-[#281d08] text-[#ffe27a] border border-[#f6c945]/60 text-[13px] font-extrabold">
                           +{h.xpEarned} XP
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[14px] text-[#475b60]">
+                  <p className="text-[14px] text-[#9a93ad]">
                     ยังไม่มีประวัติการเล่น เริ่มฝึกเรื่องที่ 1 ในหน้าเส้นทางเควสต์ได้เลย!
                   </p>
                 )}
@@ -2341,17 +2235,17 @@ export default function ExplainCodeApp() {
           </div>
         )}
 
-        {/* ==================== TAB 5: บันทึกการใช้ AI (≥ 5 Prompts ตามเกณฑ์ส่งงานหน้า 1) ==================== */}
+        {/* ==================== TAB 5: บันทึกการใช้ AI ==================== */}
         {studentTab === "ailog" && (
-          <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-6 flex flex-col gap-5">
+          <div className="bg-[#141220] border-2 border-[#2f2d45] rounded-2xl p-6 flex flex-col gap-5">
             <div>
-              <span className="px-3 py-1 rounded-full bg-[#e3f1ee] text-[#0b4f49] text-[12px] font-extrabold">
+              <span className="px-3 py-1 rounded-full bg-[#25193b] border border-[#9b5de5]/60 text-[#e9d5ff] text-[12px] font-extrabold">
                 รายการส่งงาน · บันทึกการใช้ AI (AI Log ≥ 5 Prompts)
               </span>
-              <h2 className="text-[22px] font-extrabold text-[#1b2a2f] mt-2">
+              <h2 className="text-[22px] font-extrabold text-[#f4efe6] mt-2">
                 บันทึกการใช้ AI พัฒนาโปรเจกต์ &ldquo;โค้ดนี้ฉันอธิบายได้&rdquo;
               </h2>
-              <p className="text-[14px] text-[#475b60]">
+              <p className="text-[14px] text-[#9a93ad]">
                 แสดงรายการ Prompt ที่ใช้จริง ปัญหาที่พบจากผลลัพธ์ของ AI และวิธีที่ทีมปรับปรุงแก้ไขด้วยตัวเองตามหลักการที่ต้องรักษา
               </p>
             </div>
@@ -2360,23 +2254,23 @@ export default function ExplainCodeApp() {
               {AI_USAGE_LOGS.map((log) => (
                 <div
                   key={log.id}
-                  className="p-4 rounded-2xl bg-[#eef3f1] border-2 border-[#cfe0dc] flex flex-col gap-2.5"
+                  className="p-4 rounded-2xl bg-[#1c1b2b] border-2 border-[#2f2d45] flex flex-col gap-2.5"
                 >
-                  <div className="text-[16px] font-extrabold text-[#0b4f49]">
+                  <div className="text-[16px] font-extrabold text-[#ffe27a]">
                     {log.promptTitle}
                   </div>
-                  <div className="p-3 rounded-xl bg-white border border-[#cfe0dc] text-[14px]">
-                    <strong className="text-[#0f766e]">Prompt ที่สั่ง AI: </strong>
+                  <div className="p-3 rounded-xl bg-[#141220] border border-[#2f2d45] text-[14px] text-[#f4efe6]">
+                    <strong className="text-[#c084fc]">Prompt ที่สั่ง AI: </strong>
                     {log.promptText}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[13px]">
-                    <div className="p-3 rounded-xl bg-[#f8d9d4] text-[#7d1d10]">
+                    <div className="p-3 rounded-xl bg-[#2d141c] border border-[#c0283a]/40 text-[#fca5a5]">
                       <strong>ปัญหาที่พบจากโค้ด/เนื้อหาที่ AI สร้าง:</strong>
-                      <p className="mt-0.5">{log.problemFound}</p>
+                      <p className="mt-0.5 text-[#f4efe6]/90">{log.problemFound}</p>
                     </div>
-                    <div className="p-3 rounded-xl bg-[#d8efdc] text-[#14532d]">
+                    <div className="p-3 rounded-xl bg-[#102a1e] border border-[#2fbf71]/40 text-[#86efac]">
                       <strong>วิธีที่ทีมปรับแก้และพัฒนาต่อ:</strong>
-                      <p className="mt-0.5">{log.solutionApplied}</p>
+                      <p className="mt-0.5 text-[#f4efe6]/90">{log.solutionApplied}</p>
                     </div>
                   </div>
                 </div>

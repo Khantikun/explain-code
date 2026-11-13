@@ -2,78 +2,45 @@
 
 @variant dark (&:where(.dark, .dark *));
 
-:root {
-  /* เขียวหลัก (แบรนด์ การกระทำหลัก ผ่านแล้ว) */
-  --teal-900: #0b4f49;
-  --teal-800: #0b5e57;
-  --teal-700: #0f766e;
-  --teal-shadow: #09504a;
-  --teal-50: #e3f1ee;
-
-  /* ทอง (XP เควสต์ปัจจุบัน รางวัล) */
-  --gold-500: #f0a92e;
-  --gold-400: #f6b73c;
-  --gold-shadow: #b97a0c;
-  --gold-50: #fff4d6;
-  --gold-ink: #3d2603;
-
-  /* ม่วง (บอสด่านเท่านั้น) */
-  --boss-600: #6d3fc0;
-  --boss-700: #52299e;
-  --boss-shadow: #3f1f7d;
-
-  /* กลางและพื้นหลัง */
-  --bg: #eef3f1;
-  --surface: #ffffff;
-  --surface-alt: #f4f7f6;
-  --line: #cfe0dc;
-  --line-strong: #b6c9c5;
-  --locked: #d8e3e0;
-  --ink: #1b2a2f;
-  --muted: #475b60;
-
-  /* สถานะความเข้าใจ (ใช้คู่กับข้อความเสมอ ไม่ใช้สีอย่างเดียว) */
-  --good-bg: #d8efdc;
-  --good-ink: #14532d;
-  --mid-bg: #fbeacb;
-  --mid-ink: #5c3704;
-  --low-bg: #f8d9d4;
-  --low-ink: #7d1d10;
-}
-
+:root,
 .dark,
 [data-theme="dark"] {
-  /* Dark Mode Palette - Minimalist Obsidian & Clean White Typography */
-  --teal-900: #2dd4bf;
-  --teal-800: #5eead4;
-  --teal-700: #99f6e4;
-  --teal-shadow: #042f2e;
-  --teal-50: #0f2723;
+  /* Unified Midnight-Indigo Dark Dungeon Palette */
+  --bg: #0d0b14;
+  --surface: #141220;
+  --surface-2: #1c1b2b;
+  --surface-alt: #1c1b2b;
+  --surface-elevated: #252238;
+  --border: #2f2d45;
+  --border-strong: #3d395a;
+  --line: #2f2d45;
+  --line-strong: #3d395a;
+  --locked: #161426;
+  --ink: #f4efe6;
+  --ink-muted: #9a93ad;
+  --muted: #c4bdd6;
 
-  --gold-500: #f59e0b;
-  --gold-400: #fbbf24;
-  --gold-shadow: #78350f;
+  --teal-900: #2fbf71;
+  --teal-800: #34d37d;
+  --teal-700: #86efac;
+  --teal-shadow: #1a7a4a;
+  --teal-50: #1c1b2b;
+
+  --gold-500: #f6c945;
+  --gold-400: #ffe27a;
+  --gold-shadow: #b8860b;
   --gold-50: #281d08;
-  --gold-ink: #ffffff;
+  --gold-ink: #120f1c;
 
-  --boss-600: #a855f7;
+  --boss-600: #9b5de5;
   --boss-700: #c084fc;
-  --boss-shadow: #3b0764;
+  --boss-shadow: #5a2d91;
 
-  --bg: #091312;
-  --surface: #11201d;
-  --surface-alt: #162925;
-  --line: #1c3833;
-  --line-strong: #274d46;
-  --locked: #182a26;
-  --ink: #ffffff;
-  --muted: #e2e8f0;
-
-  --good-bg: #0f3020;
+  --good-bg: #102a1e;
   --good-ink: #86efac;
-  --mid-bg: #35260c;
-  --mid-ink: #fde047;
-  --low-bg: #361416;
+  --mid-bg: #281d08;
+  --mid-ink: #ffe27a;
+  --low-bg: #2d141c;
   --low-ink: #fca5a5;
 
   color-scheme: dark;
@@ -105,46 +72,46 @@ pre,
   font-size: 16px;
 }
 
-/* ปุ่มสไตล์มินิมอล คอนทราสต์ชัด กดง่าย (Tactile Minimal Buttons) */
+/* ปุ่มสไตล์ดันเจี้ยน คอนทราสต์ชัด กดง่าย (Tactile Dungeon Buttons) */
 .press-teal {
-  background-color: #0f766e !important;
-  border: 2px solid #0b5e57 !important;
-  box-shadow: 0 4px 0 #09504a;
-  color: #ffffff !important;
+  background-color: #2fbf71 !important;
+  border: 2px solid #1a7a4a !important;
+  box-shadow: 0 4px 0 #145e39;
+  color: #120f1c !important;
   transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease;
 }
 .press-teal:hover:not(:disabled) {
-  background-color: #0b5e57 !important;
+  background-color: #34d37d !important;
 }
 .press-teal:active:not(:disabled) {
   transform: translateY(2px);
-  box-shadow: 0 2px 0 #09504a;
+  box-shadow: 0 2px 0 #145e39;
 }
 
 .press-gold {
-  background-color: #f6b73c !important;
-  border: 2px solid #b97a0c !important;
-  box-shadow: 0 4px 0 #b97a0c;
-  color: #3d2603 !important;
+  background-color: #f6c945 !important;
+  border: 2px solid #b8860b !important;
+  box-shadow: 0 4px 0 #b8860b;
+  color: #120f1c !important;
   transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease;
 }
 .press-gold:hover:not(:disabled) {
-  background-color: #f0a92e !important;
+  background-color: #ffe27a !important;
 }
 .press-gold:active:not(:disabled) {
   transform: translateY(2px);
-  box-shadow: 0 2px 0 #b97a0c;
+  box-shadow: 0 2px 0 #b8860b;
 }
 
 .press-boss {
-  background-color: #6d3fc0 !important;
-  border: 2px solid #52299e !important;
+  background-color: #5a2d91 !important;
+  border: 2px solid #9b5de5 !important;
   box-shadow: 0 4px 0 #3f1f7d;
-  color: #ffffff !important;
+  color: #f4efe6 !important;
   transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease;
 }
 .press-boss:hover:not(:disabled) {
-  background-color: #52299e !important;
+  background-color: #6d3fc0 !important;
 }
 .press-boss:active:not(:disabled) {
   transform: translateY(2px);
@@ -152,18 +119,19 @@ pre,
 }
 
 .press-secondary {
-  background-color: #e3f1ee !important;
-  border: 2px solid #0f766e !important;
-  box-shadow: 0 3px 0 #0b5e57;
-  color: #0b4f49 !important;
-  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease;
+  background-color: #1c1b2b !important;
+  border: 2px solid #3d395a !important;
+  box-shadow: 0 3px 0 #0b0b14;
+  color: #f4efe6 !important;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
 .press-secondary:hover:not(:disabled) {
-  background-color: #cfe0dc !important;
+  background-color: #252238 !important;
+  border-color: #f6c945 !important;
 }
 .press-secondary:active:not(:disabled) {
   transform: translateY(2px);
-  box-shadow: 0 1px 0 #0b5e57;
+  box-shadow: 0 1px 0 #0b0b14;
 }
 
 @media print {
@@ -176,28 +144,28 @@ pre,
 }
 
 /* ==========================================================================
-   Liquid Glass Design System (High-Contrast Jade & Emerald Liquid Glass)
+   Liquid Glass Design System (Unified Dark Midnight-Indigo Dungeon Glass)
    ========================================================================== */
 
 .liquid-glass {
   position: relative;
   background: linear-gradient(
     135deg,
-    rgba(218, 240, 234, 0.84) 0%,
-    rgba(236, 247, 244, 0.78) 50%,
-    rgba(205, 233, 225, 0.86) 100%
+    rgba(20, 18, 32, 0.9) 0%,
+    rgba(13, 11, 20, 0.88) 50%,
+    rgba(28, 27, 43, 0.92) 100%
   );
-  backdrop-filter: blur(20px) saturate(190%);
-  -webkit-backdrop-filter: blur(20px) saturate(190%);
-  border: 1.5px solid rgba(15, 118, 110, 0.34);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1.5px solid rgba(61, 57, 90, 0.78);
   box-shadow:
-    0 14px 36px -6px rgba(11, 79, 73, 0.22),
-    0 4px 14px -2px rgba(11, 79, 73, 0.12),
-    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -1.5px 2px 0 rgba(15, 118, 110, 0.15);
+    0 14px 36px -6px rgba(0, 0, 0, 0.62),
+    0 4px 14px -2px rgba(0, 0, 0, 0.42),
+    inset 0 1.5px 1.5px 0 rgba(244, 239, 230, 0.1),
+    inset 0 -1.5px 1.5px 0 rgba(155, 93, 229, 0.22);
 }
 
-/* Directional specular border highlight (bright top-left, emerald-gold bottom-right) */
+/* Directional specular border highlight (subtle ivory top-left, violet-gold bottom-right) */
 .liquid-glass::before {
   content: "";
   position: absolute;
@@ -206,9 +174,9 @@ pre,
   padding: 1.5px;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.98) 0%,
-    rgba(15, 118, 110, 0.35) 55%,
-    rgba(240, 169, 46, 0.42) 100%
+    rgba(244, 239, 230, 0.16) 0%,
+    rgba(155, 93, 229, 0.28) 55%,
+    rgba(246, 201, 69, 0.28) 100%
   );
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
@@ -221,61 +189,60 @@ pre,
 .liquid-glass-scrolled {
   background: linear-gradient(
     135deg,
-    rgba(206, 235, 228, 0.92) 0%,
-    rgba(228, 244, 239, 0.9) 50%,
-    rgba(194, 227, 218, 0.94) 100%
+    rgba(17, 15, 28, 0.96) 0%,
+    rgba(13, 11, 20, 0.95) 50%,
+    rgba(24, 22, 38, 0.96) 100%
   );
-  backdrop-filter: blur(24px) saturate(200%);
-  -webkit-backdrop-filter: blur(24px) saturate(200%);
-  border-color: rgba(11, 79, 73, 0.45);
+  backdrop-filter: blur(24px) saturate(170%);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  border-color: rgba(74, 71, 102, 0.9);
   box-shadow:
-    0 18px 42px -8px rgba(11, 79, 73, 0.28),
-    0 6px 18px -4px rgba(11, 79, 73, 0.16),
-    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.98),
-    inset 0 -1.5px 2px 0 rgba(15, 118, 110, 0.22);
+    0 18px 42px -8px rgba(0, 0, 0, 0.75),
+    0 6px 18px -4px rgba(0, 0, 0, 0.5),
+    inset 0 1.5px 2px 0 rgba(244, 239, 230, 0.12),
+    inset 0 -1.5px 2px 0 rgba(246, 201, 69, 0.2);
 }
 
-/* High-Contrast Deep Dark Emerald Sliding Active Capsule (13.5:1 contrast for crisp white text) */
+/* High-Contrast Royal Dungeon Sliding Active Capsule */
 .liquid-glass-active-pill {
   background: linear-gradient(
     135deg,
-    #032220 0%,
-    #063834 55%,
-    #084741 100%
+    #4c2380 0%,
+    #5a2d91 55%,
+    #6d3fc0 100%
   ) !important;
-  border: 1.5px solid rgba(246, 183, 60, 0.75) !important;
+  border: 1.5px solid rgba(246, 201, 69, 0.85) !important;
   box-shadow:
-    0 6px 16px -2px rgba(3, 34, 32, 0.5),
-    0 0 12px 0 rgba(15, 118, 110, 0.35),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.35);
+    0 6px 16px -2px rgba(0, 0, 0, 0.65),
+    0 0 14px 0 rgba(155, 93, 229, 0.4),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.2);
   transition:
     transform 340ms cubic-bezier(0.34, 1.56, 0.64, 1),
     width 340ms cubic-bezier(0.34, 1.56, 0.64, 1),
     opacity 200ms ease;
 }
 
-/* Guaranteed deep dark emerald surface + ultra-crisp elevated white text for active nav item */
+/* Guaranteed royal dungeon surface + crisp gold/ivory text for active nav item */
 .liquid-active-nav-item {
   background: linear-gradient(
     135deg,
-    #032220 0%,
-    #063834 55%,
-    #084741 100%
+    #4c2380 0%,
+    #5a2d91 55%,
+    #6d3fc0 100%
   ) !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.9),
-    0 0 10px rgba(255, 255, 255, 0.28) !important;
+  border: 1px solid rgba(246, 201, 69, 0.75) !important;
+  color: #ffe27a !important;
+  -webkit-text-fill-color: #ffe27a !important;
+  text-shadow: 0 1px 2px rgba(13, 11, 20, 0.9) !important;
   box-shadow:
-    0 4px 12px -2px rgba(3, 34, 32, 0.45),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.3);
+    0 4px 12px -2px rgba(0, 0, 0, 0.55),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .liquid-active-nav-item,
 .liquid-active-nav-item * {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
+  color: #ffe27a !important;
+  -webkit-text-fill-color: #ffe27a !important;
   opacity: 1 !important;
 }
 
@@ -300,10 +267,10 @@ pre,
   }
 }
 
-/* Interactive press effect: stationary (no transform/scale shift) with instant crisp white text */
+/* Interactive press effect: stationary (no transform/scale shift) with crisp gold highlight */
 .liquid-press {
   position: relative;
-  transition: box-shadow 150ms ease;
+  transition: box-shadow 150ms ease, border-color 150ms ease, background-color 150ms ease;
 }
 
 .liquid-press:hover {
@@ -312,133 +279,122 @@ pre,
 
 .liquid-press:active {
   transform: none !important;
-  background: linear-gradient(135deg, #021917 0%, #052e2b 55%, #073d38 100%) !important;
-  border-color: #f6b73c !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  text-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.95),
-    0 0 12px rgba(255, 255, 255, 0.45) !important;
+  background: linear-gradient(135deg, #3b1963 0%, #5a2d91 100%) !important;
+  border-color: #f6c945 !important;
+  color: #ffe27a !important;
+  -webkit-text-fill-color: #ffe27a !important;
   box-shadow:
-    0 0 0 3px rgba(246, 183, 60, 0.7),
-    0 4px 12px rgba(2, 25, 23, 0.45) !important;
+    0 0 0 2px rgba(246, 201, 69, 0.65),
+    0 4px 12px rgba(0, 0, 0, 0.55) !important;
 }
 
 .liquid-press:active,
 .liquid-press:active * {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
+  color: #ffe27a !important;
+  -webkit-text-fill-color: #ffe27a !important;
   opacity: 1 !important;
 }
 
-/* Secondary translucent glass button (stationary) */
+/* Secondary translucent dungeon glass button (stationary) */
 .liquid-glass-btn {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1.5px solid rgba(15, 118, 110, 0.45);
-  color: #062e2b !important;
+  background: rgba(28, 27, 43, 0.92);
+  border: 1.5px solid #3d395a;
+  color: #f4efe6 !important;
   box-shadow:
-    0 4px 10px -2px rgba(11, 79, 73, 0.15),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.98);
-  transition: box-shadow 160ms ease;
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px 0 rgba(244, 239, 230, 0.08);
+  transition: box-shadow 160ms ease, border-color 160ms ease, background-color 160ms ease;
 }
 
 .liquid-glass-btn:hover {
-  background: #ffffff;
-  border-color: #0b4f49;
-  color: #032220 !important;
+  background: #252238;
+  border-color: #f6c945;
+  color: #ffe27a !important;
   transform: none;
   box-shadow:
-    0 8px 18px -4px rgba(11, 79, 73, 0.24),
-    0 0 12px 0 rgba(15, 118, 110, 0.18),
-    inset 0 1px 1px 0 #ffffff;
+    0 8px 18px -4px rgba(0, 0, 0, 0.55),
+    0 0 12px 0 rgba(246, 201, 69, 0.18),
+    inset 0 1px 1px 0 rgba(244, 239, 230, 0.12);
 }
 
 .liquid-glass-btn:active {
   transform: none !important;
-  background: linear-gradient(135deg, #021917 0%, #052e2b 55%, #073d38 100%) !important;
-  border-color: #f6b73c !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  text-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.95),
-    0 0 12px rgba(255, 255, 255, 0.45) !important;
+  background: linear-gradient(135deg, #3b1963 0%, #5a2d91 100%) !important;
+  border-color: #f6c945 !important;
+  color: #ffe27a !important;
+  -webkit-text-fill-color: #ffe27a !important;
   box-shadow:
-    0 0 0 3px rgba(246, 183, 60, 0.7),
-    0 4px 12px rgba(2, 25, 23, 0.45) !important;
+    0 0 0 2px rgba(246, 201, 69, 0.7),
+    0 4px 12px rgba(0, 0, 0, 0.5) !important;
 }
 
 .liquid-glass-btn:active,
 .liquid-glass-btn:active * {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
+  color: #ffe27a !important;
+  -webkit-text-fill-color: #ffe27a !important;
   opacity: 1 !important;
 }
 
-/* Primary emerald gradient button with guaranteed crisp white text (stationary) */
+/* Primary dungeon gold/violet CTA button */
 .liquid-glass-primary-btn {
-  background: linear-gradient(135deg, #042b28 0%, #084741 60%, #0b5e57 100%) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  background: linear-gradient(135deg, #5a2d91 0%, #6d3fc0 60%, #7c3aed 100%) !important;
+  border: 1.5px solid rgba(246, 201, 69, 0.75);
   box-shadow:
-    0 8px 20px -4px rgba(3, 34, 32, 0.5),
-    0 2px 0 0 #021917,
-    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.45);
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.85),
-    0 0 8px rgba(255, 255, 255, 0.25);
+    0 8px 20px -4px rgba(0, 0, 0, 0.55),
+    0 2px 0 0 #2b124c,
+    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.22);
+  color: #ffe27a !important;
+  -webkit-text-fill-color: #ffe27a !important;
+  text-shadow: 0 1px 2px rgba(13, 11, 20, 0.85);
   transition: box-shadow 160ms ease;
 }
 
 .liquid-glass-primary-btn,
 .liquid-glass-primary-btn * {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
+  color: #ffe27a !important;
+  -webkit-text-fill-color: #ffe27a !important;
   opacity: 1 !important;
 }
 
 .liquid-glass-primary-btn:hover {
-  background: linear-gradient(135deg, #032220 0%, #063834 60%, #09504a 100%) !important;
+  background: linear-gradient(135deg, #6d3fc0 0%, #7c3aed 60%, #9b5de5 100%) !important;
   color: #ffffff !important;
   transform: none;
   box-shadow:
-    0 12px 26px -4px rgba(3, 34, 32, 0.6),
-    0 3px 0 0 #021917,
-    0 0 16px 0 rgba(246, 183, 60, 0.45),
-    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.65);
+    0 12px 26px -4px rgba(0, 0, 0, 0.65),
+    0 3px 0 0 #2b124c,
+    0 0 16px 0 rgba(246, 201, 69, 0.35),
+    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.3);
 }
 
 .liquid-glass-primary-btn:active {
-  background: linear-gradient(135deg, #021917 0%, #042b28 100%) !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  text-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.95),
-    0 0 12px rgba(255, 255, 255, 0.5) !important;
+  background: linear-gradient(135deg, #4c2380 0%, #5a2d91 100%) !important;
+  color: #ffe27a !important;
+  -webkit-text-fill-color: #ffe27a !important;
   transform: none !important;
   box-shadow:
-    0 0 0 3px rgba(246, 183, 60, 0.75),
-    0 4px 12px rgba(2, 25, 23, 0.5) !important;
+    0 0 0 2px rgba(246, 201, 69, 0.75),
+    0 4px 12px rgba(0, 0, 0, 0.55) !important;
 }
 
 /* Fallback for browsers that do not support backdrop-filter */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .liquid-glass,
   .liquid-glass-scrolled {
-    background: rgba(250, 248, 244, 0.96);
-    border-color: #d8d1c5;
+    background: rgba(20, 18, 32, 0.96);
+    border-color: #2f2d45;
   }
 }
 
-/* Respect user preference for reduced transparency (keep active pill dark emerald!) */
+/* Respect user preference for reduced transparency */
 @media (prefers-reduced-transparency: reduce) {
   .liquid-glass,
   .liquid-glass-scrolled,
   .liquid-glass-btn {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    background: #faf8f4 !important;
-    border-color: #cfe0dc !important;
+    background: #141220 !important;
+    border-color: #2f2d45 !important;
   }
 }
 
@@ -455,75 +411,119 @@ pre,
 }
 
 /* ==========================================================================
-   Liquid Glass & UI System - Dark Mode Support
+   Unified Dark Dungeon UI System & Legacy Utility Overrides
    ========================================================================== */
 
 .dark body {
   background-color: var(--bg);
-  color: #ffffff;
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Headings and bold text in dark mode - Crisp High-Contrast Pure White */
-.dark h1,
-.dark h2,
-.dark h3,
-.dark h4,
-.dark h5,
-.dark h6,
-.dark strong,
-.dark b {
-  color: #ffffff !important;
+/* Default headings & body paragraphs inherit dungeon ink unless overridden by utility classes */
+:where(.dark) h1,
+:where(.dark) h2,
+:where(.dark) h3,
+:where(.dark) h4,
+:where(.dark) h5,
+:where(.dark) h6,
+:where(.dark) strong,
+:where(.dark) b {
+  color: var(--ink);
 }
 
-/* Backgrounds in dark mode */
+/* Page-level legacy light backgrounds -> Midnight Void (#0d0b14) */
+:root .min-h-screen.bg-\[\#eef3f1\],
+:root .min-h-screen.bg-\[\#faf8f4\],
+.dark .min-h-screen.bg-\[\#eef3f1\],
+.dark .min-h-screen.bg-\[\#faf8f4\] {
+  background-color: var(--bg) !important;
+}
+
+/* Legacy white cards & panels -> Dungeon Surface (#141220) */
+:root .bg-white,
+:root .bg-\[\#ffffff\],
+.dark .bg-white,
+.dark .bg-\[\#ffffff\] {
+  background-color: var(--surface) !important;
+}
+
+.dark .rounded-2xl.bg-white,
+.dark .rounded-3xl.bg-white {
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.55), inset 0 1px 0 0 rgba(244, 239, 230, 0.04) !important;
+}
+
+/* Legacy light/tint boxes -> Elevated Dungeon Surface (#1c1b2b) */
+:root .bg-\[\#eef3f1\],
+:root .bg-\[\#eef3f1\]\/60,
+:root .bg-\[\#faf8f4\],
+:root .bg-\[\#faf8f4\]\/80,
+:root .bg-\[\#faf8f4\]\/90,
+:root .bg-\[\#fbfaf8\],
+:root .bg-\[\#f7f5f0\],
+:root .bg-\[\#f8faf9\],
+:root .bg-\[\#f8f6f0\],
+:root .bg-\[\#f8fbfa\],
+:root .bg-\[\#f4faf8\],
+:root .bg-\[\#f3f4f6\],
+:root .bg-\[\#e8f0ec\],
+:root .bg-\[\#e3f1ee\],
+:root .bg-\[\#f0f5f3\],
+:root .bg-\[\#f4f1ea\],
+:root .bg-\[\#f2efe8\],
+:root .bg-\[\#e5dfd3\],
 .dark .bg-\[\#eef3f1\],
+.dark .bg-\[\#eef3f1\]\/60,
 .dark .bg-\[\#faf8f4\],
+.dark .bg-\[\#faf8f4\]\/80,
+.dark .bg-\[\#faf8f4\]\/90,
 .dark .bg-\[\#fbfaf8\],
 .dark .bg-\[\#f7f5f0\],
 .dark .bg-\[\#f8faf9\],
 .dark .bg-\[\#f8f6f0\],
 .dark .bg-\[\#f8fbfa\],
 .dark .bg-\[\#f4faf8\],
-.dark .bg-\[\#f3f4f6\] {
-  background-color: var(--bg) !important;
-}
-
-.dark .bg-white,
-.dark .bg-\[\#ffffff\] {
-  background-color: var(--surface) !important;
-}
-
+.dark .bg-\[\#f3f4f6\],
 .dark .bg-\[\#e8f0ec\],
 .dark .bg-\[\#e3f1ee\],
 .dark .bg-\[\#f0f5f3\],
 .dark .bg-\[\#f4f1ea\],
 .dark .bg-\[\#f2efe8\],
 .dark .bg-\[\#e5dfd3\] {
-  background-color: var(--teal-50) !important;
+  background-color: var(--surface-2) !important;
 }
 
-/* Status Badges in Dark Mode */
+/* Status Badges in Dark Dungeon Theme */
+:root .bg-\[\#d8efdc\],
+:root .bg-\[\#dcfce7\],
+:root .bg-\[\#f0fdf4\],
+:root .bg-\[\#bbf7d0\],
 .dark .bg-\[\#d8efdc\],
 .dark .bg-\[\#dcfce7\],
 .dark .bg-\[\#f0fdf4\],
 .dark .bg-\[\#bbf7d0\] {
-  background-color: #0f3020 !important;
-  color: #86efac !important;
+  background-color: var(--good-bg) !important;
+  color: var(--good-ink) !important;
 }
 
 .dark .text-\[\#14532d\],
 .dark .text-\[\#166534\] {
-  color: #86efac !important;
+  color: var(--good-ink) !important;
 }
 
+:root .bg-\[\#fbeacb\],
+:root .bg-\[\#fef9c3\],
+:root .bg-\[\#fffbeb\],
+:root .bg-\[\#fff4d6\],
 .dark .bg-\[\#fbeacb\],
 .dark .bg-\[\#fef9c3\],
 .dark .bg-\[\#fffbeb\],
 .dark .bg-\[\#fff4d6\] {
-  background-color: #35260c !important;
-  color: #fde047 !important;
+  background-color: var(--mid-bg) !important;
+  color: var(--mid-ink) !important;
 }
 
 .dark .text-\[\#5c3704\],
@@ -531,27 +531,33 @@ pre,
 .dark .text-\[\#78350f\],
 .dark .text-\[\#854d0e\],
 .dark .text-\[\#92400e\] {
-  color: #fde047 !important;
+  color: var(--mid-ink) !important;
 }
 
+:root .bg-\[\#f8d9d4\],
+:root .bg-\[\#fef2f2\],
+:root .bg-\[\#fef8f8\],
+:root .bg-\[\#fee2e2\],
 .dark .bg-\[\#f8d9d4\],
 .dark .bg-\[\#fef2f2\],
 .dark .bg-\[\#fef8f8\],
 .dark .bg-\[\#fee2e2\] {
-  background-color: #361416 !important;
-  color: #fca5a5 !important;
+  background-color: var(--low-bg) !important;
+  color: var(--low-ink) !important;
 }
 
 .dark .text-\[\#7d1d10\],
 .dark .text-\[\#7f1d1d\],
 .dark .text-\[\#991b1b\],
 .dark .text-\[\#9a3412\] {
-  color: #fca5a5 !important;
+  color: var(--low-ink) !important;
 }
 
+:root .bg-\[\#f6f0fd\],
+:root .bg-\[\#faf5ff\],
 .dark .bg-\[\#f6f0fd\],
 .dark .bg-\[\#faf5ff\] {
-  background-color: #2b1842 !important;
+  background-color: #25193b !important;
   color: #d8b4fe !important;
 }
 
@@ -560,7 +566,17 @@ pre,
   color: #d8b4fe !important;
 }
 
-/* Borders in dark mode */
+/* Legacy light borders -> Dungeon Stone Borders (#2f2d45) */
+:root .border-\[\#cfe0dc\],
+:root .border-\[\#d8d1c5\],
+:root .border-\[\#d8e3e0\],
+:root .border-\[\#e5dfd3\],
+:root .border-\[\#e2ded6\],
+:root .border-\[\#eef3f1\],
+:root .border-\[\#e8f0ec\],
+:root .border-\[\#ece7dc\],
+:root .border-\[\#b6c9c5\],
+:root .border-\[\#f0ece3\],
 .dark .border-\[\#cfe0dc\],
 .dark .border-\[\#d8d1c5\],
 .dark .border-\[\#d8e3e0\],
@@ -569,22 +585,9 @@ pre,
 .dark .border-\[\#eef3f1\],
 .dark .border-\[\#e8f0ec\],
 .dark .border-\[\#ece7dc\],
-.dark .border-\[\#b6c9c5\] {
-  border-color: rgba(255, 255, 255, 0.16) !important;
-}
-
-/* Card & Box Clear Minimalist Visibility in Dark Mode */
-.dark .rounded-2xl.border,
-.dark .rounded-3xl.border,
-.dark .rounded-xl.border {
-  border-color: rgba(255, 255, 255, 0.16) !important;
-}
-
-.dark .rounded-2xl.bg-white,
-.dark .rounded-3xl.bg-white {
-  background-color: #12221f !important;
-  border-color: rgba(255, 255, 255, 0.16) !important;
-  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.05) !important;
+.dark .border-\[\#b6c9c5\],
+.dark .border-\[\#f0ece3\] {
+  border-color: var(--border) !important;
 }
 
 /* Distinct Inner Nested Boxes (Line-by-line explanation, execution steps, concept tags) */
@@ -592,48 +595,57 @@ pre,
 .dark .rounded-xl.bg-\[\#f4f1ea\],
 .dark .rounded-lg.bg-\[\#faf8f4\],
 .dark li.bg-\[\#faf8f4\] {
-  background-color: #0a1513 !important;
-  border: 1px solid rgba(255, 255, 255, 0.18) !important;
-  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.4) !important;
+  background-color: var(--surface-2) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.45) !important;
 }
 
 .dark .rounded-xl.bg-\[\#faf8f4\]:hover,
 .dark li.bg-\[\#faf8f4\]:hover {
-  border-color: rgba(94, 234, 212, 0.5) !important;
-  background-color: #0e1d1a !important;
+  border-color: rgba(246, 201, 69, 0.55) !important;
+  background-color: #252238 !important;
 }
 
-/* Code editor canvas in dark mode */
+/* Code editor canvas in dark dungeon mode */
 .dark textarea.font-mono,
 .dark pre.font-mono {
-  background-color: #07110f !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.18) !important;
-  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.6) !important;
+  background-color: var(--bg) !important;
+  border: 1.5px solid var(--border-strong) !important;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.65) !important;
 }
 
-/* Dashed placeholder box in dark mode */
+/* Dashed placeholder box in dark dungeon mode */
 .dark .border-dashed {
-  border-color: rgba(255, 255, 255, 0.22) !important;
-  background-color: rgba(18, 34, 31, 0.65) !important;
+  border-color: var(--border-strong) !important;
+  background-color: rgba(28, 27, 43, 0.72) !important;
 }
 
 .dark .border-\[\#d8c7ed\] {
-  border-color: #4a2870 !important;
+  border-color: #5a2d91 !important;
 }
 .dark .border-\[\#bbf7d0\],
 .dark .border-\[\#86efac\] {
-  border-color: #14532d !important;
+  border-color: rgba(47, 191, 113, 0.5) !important;
 }
 .dark .border-\[\#fcd34d\],
 .dark .border-\[\#fde68a\] {
-  border-color: #78350f !important;
+  border-color: rgba(246, 201, 69, 0.55) !important;
 }
 .dark .border-\[\#fca5a5\],
 .dark .border-\[\#fecaca\] {
-  border-color: #7f1d1d !important;
+  border-color: rgba(192, 40, 58, 0.65) !important;
 }
 
-/* Text colors in dark mode - Minimalist Crisp White & Soft Silver */
+/* Legacy light-mode text classes -> Unified Dungeon Ivory (#f4efe6) & Muted Lavender (#9a93ad) */
+:root .text-\[\#1b2a2f\],
+:root .text-\[\#1e1e1c\],
+:root .text-\[\#14221e\],
+:root .text-\[\#111827\],
+:root .text-\[\#062e2b\],
+:root .text-\[\#032220\],
+:root .text-\[\#141413\],
+:root .text-\[\#2c2a27\],
+:root .text-\[\#3d3b36\],
 .dark .text-\[\#1b2a2f\],
 .dark .text-\[\#1e1e1c\],
 .dark .text-\[\#14221e\],
@@ -643,13 +655,17 @@ pre,
 .dark .text-\[\#141413\],
 .dark .text-\[\#2c2a27\],
 .dark .text-\[\#3d3b36\] {
-  color: #ffffff !important;
+  color: var(--ink) !important;
 }
 
-.dark p {
-  color: #f1f5f9;
-}
-
+:root .text-\[\#524f49\],
+:root .text-\[\#475b60\],
+:root .text-\[\#4a5d57\],
+:root .text-\[\#6b6860\],
+:root .text-\[\#6e6a63\],
+:root .text-\[\#3d4d48\],
+:root .text-\[\#4b5563\],
+:root .text-\[\#8f908a\],
 .dark .text-\[\#524f49\],
 .dark .text-\[\#475b60\],
 .dark .text-\[\#4a5d57\],
@@ -658,157 +674,160 @@ pre,
 .dark .text-\[\#3d4d48\],
 .dark .text-\[\#4b5563\],
 .dark .text-\[\#8f908a\] {
-  color: #e2e8f0 !important;
+  color: var(--ink-muted) !important;
 }
 
 .dark .text-\[\#2a4d3e\],
 .dark .text-\[\#0b4f49\],
 .dark .text-\[\#0b5e57\],
 .dark .text-\[\#1b3b32\],
-.dark .text-\[\#1f3b2f\] {
-  color: #5eead4 !important;
+.dark .text-\[\#1f3b2f\],
+.dark .text-\[\#0f766e\] {
+  color: #ffe27a !important;
 }
 
-/* Code editor & pre in dark mode */
+/* Code editor & pre in dark dungeon mode */
 .dark code:not([class*="language-"]),
 .dark kbd {
-  background-color: #0b1715;
-  color: #ffffff;
+  background-color: var(--surface-2);
+  color: #ffe27a;
 }
 
 .dark pre {
-  background-color: #071210 !important;
-  border-color: #1c3833 !important;
-  color: #f8fafc !important;
+  background-color: var(--bg) !important;
+  border-color: var(--border) !important;
+  color: var(--ink) !important;
 }
 
-/* Form inputs & controls in dark mode */
+/* Form inputs & controls in dark dungeon mode */
 .dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
 .dark textarea,
 .dark select {
-  background-color: #0e1a18 !important;
-  color: #ffffff !important;
-  border-color: #203c36 !important;
+  background-color: var(--bg) !important;
+  color: var(--ink) !important;
+  border-color: var(--border) !important;
 }
 
 .dark input::placeholder,
 .dark textarea::placeholder {
-  color: #94a3b8 !important;
+  color: var(--ink-muted) !important;
 }
 
 .dark select option {
-  background-color: #11201d;
-  color: #ffffff;
+  background-color: var(--surface);
+  color: var(--ink);
 }
 
-/* Hover effects in dark mode */
+/* Hover & focus effects in dark dungeon mode */
 .dark .hover\:bg-\[\#f2efe8\]:hover,
 .dark .hover\:bg-\[\#f4f1ea\]:hover,
 .dark .hover\:bg-\[\#f8faf9\]:hover,
+.dark .hover\:bg-\[\#faf8f4\]:hover,
+.dark .hover\:bg-\[\#eef3f1\]\/50:hover,
 .dark .hover\:bg-gray-50:hover,
-.dark .hover\:bg-white\/75:hover {
-  background-color: #182e2a !important;
+.dark .hover\:bg-white\/75:hover,
+.dark .focus\:bg-white:focus {
+  background-color: #252238 !important;
 }
 
-/* Secondary Button in Dark Mode */
+/* Secondary Button in Dark Dungeon Mode */
 .dark .press-secondary {
-  background-color: #102925 !important;
-  border-color: #14b8a6 !important;
-  box-shadow: 0 3px 0 #0f766e !important;
-  color: #5eead4 !important;
+  background-color: var(--surface-2) !important;
+  border-color: var(--border-strong) !important;
+  box-shadow: 0 3px 0 #0b0b14 !important;
+  color: var(--ink) !important;
 }
 
 .dark .press-secondary:hover:not(:disabled) {
-  background-color: #183c36 !important;
+  background-color: #252238 !important;
+  border-color: #f6c945 !important;
 }
 
-/* Liquid Glass Surfaces in Dark Mode */
+/* Liquid Glass Surfaces in Dark Dungeon Mode */
 .dark .liquid-glass {
   background: linear-gradient(
     135deg,
-    rgba(14, 26, 24, 0.88) 0%,
-    rgba(10, 20, 18, 0.84) 50%,
-    rgba(17, 33, 30, 0.9) 100%
+    rgba(20, 18, 32, 0.9) 0%,
+    rgba(13, 11, 20, 0.88) 50%,
+    rgba(28, 27, 43, 0.92) 100%
   ) !important;
-  border-color: rgba(45, 120, 105, 0.35) !important;
+  border-color: rgba(61, 57, 90, 0.78) !important;
   box-shadow:
-    0 14px 36px -6px rgba(0, 0, 0, 0.6),
-    0 4px 14px -2px rgba(0, 0, 0, 0.4),
-    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1.5px 1.5px 0 rgba(20, 184, 166, 0.2) !important;
+    0 14px 36px -6px rgba(0, 0, 0, 0.62),
+    0 4px 14px -2px rgba(0, 0, 0, 0.42),
+    inset 0 1.5px 1.5px 0 rgba(244, 239, 230, 0.1),
+    inset 0 -1.5px 1.5px 0 rgba(155, 93, 229, 0.22) !important;
 }
 
 .dark .liquid-glass::before {
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.15) 0%,
-    rgba(20, 184, 166, 0.3) 55%,
-    rgba(240, 169, 46, 0.25) 100%
+    rgba(244, 239, 230, 0.16) 0%,
+    rgba(155, 93, 229, 0.28) 55%,
+    rgba(246, 201, 69, 0.28) 100%
   ) !important;
 }
 
 .dark .liquid-glass-scrolled {
   background: linear-gradient(
     135deg,
-    rgba(11, 22, 20, 0.95) 0%,
-    rgba(8, 17, 15, 0.93) 50%,
-    rgba(14, 28, 25, 0.96) 100%
+    rgba(17, 15, 28, 0.96) 0%,
+    rgba(13, 11, 20, 0.95) 50%,
+    rgba(24, 22, 38, 0.96) 100%
   ) !important;
-  border-color: rgba(45, 120, 105, 0.5) !important;
+  border-color: rgba(74, 71, 102, 0.9) !important;
   box-shadow:
     0 18px 42px -8px rgba(0, 0, 0, 0.75),
     0 6px 18px -4px rgba(0, 0, 0, 0.5),
-    inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1.5px 2px 0 rgba(20, 184, 166, 0.25) !important;
+    inset 0 1.5px 2px 0 rgba(244, 239, 230, 0.12),
+    inset 0 -1.5px 2px 0 rgba(246, 201, 69, 0.2) !important;
 }
 
 .dark .liquid-glass-btn {
-  background: rgba(18, 33, 30, 0.85) !important;
-  border: 1.5px solid rgba(45, 120, 105, 0.4) !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
+  background: rgba(28, 27, 43, 0.92) !important;
+  border: 1.5px solid #3d395a !important;
+  color: #f4efe6 !important;
+  -webkit-text-fill-color: #f4efe6 !important;
   box-shadow:
-    0 4px 10px -2px rgba(0, 0, 0, 0.4),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.08) !important;
+    0 4px 10px -2px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px 0 rgba(244, 239, 230, 0.08) !important;
 }
 
 .dark .liquid-glass-btn:hover {
-  background: rgba(26, 48, 44, 0.95) !important;
-  border-color: #14b8a6 !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
+  background: #252238 !important;
+  border-color: #f6c945 !important;
+  color: #ffe27a !important;
+  -webkit-text-fill-color: #ffe27a !important;
 }
 
 .dark .liquid-glass-active-pill {
-  border-color: rgba(246, 183, 60, 0.85) !important;
+  border-color: rgba(246, 201, 69, 0.85) !important;
   box-shadow:
     0 6px 16px -2px rgba(0, 0, 0, 0.7),
-    0 0 16px 0 rgba(20, 184, 166, 0.4),
+    0 0 14px 0 rgba(155, 93, 229, 0.4),
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.2) !important;
 }
 
 .dark .liquid-active-nav-item {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.95),
-    0 0 12px rgba(255, 255, 255, 0.35) !important;
+  color: #ffe27a !important;
+  -webkit-text-fill-color: #ffe27a !important;
+  text-shadow: 0 1px 2px rgba(13, 11, 20, 0.95) !important;
 }
 
 .dark .shadow-xs,
 .dark .shadow-sm,
 .dark .shadow-2xs,
 .dark .shadow-md {
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5) !important;
 }
 
-/* Reduced transparency support in dark mode */
+/* Reduced transparency support in dark dungeon mode */
 @media (prefers-reduced-transparency: reduce) {
   .dark .liquid-glass,
   .dark .liquid-glass-scrolled,
   .dark .liquid-glass-btn {
-    background: #11201d !important;
-    border-color: #1c3833 !important;
+    background: #141220 !important;
+    border-color: #2f2d45 !important;
   }
 }
 

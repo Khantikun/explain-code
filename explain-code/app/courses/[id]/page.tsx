@@ -53,13 +53,13 @@ function CourseDetailContent() {
 
   if (!course) {
     return (
-      <div className="min-h-screen bg-[#faf8f4] text-[#1e1e1c]">
+      <div className="min-h-screen bg-[#0d0b14] text-[#f4efe6]">
         <SiteHeader />
         <main className="mx-auto max-w-4xl px-4 py-12 text-center">
-          <h1 className="text-xl font-bold">ไม่พบคอร์สที่คุณต้องการ</h1>
+          <h1 className="text-xl font-bold text-[#f4efe6]">ไม่พบคอร์สที่คุณต้องการ</h1>
           <Link
             href="/courses"
-            className="mt-4 inline-block rounded-xl bg-[#2a4d3e] px-4 py-2 text-xs font-bold text-white"
+            className="mt-4 inline-block rounded-xl bg-[#2fbf71] px-4 py-2 text-xs font-extrabold text-[#0b0b14] hover:bg-[#34d37d] transition-colors"
           >
             ← กลับไปหน้ารวมคอร์ส
           </Link>
@@ -132,48 +132,48 @@ function CourseDetailContent() {
       : 0;
 
   return (
-    <div className="min-h-screen bg-[#faf8f4] text-[#1e1e1c]">
+    <div className="min-h-screen bg-[#0d0b14] text-[#f4efe6]">
       <SiteHeader />
 
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="mb-4">
           <Link
             href="/courses"
-            className="text-xs font-semibold text-[#6e6a63] hover:text-[#1e1e1c]"
+            className="text-xs font-semibold text-[#9a93ad] hover:text-[#f4efe6] transition-colors"
           >
             ← กลับไปหน้ารายการคอร์สทั้งหมด
           </Link>
         </div>
 
         {/* Course Header Card */}
-        <div className="rounded-2xl border border-[#e5dfd3] bg-white p-6 sm:p-8 shadow-xs mb-6">
+        <div className="rounded-2xl border border-[#2f2d45] bg-[#141220] p-6 sm:p-8 shadow-lg mb-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="rounded-lg bg-[#e8f0ec] px-3 py-1 text-xs font-bold text-[#2a4d3e]">
+            <span className="rounded-lg border border-[#3d395a] bg-[#1c1b2b] px-3 py-1 text-xs font-bold text-[#f6c945]">
               รหัสคอร์ส: {course.join_code}
             </span>
-            <span className="text-xs font-medium text-[#6e6a63]">
-              ผู้สอน: <strong className="text-[#1e1e1c]">{course.teacher_name}</strong>
+            <span className="text-xs font-medium text-[#9a93ad]">
+              ผู้สอน: <strong className="text-[#f4efe6]">{course.teacher_name}</strong>
             </span>
           </div>
 
-          <h1 className="mt-3 text-2xl sm:text-3xl font-bold text-[#1e1e1c]">
+          <h1 className="mt-3 text-2xl sm:text-3xl font-bold text-[#f4efe6]">
             {course.title}
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-[#524f49]">
+          <p className="mt-2 text-sm leading-relaxed text-[#c4bdd6]">
             {course.description}
           </p>
 
           {session && (
-            <div className="mt-5 rounded-xl bg-[#faf8f4] p-4 border border-[#ece7dc]">
+            <div className="mt-5 rounded-xl border border-[#2f2d45] bg-[#1c1b2b] p-4">
               <div className="flex items-center justify-between text-xs font-bold mb-1.5">
-                <span>ความคืบหน้าของคุณในคอร์สนี้</span>
-                <span className="text-[#2a4d3e]">
+                <span className="text-[#e8e1cf]">ความคืบหน้าของคุณในคอร์สนี้</span>
+                <span className="text-[#2fbf71]">
                   {completedLessonIds.size}/{lessons.length} บทเรียน ({progressPercent}%)
                 </span>
               </div>
-              <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#e5dfd3]">
+              <div className="h-2.5 w-full overflow-hidden rounded-full border border-[#2f2d45] bg-[#141220]">
                 <div
-                  className="h-full rounded-full bg-[#2a4d3e] transition-all"
+                  className="h-full rounded-full bg-[#2fbf71] transition-all"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -185,7 +185,7 @@ function CourseDetailContent() {
               <button
                 type="button"
                 onClick={handleStartOrContinue}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#2a4d3e] px-5 py-3 text-xs sm:text-sm font-bold text-white shadow-xs hover:bg-[#1f3b2f] transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#2fbf71] px-5 py-3 text-xs sm:text-sm font-extrabold text-[#0b0b14] shadow-md hover:bg-[#34d37d] transition-colors cursor-pointer whitespace-nowrap"
               >
                 <Icon name="play" className="h-4 w-4" />
                 <span>
@@ -198,7 +198,7 @@ function CourseDetailContent() {
 
             <Link
               href={`/dungeon/${course.id}`}
-              className="inline-flex items-center gap-2 rounded-xl border border-[#9b5de5] bg-[#322c4a] px-4 py-3 text-xs sm:text-sm font-bold text-[#ffe27a] hover:bg-[#433c61] transition-colors"
+              className="inline-flex items-center gap-2 rounded-xl border border-[#9b5de5] bg-[#5a2d91] px-4 py-3 text-xs sm:text-sm font-bold text-[#ffe27a] hover:bg-[#6d3fc0] transition-colors whitespace-nowrap"
             >
               <Icon name="gamepad" className="h-4 w-4" />
               <span>ผจญภัยในโหมดดันเจี้ยน</span>
@@ -207,7 +207,7 @@ function CourseDetailContent() {
             {!session && (
               <Link
                 href={`/login?redirect=${encodeURIComponent(`/courses/${course.id}`)}`}
-                className="rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-4 py-3 text-xs font-bold text-[#2a4d3e] hover:bg-[#f2efe8]"
+                className="rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-4 py-3 text-xs font-bold text-[#f4efe6] hover:border-[#f6c945] hover:bg-[#252238] transition-colors whitespace-nowrap"
               >
                 เข้าสู่ระบบเพื่อบันทึกความคืบหน้า
               </Link>
@@ -216,14 +216,14 @@ function CourseDetailContent() {
         </div>
 
         {/* View Mode Switcher Tabs */}
-        <div className="mb-4 flex items-center gap-2 border-b border-[#e5dfd3] pb-1">
+        <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-[#2f2d45] pb-1">
           <button
             type="button"
             onClick={() => setViewMode("curriculum")}
-            className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
               viewMode === "curriculum"
-                ? "border-[#2a4d3e] text-[#2a4d3e]"
-                : "border-transparent text-[#6e6a63] hover:text-[#1e1e1c]"
+                ? "border-[#2fbf71] text-[#2fbf71]"
+                : "border-transparent text-[#9a93ad] hover:text-[#f4efe6]"
             }`}
           >
             <Icon name="book" size={15} />
@@ -232,10 +232,10 @@ function CourseDetailContent() {
           <button
             type="button"
             onClick={() => setViewMode("dungeon")}
-            className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
               viewMode === "dungeon"
-                ? "border-[#9b5de5] text-[#5a2d91]"
-                : "border-transparent text-[#6e6a63] hover:text-[#1e1e1c]"
+                ? "border-[#9b5de5] text-[#ffe27a]"
+                : "border-transparent text-[#9a93ad] hover:text-[#f4efe6]"
             }`}
           >
             <Icon name="gamepad" size={15} />
@@ -245,13 +245,13 @@ function CourseDetailContent() {
 
         {viewMode === "curriculum" ? (
           /* Lessons List (Curriculum View) */
-          <div className="rounded-2xl border border-[#e5dfd3] bg-white p-6 shadow-xs">
-            <h2 className="text-base font-bold text-[#1e1e1c] mb-4">
+          <div className="rounded-2xl border border-[#2f2d45] bg-[#141220] p-6 shadow-lg">
+            <h2 className="text-base font-bold text-[#f4efe6] mb-4">
               สารบัญบทเรียน ({lessons.length} บทเรียน)
             </h2>
 
             {lessons.length === 0 ? (
-              <p className="text-xs text-[#6e6a63]">
+              <p className="text-xs text-[#9a93ad]">
                 ยังไม่มีบทเรียนที่เผยแพร่ในคอร์สนี้
               </p>
             ) : (
@@ -265,40 +265,40 @@ function CourseDetailContent() {
                   return (
                     <div
                       key={lesson.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 rounded-xl border border-[#e5dfd3] bg-[#faf8f4] p-4 hover:border-[#2a4d3e] hover:bg-white transition-all"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 rounded-xl border border-[#2f2d45] bg-[#1c1b2b] p-4 hover:border-[#9b5de5] hover:bg-[#252238] transition-all"
                     >
-                      <div className="flex items-center gap-3.5">
+                      <div className="flex items-center gap-3.5 min-w-0">
                         <div
                           className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold shrink-0 ${
                             isDone
-                              ? "bg-[#166534] text-white"
-                              : "bg-[#e8f0ec] text-[#2a4d3e]"
+                              ? "bg-[#2fbf71] text-[#0b0b14]"
+                              : "border border-[#3d395a] bg-[#141220] text-[#f4efe6]"
                           }`}
                         >
                           {isDone ? "✓" : idx + 1}
                         </div>
 
                         {/* Monster Mini Sprite Preview */}
-                        <div className="p-1 rounded-lg bg-[#1c1b2b] border border-[#4a4766] shrink-0 hidden sm:flex items-center justify-center" title={`มอนสเตอร์ประจำบท: ${monster.name}`}>
+                        <div className="p-1 rounded-lg bg-[#120f1c] border border-[#3d395a] shrink-0 hidden sm:flex items-center justify-center" title={`มอนสเตอร์ประจำบท: ${monster.name}`}>
                           <PixelSpriteView sprite={monster.sprite} size={24} />
                         </div>
 
-                        <div>
-                          <h3 className="text-sm font-bold text-[#1e1e1c]">
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-bold text-[#f4efe6] truncate">
                             {lesson.title}
                           </h3>
-                          <p className="text-[11px] text-[#6e6a63] flex flex-wrap items-center gap-1.5 mt-0.5">
+                          <p className="text-[11px] text-[#9a93ad] flex flex-wrap items-center gap-1.5 mt-0.5">
                             <span>ภาษา {lesson.programming_language.toUpperCase()}</span>
                             <span>•</span>
-                            <span>มอนสเตอร์: {monster.name}</span>
+                            <span>มอนสเตอร์: <span className="text-[#f6c945]">{monster.name}</span></span>
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                      <div className="flex flex-wrap items-center gap-2 shrink-0 self-end sm:self-auto">
                         <Link
                           href={`/courses/${course.id}/lessons/${lesson.id}?mode=dungeon`}
-                          className="px-3 py-1.5 rounded-lg border border-[#9b5de5] bg-[#322c4a] text-xs font-bold text-[#ffe27a] hover:bg-[#433c61] flex items-center gap-1 transition-colors"
+                          className="px-3 py-1.5 rounded-lg border border-[#9b5de5] bg-[#5a2d91] text-xs font-bold text-[#ffe27a] hover:bg-[#6d3fc0] flex items-center gap-1 transition-colors whitespace-nowrap"
                           title="ลุยห้องดันเจี้ยนของบทนี้"
                         >
                           <Icon name="gamepad" size={13} />
@@ -306,10 +306,10 @@ function CourseDetailContent() {
                         </Link>
                         <Link
                           href={`/courses/${course.id}/lessons/${lesson.id}`}
-                          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors ${
+                          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-colors whitespace-nowrap ${
                             isDone
-                              ? "bg-[#dcfce7] text-[#166534] hover:bg-[#bbf7d0]"
-                              : "bg-[#2a4d3e] text-white hover:bg-[#1f3b2f]"
+                              ? "border border-[#2fbf71]/40 bg-[#102a1e] text-[#86efac] hover:bg-[#1a3d2d]"
+                              : "bg-[#2fbf71] text-[#0b0b14] hover:bg-[#34d37d]"
                           }`}
                         >
                           {isDone ? "ทบทวนบทเรียน" : "เข้าเรียน →"}
@@ -344,7 +344,7 @@ function CourseDetailContent() {
 
               <Link
                 href={`/dungeon/${course.id}`}
-                className="retro-button px-4 py-2.5 rounded-xl bg-[#2fbf71] hover:bg-[#34d37d] text-[#0b0b14] text-xs font-black pixel-font flex items-center gap-1.5 shrink-0 transition-colors"
+                className="retro-button px-4 py-2.5 rounded-xl bg-[#2fbf71] hover:bg-[#34d37d] text-[#0b0b14] text-xs font-black pixel-font flex items-center gap-1.5 shrink-0 transition-colors whitespace-nowrap"
               >
                 <span>ลุยทั้งคอร์สแบบต่อเนื่อง →</span>
               </Link>
@@ -374,7 +374,7 @@ function CourseDetailContent() {
                       </div>
 
                       <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="pixel-font text-[10px] text-[#ffe27a]">
                             ชั้นที่ {idx + 1}
                           </span>
@@ -407,7 +407,7 @@ function CourseDetailContent() {
                     <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
                       <Link
                         href={`/courses/${course.id}/lessons/${lesson.id}?mode=dungeon`}
-                        className="retro-button px-4 py-2 rounded-xl bg-[#9b5de5] hover:bg-[#b07af0] text-[#f4efe6] text-xs font-bold flex items-center gap-1.5 transition-colors"
+                        className="retro-button px-4 py-2 rounded-xl bg-[#9b5de5] hover:bg-[#b07af0] text-[#f4efe6] text-xs font-bold flex items-center gap-1.5 transition-colors whitespace-nowrap"
                       >
                         <Icon name="gamepad" size={13} />
                         <span>เข้าเล่นชั้นนี้</span>
@@ -428,7 +428,7 @@ export default function CourseDetailPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#faf8f4] flex items-center justify-center text-sm font-bold text-[#524f49]">
+        <div className="min-h-screen bg-[#0d0b14] flex items-center justify-center text-sm font-bold text-[#9a93ad]">
           กำลังโหลดรายละเอียดคอร์ส...
         </div>
       }

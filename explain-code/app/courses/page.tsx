@@ -10,16 +10,24 @@ import {
 } from "../components/SiteHeader";
 import { Icon, StatusCircle } from "../components/Icons";
 import { BlockModelGrid } from "../components/BlockModelGrid";
-import { PracticeArena } from "../components/PracticeArena";
+import { TopicDungeonArena } from "../components/dungeon/TopicDungeonArena";
+import { DungeonRunScreen } from "../components/DungeonRunScreen";
+import { PixelSpriteView } from "../components/dungeon/PixelSpriteView";
+import { useUiLanguage } from "../components/LanguageProvider";
+import { getMonsterDef, MonsterType } from "../lib/dungeon/monsters";
+import {
+  AVATARS,
+  AvatarKey,
+  DEFAULT_AVATAR,
+  getAvatar,
+} from "../lib/dungeon/sprites";
+import { dungeonSound } from "../lib/dungeon/sound";
 import {
   TOPICS,
   BLOCK_MODEL_CELLS,
   BlockCellId,
-  INITIAL_CLASSROOMS,
   INITIAL_STUDENTS,
-  ClassroomRecord,
   StudentRecord,
-  AI_USAGE_LOGS,
   getMasteryStatus,
 } from "../lib/curriculum";
 import {
@@ -38,10 +46,84 @@ import {
   saveLocalLessons,
 } from "../lib/lms-data";
 
-type LearningTab = "quest" | "practice" | "learn" | "profile" | "ailog";
+type LearningTab = "quest" | "practice" | "custom" | "learn";
+
+const GUEST_CELL_SCORES: Record<BlockCellId, number> = {
+  T1: 0,
+  T2: 0,
+  T3: 0,
+  T4: 0,
+  E1: 0,
+  E2: 0,
+  E3: 0,
+  E4: 0,
+  F1: 0,
+  F2: 0,
+  F3: 0,
+  F4: 0,
+};
+
+const GUEST_STUDENT: StudentRecord = {
+  id: "guest",
+  nickname: "Guest",
+  pinHash: "",
+  roomCode: "",
+  xp: 0,
+  streak: 0,
+  completedTopics: [],
+  badges: [],
+  cellScores: GUEST_CELL_SCORES,
+  history: [],
+};
+
+interface LeaderboardEntry {
+  displayName: string;
+  avatar?: string;
+  level: number;
+  xp: number;
+  totalMonstersDefeated: number;
+  totalDungeonsCleared: number;
+}
 
 const STORAGE_STUDENTS_KEY = "explain_code_students_v2";
-const STORAGE_ROOMS_KEY = "explain_code_rooms_v2";
+const STORAGE_AVATAR_KEY = "explain_code_dungeon_avatar";
+const STORAGE_SOUND_KEY = "explain_code_dungeon_sound";
+
+const SUPPORTED_LANGUAGES: LearningLanguage[] = [
+  "javascript",
+  "python",
+  "sql",
+  "typescript",
+  "cpp",
+  "java",
+];
+
+function isValidLearningLanguage(val: string | null): val is LearningLanguage {
+  return Boolean(val && SUPPORTED_LANGUAGES.includes(val as LearningLanguage));
+}
+
+function getFloorMonsterType(idx: number, isBoss: boolean): MonsterType {
+  if (isBoss) return "boss";
+  const cycle: MonsterType[] = ["slime", "skeleton", "goblin"];
+  return cycle[idx % cycle.length];
+}
+
+function getJoinCodePlaceholder(lang: LearningLanguage): string {
+  switch (lang) {
+    case "python":
+      return "PY2026";
+    case "sql":
+      return "SQL2026";
+    case "typescript":
+      return "TS2026";
+    case "cpp":
+      return "CPP2026";
+    case "java":
+      return "JAVA2026";
+    default:
+      return "JS2026";
+  }
+}
 
 function formatAttemptTimestamp(isoStr?: string): string {
   if (!isoStr) return "เมื่อสักครู่";
@@ -65,63 +147,96 @@ function isCourseForLanguage(
   lang: LearningLanguage
 ): boolean {
   const titleUpper = `${course.title} ${course.description} ${course.join_code}`.toUpperCase();
+  const titleWithoutJs = titleUpper.replace(/JAVASCRIPT/g, "");
+  const codeUpper = course.join_code.toUpperCase();
+  const lessonLangs = courseLessons.map((l) =>
+    l.programming_language.toLowerCase().trim()
+  );
+
   if (lang === "python") {
     return (
       course.id.includes("python") ||
       titleUpper.includes("PYTHON") ||
-      course.join_code.toUpperCase().startsWith("PY") ||
-      courseLessons.some((l) => l.programming_language.toLowerCase() === "python")
+      codeUpper.startsWith("PY") ||
+      lessonLangs.includes("python")
     );
   }
   if (lang === "sql") {
     return (
       course.id.includes("sql") ||
       titleUpper.includes("SQL") ||
-      course.join_code.toUpperCase().startsWith("SQL") ||
-      courseLessons.some((l) => l.programming_language.toLowerCase() === "sql")
+      codeUpper.startsWith("SQL") ||
+      lessonLangs.includes("sql")
     );
   }
-  // javascript (default for courses that are not python/sql)
-  const isPyOrSql =
-    course.id.includes("python") ||
-    course.id.includes("sql") ||
-    titleUpper.includes("PYTHON") ||
-    titleUpper.includes("SQL") ||
-    courseLessons.some((l) =>
-      ["python", "sql"].includes(l.programming_language.toLowerCase())
+  if (lang === "typescript") {
+    return (
+      course.id.includes("typescript") ||
+      course.id.includes("-ts-") ||
+      titleUpper.includes("TYPESCRIPT") ||
+      codeUpper.startsWith("TS") ||
+      lessonLangs.includes("typescript")
     );
-  return !isPyOrSql;
+  }
+  if (lang === "cpp") {
+    return (
+      course.id.includes("cpp") ||
+      titleUpper.includes("C++") ||
+      codeUpper.startsWith("CPP") ||
+      lessonLangs.includes("cpp") ||
+      lessonLangs.includes("c++")
+    );
+  }
+  if (lang === "java") {
+    return (
+      course.id.includes("java") ||
+      /\bJAVA\b/.test(titleWithoutJs) ||
+      codeUpper.startsWith("JAVA") ||
+      lessonLangs.includes("java")
+    );
+  }
+
+  const isOtherTrack =
+    isCourseForLanguage(course, courseLessons, "python") ||
+    isCourseForLanguage(course, courseLessons, "sql") ||
+    isCourseForLanguage(course, courseLessons, "typescript") ||
+    isCourseForLanguage(course, courseLessons, "cpp") ||
+    isCourseForLanguage(course, courseLessons, "java");
+  return !isOtherTrack || lessonLangs.includes("javascript");
 }
 
 function CoursesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const langParam = searchParams.get("lang") as LearningLanguage | null;
+  const { t } = useUiLanguage();
+  const rawLangParam = searchParams.get("lang");
+  const langParam = isValidLearningLanguage(rawLangParam) ? rawLangParam : null;
 
   const [selectedLanguage, setSelectedLanguage] =
-    useState<LearningLanguage | null>(
-      langParam && ["javascript", "python", "sql"].includes(langParam)
-        ? langParam
-        : null
-    );
+    useState<LearningLanguage | null>(langParam);
   const [session, setSession] = useState<ClientAuthSession | null>(null);
   const [activeTab, setActiveTab] = useState<LearningTab>("quest");
 
-  // ข้อมูลเควสต์ PRIMM & Block Model 12 ช่อง
-  const [classrooms, setClassrooms] =
-    useState<ClassroomRecord[]>(INITIAL_CLASSROOMS);
-  const [students, setStudents] = useState<StudentRecord[]>(INITIAL_STUDENTS);
+  // Dungeon Hub merged preferences: Avatar & Leaderboard
+  const [selectedAvatarKey, setSelectedAvatarKey] =
+    useState<AvatarKey>(DEFAULT_AVATAR);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+
+  // Student & quest state (empty until logged in; guests never load or save progress)
+  const [students, setStudents] = useState<StudentRecord[]>([]);
   const [currentStudentId, setCurrentStudentId] = useState<string>("stu-1");
   const [selectedTopicId, setSelectedTopicId] = useState<number>(1);
   const [unlockAllDemo, setUnlockAllDemo] = useState<boolean>(false);
+  const [playAttemptNonce, setPlayAttemptNonce] = useState<number>(0);
+  const [guestNotice, setGuestNotice] = useState<string | null>(null);
 
-  // ห้องทดลองรันโค้ดตามภาษาที่เลือก
+  // Code runner sandbox state
   const [playgroundCode, setPlaygroundCode] = useState<string>(
     LANGUAGE_TRACKS[0].defaultPlaygroundCode
   );
   const [playgroundOutput, setPlaygroundOutput] = useState<string>("");
 
-  // ข้อมูลคอร์สเรียนและบทเรียน (LMS)
+  // Courses & lessons (LMS)
   const [courses, setCourses] = useState<Course[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
@@ -131,11 +246,11 @@ function CoursesContent() {
     text: string;
   } | null>(null);
 
-  // ซิงค์ URL query param ?lang=... กับ state
+  // Sync ?lang=... query param
   useEffect(() => {
-    if (langParam && ["javascript", "python", "sql"].includes(langParam)) {
+    if (langParam) {
       setSelectedLanguage(langParam);
-      const track = LANGUAGE_TRACKS.find((t) => t.id === langParam);
+      const track = LANGUAGE_TRACKS.find((tr) => tr.id === langParam);
       const langTopics = getTopicsByLanguage(langParam);
       if (track) {
         setPlaygroundCode(track.defaultPlaygroundCode);
@@ -150,10 +265,11 @@ function CoursesContent() {
   }, [langParam]);
 
   const handleSelectLanguage = (lang: LearningLanguage) => {
-    const track = LANGUAGE_TRACKS.find((t) => t.id === lang);
+    const track = LANGUAGE_TRACKS.find((tr) => tr.id === lang);
     const langTopics = getTopicsByLanguage(lang);
     setSelectedLanguage(lang);
     setActiveTab("quest");
+    setGuestNotice(null);
     if (track) {
       setPlaygroundCode(track.defaultPlaygroundCode);
       setPlaygroundOutput("");
@@ -164,13 +280,15 @@ function CoursesContent() {
     router.push(`/courses?lang=${lang}`);
   };
 
-  const handleBackToLanguagePicker = () => {
-    setSelectedLanguage(null);
-    setActiveTab("quest");
-    router.push("/courses");
+  const handleStartTopic = (topicId: number) => {
+    setGuestNotice(null);
+    setSelectedTopicId(topicId);
+    setPlayAttemptNonce((n) => n + 1);
+    setActiveTab("practice");
   };
 
   const saveStudentsToStorage = (updated: StudentRecord[]) => {
+    if (!getClientSession()) return;
     setStudents(updated);
     try {
       localStorage.setItem(STORAGE_STUDENTS_KEY, JSON.stringify(updated));
@@ -179,9 +297,9 @@ function CoursesContent() {
     }
   };
 
-  // ซิงค์ข้อมูลนักเรียนและประวัติการทำเควสต์กับ Supabase
   const syncStudentData = useCallback(
     async (targetId?: string) => {
+      if (!getClientSession()) return;
       const sid = targetId || currentStudentId;
       if (!sid) return;
 
@@ -218,10 +336,14 @@ function CoursesContent() {
         if (attRes.ok) {
           const attData = await attRes.json();
           if (Array.isArray(attData.attempts) && attData.attempts.length > 0) {
+            const allTopics = LANGUAGE_TRACKS.flatMap((tr) =>
+              getTopicsByLanguage(tr.id)
+            );
             const formattedHistory = attData.attempts.map((att: any) => ({
               topicId: att.topic_id,
               topicTitle:
-                TOPICS.find((t) => t.id === att.topic_id)?.title ||
+                allTopics.find((tp) => tp.id === att.topic_id)?.title ||
+                TOPICS.find((tp) => tp.id === att.topic_id)?.title ||
                 `เรื่องที่ ${att.topic_id}`,
               scorePercent: att.score_percent,
               xpEarned: att.xp_earned,
@@ -262,10 +384,29 @@ function CoursesContent() {
     const handleAuthChange = () => {
       const updatedSession = getClientSession();
       setSession(updatedSession);
-      if (!updatedSession) {
-        setActiveTab((prev) => (prev === "profile" ? "quest" : prev));
-      } else if (updatedSession.role === "student" && updatedSession.userId) {
-        setCurrentStudentId(updatedSession.userId);
+      if (updatedSession) {
+        if (updatedSession.role === "student" && updatedSession.userId) {
+          setCurrentStudentId(updatedSession.userId);
+        }
+        try {
+          const savedStudents = localStorage.getItem(STORAGE_STUDENTS_KEY);
+          if (savedStudents) {
+            setStudents(JSON.parse(savedStudents));
+          } else {
+            setStudents(INITIAL_STUDENTS);
+            localStorage.setItem(
+              STORAGE_STUDENTS_KEY,
+              JSON.stringify(INITIAL_STUDENTS)
+            );
+          }
+        } catch {
+          // ignore
+        }
+        if (updatedSession.role === "student" && updatedSession.userId) {
+          void syncStudentData(updatedSession.userId);
+        }
+      } else {
+        setStudents([]);
       }
     };
 
@@ -273,24 +414,29 @@ function CoursesContent() {
     window.addEventListener("storage", handleAuthChange);
 
     try {
-      const savedRooms = localStorage.getItem(STORAGE_ROOMS_KEY);
-      if (savedRooms) {
-        setClassrooms(JSON.parse(savedRooms));
-      } else {
-        localStorage.setItem(
-          STORAGE_ROOMS_KEY,
-          JSON.stringify(INITIAL_CLASSROOMS)
-        );
+      const savedAvatar = localStorage.getItem(STORAGE_AVATAR_KEY) as AvatarKey;
+      if (savedAvatar && AVATARS.some((a) => a.key === savedAvatar)) {
+        setSelectedAvatarKey(savedAvatar);
+      }
+      const savedSound = localStorage.getItem(STORAGE_SOUND_KEY);
+      if (savedSound !== null) {
+        const enabled = savedSound === "true";
+        dungeonSound.setEnabled(enabled);
       }
 
-      const savedStudents = localStorage.getItem(STORAGE_STUDENTS_KEY);
-      if (savedStudents) {
-        setStudents(JSON.parse(savedStudents));
+      if (current) {
+        const savedStudents = localStorage.getItem(STORAGE_STUDENTS_KEY);
+        if (savedStudents) {
+          setStudents(JSON.parse(savedStudents));
+        } else {
+          setStudents(INITIAL_STUDENTS);
+          localStorage.setItem(
+            STORAGE_STUDENTS_KEY,
+            JSON.stringify(INITIAL_STUDENTS)
+          );
+        }
       } else {
-        localStorage.setItem(
-          STORAGE_STUDENTS_KEY,
-          JSON.stringify(INITIAL_STUDENTS)
-        );
+        setStudents([]);
       }
     } catch {
       // ignore
@@ -303,7 +449,7 @@ function CoursesContent() {
 
     const localCourses = loadLocalCourses();
     const localLessons = loadLocalLessons();
-    const localEnrolls = loadLocalEnrollments();
+    const localEnrolls = current ? loadLocalEnrollments() : [];
     setCourses(localCourses);
     setLessons(localLessons);
     setEnrollments(localEnrolls);
@@ -333,7 +479,7 @@ function CoursesContent() {
           saveLocalCourses(mergedCourses);
           saveLocalLessons(mergedLessons);
 
-          if (Array.isArray(data.enrollments) && data.enrollments.length > 0) {
+          if (current && Array.isArray(data.enrollments) && data.enrollments.length > 0) {
             const mergedEnrolls = [
               ...data.enrollments,
               ...localEnrolls.filter(
@@ -356,54 +502,55 @@ function CoursesContent() {
 
     void syncFromServer();
 
+    const loadLeaderboard = async () => {
+      try {
+        const lbRes = await fetch("/api/dungeon/leaderboard");
+        if (lbRes.ok) {
+          const lbData = await lbRes.json();
+          if (Array.isArray(lbData.leaderboard)) {
+            setLeaderboard(lbData.leaderboard);
+          }
+        }
+      } catch {
+        // ignore leaderboard error
+      }
+    };
+    void loadLeaderboard();
+
     return () => {
       window.removeEventListener("explain-code-auth-change", handleAuthChange);
       window.removeEventListener("storage", handleAuthChange);
     };
   }, [syncStudentData]);
 
-  // ข้อมูลนักเรียนปัจจุบันสำหรับระบบเควสต์
-  const currentStudent: StudentRecord =
-    students.find((s) => s.id === currentStudentId) ||
-    (session
-      ? {
-          id: session.userId,
-          nickname: session.displayName || session.username,
-          pinHash: "0000",
-          roomCode: session.roomCode || "M401",
-          xp: 120,
-          streak: 1,
-          completedTopics: [1],
-          badges: ["badge-1"],
-          cellScores: {
-            T1: 75,
-            T2: 70,
-            T3: 65,
-            T4: 60,
-            E1: 75,
-            E2: 65,
-            E3: 60,
-            E4: 55,
-            F1: 70,
-            F2: 65,
-            F3: 60,
-            F4: 55,
-          },
-          history: [],
-        }
-      : students[0]);
+  const currentStudent: StudentRecord = session
+    ? students.find((s) => s.id === currentStudentId) || {
+        id: session.userId,
+        nickname: session.displayName || session.username,
+        pinHash: "0000",
+        roomCode: session.roomCode || "M401",
+        xp: 0,
+        streak: 0,
+        completedTopics: [],
+        badges: [],
+        cellScores: { ...GUEST_CELL_SCORES },
+        history: [],
+      }
+    : GUEST_STUDENT;
 
+  const currentAvatar = getAvatar(selectedAvatarKey);
   const currentLanguage: LearningLanguage = selectedLanguage || "javascript";
   const currentTrackMeta =
-    LANGUAGE_TRACKS.find((t) => t.id === currentLanguage) || LANGUAGE_TRACKS[0];
+    LANGUAGE_TRACKS.find((tr) => tr.id === currentLanguage) ||
+    LANGUAGE_TRACKS[0];
   const currentLanguageTopics = getTopicsByLanguage(currentLanguage);
 
-  const currentStudentRoom = classrooms.find(
-    (r) => r.roomCode === currentStudent.roomCode
+  const activeTopicIndex = Math.max(
+    0,
+    currentLanguageTopics.findIndex((tp) => tp.id === selectedTopicId)
   );
   const activeTopic =
-    currentLanguageTopics.find((t) => t.id === selectedTopicId) ||
-    currentLanguageTopics[0];
+    currentLanguageTopics[activeTopicIndex] || currentLanguageTopics[0];
 
   const studentLevel = Math.floor(currentStudent.xp / 100) + 1;
   const studentAvgMastery = Math.round(
@@ -434,7 +581,6 @@ function CoursesContent() {
       : true;
   };
 
-  // เมื่อผู้เรียนเล่นจบด่านเควสต์
   const handleCompleteTopic = (result: {
     topicId: number;
     earnedXp: number;
@@ -456,7 +602,9 @@ function CoursesContent() {
       feedback: string;
     };
   }) => {
-    const topicObj = currentLanguageTopics.find((t) => t.id === result.topicId);
+    const topicObj = currentLanguageTopics.find(
+      (tp) => tp.id === result.topicId
+    );
     const currentStudentSnapshot = currentStudent;
 
     const nextCompleted = currentStudentSnapshot.completedTopics.includes(
@@ -506,16 +654,19 @@ function CoursesContent() {
     }
 
     if (!session) {
-      router.push(
-        `/login?redirect=${encodeURIComponent(
-          `/courses?lang=${currentLanguage}`
-        )}`
+      setGuestNotice(
+        t(
+          "คุณผ่านด่านนี้ในโหมดทดลอง (Guest) — ความคืบหน้าจะไม่ถูกบันทึก เข้าสู่ระบบเพื่อเก็บ XP และปลดล็อกด่านถัดไป",
+          "Cleared in Guest mode — progress is not saved. Log in to save XP and unlock the next floor."
+        )
       );
+      setPlayAttemptNonce((n) => n + 1);
+      setActiveTab("quest");
       return;
     }
 
     saveStudentsToStorage(updatedStudents);
-    setActiveTab("profile");
+    setActiveTab("learn");
 
     void (async () => {
       try {
@@ -611,43 +762,64 @@ function CoursesContent() {
     if (!matched) {
       setJoinMsg({
         type: "error",
-        text: `ไม่พบคอร์สที่เผยแพร่แล้วสำหรับรหัส "${cleanCode}" (ตัวอย่างรหัสคอร์ส: JS2026, PY2026 หรือ SQL2026)`,
+        text: t(
+          `ไม่พบรหัส "${cleanCode}" (ลอง: JS2026, PY2026, SQL2026, TS2026, CPP2026, JAVA2026)`,
+          `Code "${cleanCode}" not found (Try: JS2026, PY2026, SQL2026, TS2026, CPP2026, JAVA2026)`
+        ),
       });
       return;
     }
 
     setJoinMsg({
       type: "success",
-      text: `พบคอร์ส "${matched.title}" กำลังพาเข้าสู่คอร์ส...`,
+      text: t(
+        `พบ "${matched.title}" กำลังเข้าสู่คอร์ส...`,
+        `Found "${matched.title}" — entering...`
+      ),
     });
     await handleEnrollCourse(matched);
   };
 
   // ==========================================================================
-  // ขั้นตอนที่ 1: หน้าเลือกภาษาที่ต้องการเรียนรู้ (แสดงเมื่อยังไม่ได้เลือกภาษา)
+  // STEP 1: Language Picker (Must choose a language before entering Dungeon)
   // ==========================================================================
   if (!selectedLanguage) {
+    const bossSprite = getMonsterDef("boss").sprite;
     return (
-      <div className="min-h-screen bg-[#eef3f1] text-[#1b2a2f] flex flex-col">
+      <div className="min-h-screen bg-[#0d0b14] text-[#f4efe6] flex flex-col">
         <SiteHeader />
 
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-12 flex flex-col gap-8">
-          {/* Header แนะนำการเลือกภาษา */}
-          <section className="text-center max-w-3xl mx-auto">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#b6c9c5] bg-white px-4 py-1.5 text-xs font-extrabold text-[#0b4f49] shadow-2xs">
-              <Icon name="code" className="h-4 w-4 text-[#0f766e]" />
-              ขั้นตอนที่ 1 · เลือกภาษาโปรแกรมที่คุณต้องการเรียนรู้
-            </span>
-            <h1 className="mt-3.5 text-3xl sm:text-4xl font-extrabold tracking-tight text-[#14221e]">
-              วันนี้คุณอยากฝึกอ่านและแกะโค้ดภาษาอะไร?
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-7 sm:px-6 sm:py-10 flex flex-col gap-6">
+          {/* Crisp Step 1 Header */}
+          <section className="rounded-3xl border border-[#2f2d45] bg-[#141220] p-5 sm:p-7 text-center shadow-xl">
+            <div className="flex justify-center mb-3">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#f6c945]/40 bg-[#1c1b2b] px-3.5 py-1 text-xs font-extrabold text-[#ffe27a]">
+                <Icon name="gamepad" className="h-3.5 w-3.5 text-[#ffe27a]" />
+                <span>
+                  {t(
+                    "ขั้นตอนที่ 1 · เลือกภาษาเข้าสู่ดันเจี้ยน",
+                    "STEP 1 · CHOOSE YOUR LANGUAGE"
+                  )}
+                </span>
+              </span>
+            </div>
+
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-[#f4efe6]">
+              {t(
+                "เลือกภาษาเพื่อเข้าสู่ดันเจี้ยน",
+                "Choose Your Language to Enter the Dungeon"
+              )}
             </h1>
-            <p className="mt-2.5 text-sm sm:text-base text-[#475b60]">
-              แต่ละภาษามีโครงสร้างไวยากรณ์ ประเภทการใช้งาน เควสต์ฝึกอ่านโค้ด 4 ขั้น (PRIMM) และคอร์สเรียนที่แยกออกจากกันอย่างชัดเจน เลือกภาษาที่สนใจเพื่อเข้าสู่เนื้อหาของภาษานั้นได้เลย
+            <p className="mt-1.5 text-xs sm:text-sm text-[#9a93ad]">
+              {t(
+                "เลือก 1 ภาษาด้านล่างเพื่อเริ่มผจญภัย 2D RPG และคอร์สเรียน",
+                "Pick 1 programming language below to unlock its 2D RPG floors and courses."
+              )}
             </p>
           </section>
 
-          {/* การ์ดเลือกภาษาหลัก 3 ภาษา (JavaScript / Python / SQL) แยกตามประเภท */}
-          <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* 6 Crisp Language Cards */}
+          <section className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
             {LANGUAGE_TRACKS.map((track) => {
               const trackTopics = getTopicsByLanguage(track.id);
               const trackCourses = publishedCourses.filter((c) => {
@@ -660,98 +832,76 @@ function CoursesContent() {
               return (
                 <div
                   key={track.id}
-                  className="group rounded-3xl border-2 border-[#cfe0dc] bg-white p-6 sm:p-7 shadow-xs hover:border-[#0f766e] hover:shadow-md transition-all flex flex-col justify-between gap-6"
+                  className="rounded-3xl border border-[#2f2d45] bg-[#1c1b2b] p-5 flex flex-col justify-between gap-4 text-[#f4efe6] shadow-lg hover:border-[#f6c945]/60 transition-colors"
                 >
-                  <div className="flex flex-col gap-4">
-                    {/* หมวดหมู่และป้ายชื่อภาษา */}
+                  <div className="flex flex-col gap-3">
+                    {/* Badge + Floor/Boss Count Pill */}
                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <span
-                        className="rounded-full px-3 py-1 text-xs font-extrabold"
-                        style={{
-                          backgroundColor: track.bgTint,
-                          color: track.accentColor,
-                        }}
-                      >
+                      <span className="rounded-full border border-[#2f2d45] bg-[#141220] px-3 py-1 text-xs font-extrabold text-[#ffe27a]">
                         {track.shortBadge}
                       </span>
-                      <span className="text-xs font-bold text-[#475b60]">
-                        {trackTopics.length} ด่านเควสต์ · {trackCourses.length}{" "}
-                        คอร์สเรียน
+                      <span className="rounded-full bg-[#141220] border border-[#2f2d45] px-2.5 py-0.5 text-[11px] font-bold text-[#9a93ad]">
+                        {t(
+                          `${trackTopics.length} ชั้น · 1 บอส · ${trackCourses.length} คอร์ส`,
+                          `${trackTopics.length} Floors · 1 Boss · ${trackCourses.length} Course${trackCourses.length === 1 ? "" : "s"}`
+                        )}
                       </span>
                     </div>
 
-                    <div>
-                      <span className="text-xs font-extrabold text-[#0f766e]">
-                        {track.categoryLabel}
-                      </span>
-                      <h2 className="mt-1 text-2xl font-extrabold text-[#14221e]">
-                        ภาษา {track.name}
-                      </h2>
-                      <p className="mt-1 text-xs font-bold text-[#1b2a2f]">
-                        {track.tagline}
-                      </p>
-                      <p className="mt-2 text-xs leading-relaxed text-[#475b60]">
-                        {track.description}
-                      </p>
-                    </div>
-
-                    {/* ตัวอย่างหน้าตาโค้ดของภาษานั้น */}
-                    <div className="rounded-2xl bg-[#14221e] p-3.5 text-xs text-[#e3f1ee] font-code overflow-x-auto border border-[#0b4f49]">
-                      <div className="text-[10px] font-sans font-bold text-[#f6b73c] mb-1.5">
-                        ตัวอย่างโค้ดที่จะได้ฝึกในหมวด {track.name}:
+                    {/* Language Name + Realm Name + Boss Sprite */}
+                    <div className="rounded-2xl border border-[#2f2d45] bg-[#0d0b14] p-3.5 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-base font-extrabold text-[#f4efe6]">
+                          {track.name}
+                        </div>
+                        <h2 className="text-sm font-extrabold text-[#ffe27a] truncate">
+                          {t(track.dungeonRealmName, track.dungeonRealmNameEn)}
+                        </h2>
                       </div>
-                      <pre className="text-[12px] leading-relaxed">
-                        {track.sampleCodePreview}
-                      </pre>
+                      <div className="shrink-0 flex flex-col items-center gap-0.5 rounded-xl bg-[#1c1b2b] border border-[#9b5de5]/50 px-2 py-1">
+                        <PixelSpriteView sprite={bossSprite} size={28} animateBounce />
+                        <span className="pixel-font text-[8px] font-bold text-[#e9d5ff]">
+                          BOSS
+                        </span>
+                      </div>
                     </div>
 
-                    {/* เนื้อหาหลักที่แยกตามแต่ละภาษา */}
-                    <div className="space-y-1.5">
-                      <p className="text-xs font-extrabold text-[#14221e]">
-                        เนื้อหาหลักในหมวด {track.name}:
-                      </p>
-                      <ul className="space-y-1.5 text-xs font-semibold text-[#3d4d48]">
-                        {track.highlights.map((item, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="text-[#0f766e] font-extrabold">
-                              ✓
-                            </span>
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                    {/* 1 Short Punchy Sentence */}
+                    <p className="text-xs font-semibold text-[#9a93ad] line-clamp-2">
+                      {t(track.tagline, track.taglineEn || track.tagline)}
+                    </p>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => handleSelectLanguage(track.id)}
-                    className="liquid-glass-primary-btn liquid-press w-full rounded-2xl py-3.5 px-5 text-sm font-extrabold flex items-center justify-center gap-2 cursor-pointer"
+                    className="retro-button w-full rounded-2xl bg-[#f6c945] hover:bg-[#ffe27a] text-[#120f1c] py-3 px-4 text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 cursor-pointer transition-colors"
                   >
                     <Icon name="play" className="h-4 w-4" filled />
-                    <span>เข้าสู่การเรียนรู้ภาษา {track.name} →</span>
+                    <span>
+                      {t(
+                        `ลุยดันเจี้ยน ${track.name} →`,
+                        `Enter ${track.name} Dungeon →`
+                      )}
+                    </span>
                   </button>
                 </div>
               );
             })}
           </section>
 
-          {/* กล่องกรอกรหัสคอร์ส/รหัสห้องเรียนโดยตรง */}
-          <section className="rounded-3xl border-2 border-[#cfe0dc] bg-white p-6 sm:p-7 shadow-xs flex flex-col md:flex-row items-center justify-between gap-6">
-            <div>
-              <h3 className="text-lg font-extrabold text-[#14221e]">
-                มีรหัสคอร์สเรียนจากครูผู้สอนอยู่แล้วใช่ไหม?
-              </h3>
-              <p className="text-xs sm:text-sm text-[#475b60] mt-0.5">
-                กรอกรหัสคอร์ส (เช่น <code className="font-bold">JS2026</code>,{" "}
-                <code className="font-bold">PY2026</code>, หรือ{" "}
-                <code className="font-bold">SQL2026</code>) เพื่อเข้าสู่บทเรียนของภาษานั้นได้ทันที
-              </p>
+          {/* Compact Course Join Code Bar */}
+          <section className="rounded-2xl border border-[#2f2d45] bg-[#1c1b2b] p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
+            <div className="text-xs sm:text-sm font-bold text-[#ffe27a]">
+              {t(
+                "มีรหัสคอร์สเรียนจากครูแล้ว?",
+                "Have a teacher course join code?"
+              )}
             </div>
 
             <form
               onSubmit={handleJoinByCode}
-              className="flex w-full md:w-auto flex-col gap-1.5"
+              className="flex w-full sm:w-auto flex-col gap-1"
             >
               <div className="flex gap-2">
                 <input
@@ -760,22 +910,22 @@ function CoursesContent() {
                   onChange={(e) =>
                     setJoinCodeInput(e.target.value.toUpperCase())
                   }
-                  placeholder="กรอกรหัส เช่น PY2026"
-                  className="w-full md:w-52 rounded-xl border-2 border-[#b6c9c5] bg-[#f8fbfa] px-3.5 py-2.5 text-xs font-mono font-bold uppercase text-[#1b2a2f] focus:border-[#0f766e] focus:outline-hidden"
+                  placeholder={t("เช่น JS2026, PY2026", "e.g. JS2026, PY2026")}
+                  className="w-full sm:w-48 rounded-xl border border-[#2f2d45] bg-[#0d0b14] px-3 py-2 text-xs font-mono font-bold uppercase text-[#f4efe6] placeholder:text-[#7c7491] focus:border-[#ffe27a] focus:outline-hidden"
                 />
                 <button
                   type="submit"
-                  className="press-teal rounded-xl px-4 py-2.5 text-xs font-extrabold text-white cursor-pointer shrink-0"
+                  className="retro-button rounded-xl bg-[#2fbf71] hover:bg-[#34d37d] px-4 py-2 text-xs font-extrabold text-[#120f1c] cursor-pointer shrink-0"
                 >
-                  เข้าร่วมทันที
+                  {t("เข้าร่วม", "Join")}
                 </button>
               </div>
               {joinMsg && (
                 <p
                   className={`text-xs font-bold ${
                     joinMsg.type === "error"
-                      ? "text-[#991b1b]"
-                      : "text-[#14532d]"
+                      ? "text-[#ff6b81]"
+                      : "text-[#2fbf71]"
                   }`}
                 >
                   {joinMsg.text}
@@ -789,921 +939,726 @@ function CoursesContent() {
   }
 
   // ==========================================================================
-  // ขั้นตอนที่ 2: หน้าการเรียนรู้และฝึกเควสต์แยกตามภาษาที่เลือกแล้ว
+  // STEP 2: Learning Dungeon Mode (For Selected Language)
   // ==========================================================================
+  const clearedCount = currentLanguageTopics.filter((tp) =>
+    currentStudent.completedTopics.includes(tp.id)
+  ).length;
+
   return (
-    <div className="min-h-screen bg-[#eef3f1] text-[#1b2a2f] flex flex-col">
+    <div className="min-h-screen bg-[#0d0b14] text-[#f4efe6] flex flex-col">
       <SiteHeader />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 flex flex-col gap-6">
-        {/* แถบแสดงภาษาที่กำลังเรียนอยู่ + ปุ่มสลับเปลี่ยนภาษา */}
-        <div className="rounded-2xl border-2 border-[#0f766e]/35 bg-gradient-to-r from-[#042b28] via-[#063834] to-[#0b4f49] p-4 sm:p-5 text-white shadow-sm flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <button
-              type="button"
-              onClick={handleBackToLanguagePicker}
-              className="rounded-xl bg-white/15 hover:bg-white/25 border border-white/30 px-3.5 py-2 text-xs font-extrabold text-white flex items-center gap-1.5 cursor-pointer transition"
-            >
-              <span>← เลือกภาษาอื่น</span>
-            </button>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="rounded-full bg-[#f6b73c] px-2.5 py-0.5 text-[11px] font-extrabold text-[#3d2603]">
-                  {currentTrackMeta.shortBadge}
-                </span>
-                <span className="text-xs font-bold text-[#cfe0dc]">
-                  {currentTrackMeta.categoryLabel}
-                </span>
-              </div>
-              <h1 className="text-lg sm:text-xl font-extrabold text-white mt-0.5">
-                หมวดการเรียนรู้ภาษา {currentTrackMeta.name}
-              </h1>
-            </div>
-          </div>
-
-          {/* ปุ่มสลับภาษาด่วน */}
-          <div className="flex items-center gap-1.5 rounded-xl bg-black/25 p-1 border border-white/15">
-            {LANGUAGE_TRACKS.map((t) => {
-              const isCurrent = t.id === currentLanguage;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => handleSelectLanguage(t.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold cursor-pointer transition ${
-                    isCurrent
-                      ? "bg-[#f6b73c] text-[#3d2603] shadow-2xs"
-                      : "text-white/85 hover:text-white hover:bg-white/10"
-                  }`}
-                >
-                  {t.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* แถบควบคุมหมวดการเรียนรู้ (จัดกึ่งกลาง) & สถานะ XP/สตรีคของผู้เรียน */}
-        <div className="rounded-2xl border-2 border-[#cfe0dc] bg-white p-4 sm:p-5 shadow-xs flex flex-col items-center gap-3.5">
-          <div className="flex items-center justify-center gap-2 flex-wrap w-full">
-            {[
-              {
-                id: "quest" as LearningTab,
-                label: `เควสต์ & คอร์ส ${currentTrackMeta.name}`,
-                icon: "route" as const,
-              },
-              {
-                id: "practice" as LearningTab,
-                label: `ฝึกอ่านโค้ด ${currentTrackMeta.name} (PRIMM)`,
-                icon: "play" as const,
-              },
-              {
-                id: "learn" as LearningTab,
-                label: `Block Model & ทดลองรัน ${currentTrackMeta.name}`,
-                icon: "book" as const,
-              },
-              ...(session
-                ? [
-                    {
-                      id: "profile" as LearningTab,
-                      label: "โปรไฟล์ & ผลการฝึก",
-                      icon: "user" as const,
-                    },
-                  ]
-                : []),
-              {
-                id: "ailog" as LearningTab,
-                label: "บันทึก AI",
-                icon: "clipboard" as const,
-              },
-            ].map((tab) => {
-              const active = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`liquid-press px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold flex items-center gap-1.5 cursor-pointer ${
-                    active
-                      ? "liquid-active-nav-item text-white"
-                      : "bg-[#eef3f1] hover:bg-[#e3f1ee] text-[#0b4f49]"
-                  }`}
-                >
-                  <Icon name={tab.icon} size={17} />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* แถบแสดง XP, เลเวล และสตรีค (เฉพาะเมื่อเข้าสู่ระบบแล้ว) หรือปุ่มแจ้งเตือนให้ล็อกอิน */}
-          <div className="flex items-center justify-center gap-2 flex-wrap border-t border-[#e3f1ee] pt-3 w-full">
-            {session ? (
-              <>
-                <span className="px-3 py-1 rounded-xl bg-[#e3f1ee] text-[#0b4f49] text-xs font-extrabold">
-                  ผู้เรียน: {currentStudent.nickname}
-                </span>
-                <div className="px-3 py-1 rounded-xl bg-[#fff4d6] border border-[#f0a92e] text-[#3d2603] text-xs font-extrabold flex items-center gap-1.5">
-                  <Icon name="star" size={15} filled />
-                  <span>
-                    Lv.{studentLevel} · {currentStudent.xp} XP
-                  </span>
-                </div>
-                <div
-                  className="px-2.5 py-1 rounded-xl bg-[#0b4f49] text-[#f6b73c] text-xs font-extrabold flex items-center gap-1"
-                  title="สตรีคการฝึกต่อเนื่อง"
-                >
-                  <Icon name="flame" size={15} filled />
-                  <span>{currentStudent.streak} วัน</span>
-                </div>
-              </>
-            ) : (
-              <div className="flex flex-wrap items-center justify-center gap-2.5 text-xs">
-                <span className="font-bold text-[#475b60]">
-                  โหมดผู้เยี่ยมชม: คุณสามารถทดลองเรียนและฝึกเควสต์{" "}
-                  {currentTrackMeta.name} ได้ฟรี แต่ต้องเข้าสู่ระบบเพื่อดูโปรไฟล์และบันทึกผลการฝึก
-                </span>
-                <Link
-                  href={`/login?redirect=${encodeURIComponent(
-                    `/courses?lang=${currentLanguage}`
-                  )}`}
-                  className="liquid-glass-primary-btn liquid-press inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-extrabold"
-                >
-                  <Icon name="user" className="h-3.5 w-3.5" />
-                  <span>เข้าสู่ระบบเพื่อดูโปรไฟล์ &amp; ผลการฝึก</span>
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ==================== TAB 1: เส้นทางเควสต์ & คอร์สเรียนตามภาษาที่เลือก ==================== */}
-        {activeTab === "quest" && (
-          <div className="flex flex-col gap-6">
-            {/* การ์ดเควสต์ประจำวัน + คำแนะนำเฉพาะภาษา */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <div className="lg:col-span-7 bg-[#fff4d6] border-2 border-[#f0a92e] rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-start gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-[#f6b73c] border-2 border-[#b97a0c] text-[#3d2603] flex items-center justify-center shrink-0">
-                    <Icon name="target" size={24} />
-                  </div>
-                  <div>
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#3d2603] text-[#fff4d6] text-[11px] font-extrabold">
-                      เควสต์ {currentTrackMeta.name} ประจำวัน · โบนัส +30 XP
-                    </span>
-                    <h3 className="text-[18px] font-extrabold text-[#3d2603] mt-1">
-                      ฝึกแกะโค้ดภาษา {currentTrackMeta.name} ทีละบรรทัดตามหลัก PRIMM
-                    </h3>
-                    <p className="text-[13px] font-semibold text-[#5c3704] mt-0.5">
-                      {currentTrackMeta.tagline}
-                    </p>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 flex flex-col">
+        {/* SINGLE UNIFIED DUNGEON CARD CONTAINER */}
+        <div className="rounded-3xl border border-[#2f2d45] bg-[#141220] text-[#f4efe6] p-5 sm:p-7 shadow-xl flex flex-col gap-5">
+          {/* ==================== TAB 1: DUNGEON MAP ==================== */}
+          {activeTab === "quest" && (
+            <div className="flex flex-col gap-6">
+              {guestNotice && !session && (
+                <div className="rounded-2xl bg-[#1c1b2b] p-4 border border-[#f6c945]/50 flex flex-wrap items-center justify-between gap-3 text-xs text-[#ffe27a]">
+                  <span className="font-bold">{guestNotice}</span>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/login?redirect=${encodeURIComponent(
+                        `/courses?lang=${currentLanguage}`
+                      )}`}
+                      className="retro-button rounded-xl bg-[#2fbf71] hover:bg-[#34d37d] text-[#120f1c] px-3 py-1.5 font-extrabold"
+                    >
+                      {t("เข้าสู่ระบบ", "Log in")}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setGuestNotice(null)}
+                      className="px-2 py-1 text-[#9a93ad] hover:text-[#f4efe6] cursor-pointer"
+                      aria-label="Close"
+                    >
+                      ✕
+                    </button>
                   </div>
                 </div>
+              )}
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    const nextTopic =
-                      currentLanguageTopics.find(
-                        (t) => !currentStudent.completedTopics.includes(t.id)
-                      ) || currentLanguageTopics[0];
-                    setSelectedTopicId(nextTopic.id);
-                    setActiveTab("practice");
-                  }}
-                  className="press-teal px-6 py-3.5 rounded-xl text-[15px] font-extrabold flex items-center justify-center gap-2 cursor-pointer shrink-0"
-                >
-                  <Icon name="play" size={18} filled />
-                  <span>เริ่มเล่นเควสต์ {currentTrackMeta.name}</span>
-                </button>
-              </div>
-
-              {/* การ์ดเรื่องแนะนำของภาษานี้ */}
-              <div className="lg:col-span-5 bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 flex flex-col justify-between gap-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <span className="text-[12px] font-extrabold text-[#0f766e]">
-                      ด่านแนะนำสำหรับหมวด {currentTrackMeta.name} (
-                      {currentStudentRoom?.roomName || currentStudent.roomCode})
-                    </span>
-                    <h4 className="text-[16px] font-extrabold text-[#1b2a2f] mt-0.5">
-                      {
-                        (
-                          currentLanguageTopics[1] || currentLanguageTopics[0]
-                        )?.title
-                      }
-                    </h4>
-                  </div>
-                  <Icon
-                    name="bulb"
-                    size={22}
-                    className="text-[#f0a92e] shrink-0"
-                  />
-                </div>
-                <p className="text-[13px] text-[#475b60]">
-                  {
-                    (currentLanguageTopics[1] || currentLanguageTopics[0])
-                      ?.subtitle
-                  }
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const recTopic =
-                      currentLanguageTopics[1] || currentLanguageTopics[0];
-                    setSelectedTopicId(recTopic.id);
-                    setActiveTab("practice");
-                  }}
-                  className="press-secondary w-full py-2.5 rounded-xl text-[14px] font-extrabold flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Icon name="play" size={16} filled />
-                  <span>เข้าฝึกด่านแนะนำของ {currentTrackMeta.name}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* เส้นทางเควสต์ของภาษาที่เลือก */}
-            <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 sm:p-6 flex flex-col gap-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-[22px] sm:text-[24px] font-extrabold text-[#1b2a2f]">
-                    เส้นทางเควสต์ภาษา {currentTrackMeta.name} (
-                    {currentLanguageTopics.length} ด่าน)
+              {/* Subsection A: Topics / Dungeon Floors Grid */}
+              <section className="flex flex-col gap-4 pb-6 border-b border-[#2f2d45]">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-lg sm:text-xl font-extrabold text-[#ffe27a]">
+                    {t(
+                      `ชั้นดันเจี้ยน ${currentTrackMeta.name} (${clearedCount}/${currentLanguageTopics.length})`,
+                      `${currentTrackMeta.name} Dungeon Floors (${clearedCount}/${currentLanguageTopics.length})`
+                    )}
                   </h2>
-                  <p className="text-[14px] font-semibold text-[#475b60]">
-                    ผ่านแล้ว{" "}
-                    {
-                      currentLanguageTopics.filter((t) =>
-                        currentStudent.completedTopics.includes(t.id)
-                      ).length
-                    }
-                    /{currentLanguageTopics.length} ด่านในหมวด{" "}
-                    {currentTrackMeta.name}
-                  </p>
-                </div>
 
-                <button
-                  type="button"
-                  onClick={() => setUnlockAllDemo(!unlockAllDemo)}
-                  className={`px-4 py-2 rounded-xl text-[13px] font-extrabold border-2 transition cursor-pointer ${
-                    unlockAllDemo
-                      ? "bg-[#d8efdc] border-[#14532d] text-[#14532d]"
-                      : "press-secondary"
-                  }`}
-                >
-                  {unlockAllDemo
-                    ? "✓ ปลดล็อกทุกด่านแล้ว"
-                    : "ปลดล็อกทุกด่าน (โหมดสาธิต)"}
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {currentLanguageTopics.map((topic, idx) => {
-                  const isPassed = currentStudent.completedTopics.includes(
-                    topic.id
-                  );
-                  const unlocked = isTopicUnlocked(topic.id, idx);
-                  const isBoss = Boolean(topic.isBoss);
-
-                  return (
-                    <div
-                      key={topic.id}
-                      className={`rounded-2xl border-2 p-5 flex flex-col justify-between gap-4 transition ${
-                        isBoss
-                          ? unlocked
-                            ? "bg-[#6d3fc0]/5 border-[#6d3fc0] md:col-span-2 lg:col-span-3"
-                            : "bg-[#eef3f1] border-[#cfe0dc] md:col-span-2 lg:col-span-3 opacity-85"
-                          : isPassed
-                          ? "bg-[#f4faf8] border-[#0f766e]"
-                          : unlocked
-                          ? "bg-white border-[#f0a92e] shadow-sm"
-                          : "bg-[#eef3f1] border-[#cfe0dc] opacity-80"
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setUnlockAllDemo(!unlockAllDemo)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
+                        unlockAllDemo
+                          ? "bg-[#152922] border-[#2fbf71] text-[#86efac]"
+                          : "bg-[#1c1b2b] border-[#2f2d45] text-[#ffe27a] hover:border-[#f6c945]/50"
                       }`}
                     >
-                      <div className="flex items-start gap-3.5">
-                        <StatusCircle
-                          variant={
-                            isBoss
-                              ? unlocked
-                                ? "boss"
-                                : "locked"
-                              : isPassed
-                              ? "passed"
-                              : unlocked
-                              ? "current"
-                              : "locked"
-                          }
-                          size="md"
-                          label={topic.title}
-                        />
+                      {unlockAllDemo
+                        ? t("✓ ปลดล็อกทั้งหมดแล้ว", "✓ All Unlocked")
+                        : t("ปลดล็อกทั้งหมด (Demo)", "Unlock All (Demo)")}
+                    </button>
 
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span
-                              className={`px-2.5 py-0.5 rounded-full text-[12px] font-extrabold ${
-                                isBoss
-                                  ? "bg-[#6d3fc0] text-white"
-                                  : isPassed
-                                  ? "bg-[#d8efdc] text-[#14532d]"
-                                  : unlocked
-                                  ? "bg-[#fff4d6] text-[#3d2603]"
-                                  : "bg-[#d8e3e0] text-[#475b60]"
-                              }`}
-                            >
-                              {isPassed
-                                ? "ผ่านแล้ว"
-                                : unlocked
-                                ? isBoss
-                                  ? "บอสด่านพร้อมลุย!"
-                                  : "พร้อมเข้าเล่น"
-                                : "ล็อก"}
-                            </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextTopic =
+                          currentLanguageTopics.find(
+                            (tp) => !currentStudent.completedTopics.includes(tp.id)
+                          ) || currentLanguageTopics[0];
+                        handleStartTopic(nextTopic.id);
+                      }}
+                      className="retro-button bg-[#f6c945] hover:bg-[#ffe27a] text-[#120f1c] px-4 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer"
+                    >
+                      {t("ลุยชั้นถัดไป →", "Play Next Floor →")}
+                    </button>
+                  </div>
+                </div>
 
-                            <span className="text-[12px] font-bold text-[#475b60]">
-                              ช่อง{" "}
-                              {topic.questions.map((q) => q.cellId).join(", ")}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {currentLanguageTopics.map((topic, idx) => {
+                    const isPassed = currentStudent.completedTopics.includes(
+                      topic.id
+                    );
+                    const unlocked = isTopicUnlocked(topic.id, idx);
+                    const isBoss = Boolean(topic.isBoss);
+                    const monsterType = getFloorMonsterType(idx, isBoss);
+                    const monsterDef = getMonsterDef(monsterType);
+
+                    return (
+                      <div
+                        key={topic.id}
+                        className={`rounded-2xl border p-4 flex flex-col justify-between gap-3 transition ${
+                          isBoss
+                            ? unlocked
+                              ? "bg-gradient-to-br from-[#2a1746] to-[#1c1b2b] border-[#9b5de5] md:col-span-2 lg:col-span-3"
+                              : "bg-[#1c1b2b] border-[#2f2d45] md:col-span-2 lg:col-span-3 opacity-80"
+                            : isPassed
+                            ? "bg-[#152922] border-[#2fbf71]"
+                            : unlocked
+                            ? "bg-[#1c1b2b] border-[#f6c945]/60"
+                            : "bg-[#1c1b2b] border-[#2f2d45] opacity-75"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="shrink-0 rounded-xl p-2 border border-[#2f2d45] bg-[#0d0b14] flex flex-col items-center min-w-[54px]">
+                            <PixelSpriteView
+                              sprite={monsterDef.sprite}
+                              size={34}
+                              animateBounce={unlocked && !isPassed}
+                            />
+                            <span className="pixel-font text-[8px] font-bold text-[#ffe27a] mt-0.5">
+                              {isBoss ? "BOSS" : `FL.${idx + 1}`}
                             </span>
                           </div>
 
-                          <h3 className="text-[18px] font-extrabold text-[#1b2a2f] mt-1.5">
-                            {topic.title}
-                          </h3>
-                          <p className="text-[14px] text-[#475b60] mt-0.5">
-                            {topic.subtitle}
-                          </p>
+                          <div className="flex-1 min-w-0">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                isBoss
+                                  ? "bg-[#5a2d91] text-[#ffe27a]"
+                                  : isPassed
+                                  ? "bg-[#1a7a4a] text-[#dcfce7]"
+                                  : unlocked
+                                  ? "bg-[#f6c945] text-[#120f1c]"
+                                  : "bg-[#2f2d45] text-[#9a93ad]"
+                              }`}
+                            >
+                              {isPassed
+                                ? t("พิชิตแล้ว", "Cleared")
+                                : unlocked
+                                ? isBoss
+                                  ? t("บอสพร้อมลุย!", "Boss Ready!")
+                                  : t("พร้อมลุย", "Ready")
+                                : t("ล็อกอยู่", "Locked")}
+                            </span>
+                            <h3 className="text-sm sm:text-base font-extrabold text-[#f4efe6] mt-1 truncate">
+                              {topic.title}
+                            </h3>
+                            <div className="text-[11px] font-bold text-[#ffe27a] mt-0.5 flex items-center gap-1 truncate">
+                              <Icon name="shield" size={12} />
+                              <span className="truncate">{topic.badgeReward.name}</span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#cfe0dc]">
-                        <span className="text-[13px] font-extrabold text-[#0b4f49] flex items-center gap-1.5">
-                          <Icon name="shield" size={16} />
-                          <span>ตรา: {topic.badgeReward.name}</span>
-                        </span>
 
                         <button
                           type="button"
                           disabled={!unlocked}
-                          onClick={() => {
-                            setSelectedTopicId(topic.id);
-                            setActiveTab("practice");
-                          }}
-                          className={`px-5 py-2.5 rounded-xl text-[15px] font-extrabold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                          onClick={() => handleStartTopic(topic.id)}
+                          className={`retro-button w-full px-4 py-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed ${
                             isBoss
-                              ? "press-boss"
+                              ? "bg-[#9b5de5] hover:bg-[#b07af0] text-white"
                               : isPassed
-                              ? "press-secondary"
-                              : "press-teal"
+                              ? "bg-[#2fbf71] hover:bg-[#34d37d] text-[#120f1c]"
+                              : "bg-[#f6c945] hover:bg-[#ffe27a] text-[#120f1c]"
                           }`}
                         >
-                          <Icon
-                            name={unlocked ? "play" : "lock"}
-                            size={18}
-                            filled={unlocked}
-                          />
+                          <Icon name={unlocked ? "gamepad" : "lock"} size={15} />
                           <span>
                             {isPassed
-                              ? "เล่นซ้ำ"
+                              ? t("เล่นซ้ำ", "Replay")
                               : unlocked
-                              ? "เริ่มเล่นด่านนี้"
-                              : "ยังไม่ปลดล็อก"}
+                              ? isBoss
+                                ? t("ท้าทายบอส!", "Fight Boss!")
+                                : t("ลุยชั้นนี้", "Play")
+                              : t("ล็อกอยู่", "Locked")}
                           </span>
                         </button>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* คอร์สและบทเรียนของภาษาที่เลือก */}
-            <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 sm:p-6 flex flex-col gap-6">
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-center">
-                <div className="lg:col-span-7">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e3f1ee] px-3 py-1 text-xs font-extrabold text-[#0b4f49]">
-                    <Icon name="book" className="h-3.5 w-3.5" />
-                    คอร์สและบทเรียนภาษา {currentTrackMeta.name}
-                  </span>
-                  <h2 className="mt-2 text-[22px] sm:text-[24px] font-extrabold text-[#1b2a2f]">
-                    คลังบทเรียนประกอบการฝึกภาษา {currentTrackMeta.name}
-                  </h2>
-                  <p className="mt-1 text-sm text-[#475b60]">
-                    ศึกษาเนื้อหาบทเรียน ตัวอย่างโค้ด และแบบทดสอบท้ายบทของภาษา{" "}
-                    {currentTrackMeta.name} โดยเฉพาะ
-                  </p>
+                    );
+                  })}
                 </div>
+              </section>
 
-                <div className="lg:col-span-5">
-                  <form
-                    onSubmit={handleJoinByCode}
-                    className="rounded-xl border-2 border-[#cfe0dc] bg-[#eef3f1] p-4"
-                  >
-                    <label className="block text-xs font-extrabold text-[#1b2a2f] mb-1.5">
-                      เข้าร่วมด้วยรหัสคอร์ส / รหัสห้องเรียน:
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={joinCodeInput}
-                        onChange={(e) =>
-                          setJoinCodeInput(e.target.value.toUpperCase())
-                        }
-                        placeholder={
-                          currentLanguage === "python"
-                            ? "เช่น PY2026"
-                            : currentLanguage === "sql"
-                            ? "เช่น SQL2026"
-                            : "เช่น JS2026"
-                        }
-                        className="flex-1 rounded-xl border-2 border-[#b6c9c5] bg-white px-3.5 py-2 text-xs font-mono font-bold uppercase text-[#1b2a2f] focus:border-[#0f766e] focus:outline-hidden"
-                      />
-                      <button
-                        type="submit"
-                        className="press-teal rounded-xl px-4 py-2 text-xs font-extrabold text-white cursor-pointer"
-                      >
-                        เข้าร่วมคอร์ส
-                      </button>
-                    </div>
-                    {joinMsg && (
-                      <p
-                        className={`mt-2 text-xs font-bold ${
-                          joinMsg.type === "error"
-                            ? "text-[#991b1b]"
-                            : "text-[#14532d]"
-                        }`}
-                      >
-                        {joinMsg.text}
-                      </p>
-                    )}
+              {/* Subsection B: Course Dungeons + Compact Join Code */}
+              <section className="flex flex-col gap-4 pb-6 border-b border-[#2f2d45]">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-lg font-extrabold text-[#ffe27a] flex items-center gap-2">
+                    <Icon name="book" className="h-5 w-5 text-[#2fbf71]" />
+                    <span>
+                      {t(
+                        `ดันเจี้ยนประจำคอร์ส (${currentTrackMeta.name})`,
+                        `${currentTrackMeta.name} Course Dungeons`
+                      )}
+                    </span>
+                  </h2>
+
+                  <form onSubmit={handleJoinByCode} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={joinCodeInput}
+                      onChange={(e) =>
+                        setJoinCodeInput(e.target.value.toUpperCase())
+                      }
+                      placeholder={t(
+                        `รหัสคอร์ส เช่น ${getJoinCodePlaceholder(currentLanguage)}`,
+                        `Code e.g. ${getJoinCodePlaceholder(currentLanguage)}`
+                      )}
+                      className="w-36 sm:w-44 rounded-xl border border-[#2f2d45] bg-[#0d0b14] px-3 py-1.5 text-xs font-mono font-bold uppercase text-[#f4efe6] placeholder:text-[#7c7491] focus:border-[#f6c945] focus:outline-hidden"
+                    />
+                    <button
+                      type="submit"
+                      className="retro-button rounded-xl bg-[#2fbf71] hover:bg-[#34d37d] px-3.5 py-1.5 text-xs font-extrabold text-[#120f1c] cursor-pointer"
+                    >
+                      {t("เข้าร่วม", "Join")}
+                    </button>
                   </form>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                {languageFilteredCourses.map((course) => {
-                  const courseLessons = lessons.filter(
-                    (l) => l.course_id === course.id && l.is_published
-                  );
-                  const isEnrolled = Boolean(
-                    session &&
-                      enrollments.some(
-                        (e) =>
-                          e.course_id === course.id &&
-                          e.student_id === session.userId
-                      )
-                  );
-
-                  return (
-                    <div
-                      key={course.id}
-                      className="flex flex-col justify-between rounded-2xl border-2 border-[#cfe0dc] bg-[#f8fbfa] p-5 transition-all hover:border-[#0f766e]"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between gap-2 mb-3">
-                          <span className="rounded-full bg-[#e3f1ee] px-3 py-1 text-xs font-extrabold text-[#0b4f49]">
-                            {course.level === "beginner"
-                              ? "ระดับเริ่มต้น (Beginner)"
-                              : course.level === "intermediate"
-                              ? "ระดับกลาง (Intermediate)"
-                              : "ระดับสูง (Advanced)"}
-                          </span>
-                          <span className="rounded-lg border border-[#b6c9c5] bg-white px-2.5 py-1 text-xs font-mono font-bold text-[#1b2a2f]">
-                            รหัสคอร์ส: {course.join_code}
-                          </span>
-                        </div>
-
-                        <h3 className="text-lg font-extrabold text-[#1b2a2f]">
-                          {course.title}
-                        </h3>
-                        <p className="mt-1.5 text-xs leading-relaxed text-[#475b60]">
-                          {course.description}
-                        </p>
-                      </div>
-
-                      <div className="mt-5 pt-3.5 border-t border-[#cfe0dc] flex items-center justify-between gap-3">
-                        <div className="text-xs font-semibold text-[#475b60]">
-                          <span>ผู้สอน: </span>
-                          <strong className="text-[#1b2a2f]">
-                            {course.teacher_name}
-                          </strong>
-                          <span className="mx-1.5">·</span>
-                          <span>{courseLessons.length} บทเรียน</span>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Link
-                            href={`/dungeon/${course.id}`}
-                            className="press-secondary rounded-xl px-3 py-2 text-xs font-extrabold flex items-center gap-1.5 text-[#5a2d91] border-[#d8c7ed] hover:border-[#9b5de5] hover:bg-[#f6f0fd]"
-                            title="เล่นคอร์สนี้ในโหมด Dungeon Crawler พิกเซล"
-                          >
-                            <Icon name="gamepad" size={14} />
-                            <span>ดันเจี้ยน</span>
-                          </Link>
-                          <Link
-                            href={`/courses/${course.id}`}
-                            className="press-secondary rounded-xl px-3.5 py-2 text-xs font-extrabold"
-                          >
-                            ดูบทเรียน
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => handleEnrollCourse(course)}
-                            className="press-teal rounded-xl px-4 py-2 text-xs font-extrabold text-white cursor-pointer"
-                          >
-                            {isEnrolled ? "เรียนต่อ →" : "เข้าร่วมคอร์ส"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ==================== TAB 2: หน้าฝึกอ่านโค้ด (PRIMM 4 ขั้น) ==================== */}
-        {activeTab === "practice" && activeTopic && (
-          <PracticeArena
-            key={`${currentLanguage}-${activeTopic.id}`}
-            topic={activeTopic}
-            language={currentLanguage}
-            currentStudent={currentStudent}
-            studentId={currentStudent?.id}
-            onBackToMap={() => setActiveTab("quest")}
-            onCompleteTopic={handleCompleteTopic}
-          />
-        )}
-
-        {/* ==================== TAB 3: ตาราง Block Model 12 ช่อง & ห้องทดลองรันโค้ดตามภาษา ==================== */}
-        {activeTab === "learn" && (
-          <div className="flex flex-col gap-6">
-            <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-6 flex flex-col gap-4">
-              <h2 className="text-[24px] font-extrabold text-[#1b2a2f] flex items-center gap-2">
-                <Icon name="book" size={24} className="text-[#0f766e]" />
-                <span>
-                  รู้จัก Block Model 12 ช่อง สำหรับการอ่านโค้ดภาษา{" "}
-                  {currentTrackMeta.name}
-                </span>
-              </h2>
-              <p className="text-[15px] text-[#475b60]">
-                เวลาเราสั่ง AI ให้เขียนโค้ดภาษา{" "}
-                <strong>{currentTrackMeta.name}</strong> การจะบอกว่าเรา
-                &ldquo;เข้าใจโค้ดนั้นจริง&rdquo; ต้องเข้าใจครบทั้ง{" "}
-                <strong>3 มิติ</strong> ตั้งแต่คำสั่งเดี่ยวไปจนถึงภาพรวมทั้งโปรแกรม
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-1">
-                <div className="p-4 rounded-xl bg-[#e3f1ee] border border-[#0f766e]/40">
-                  <div className="text-[15px] font-extrabold text-[#0b4f49]">
-                    มิติที่ 1 · โครงสร้างโค้ด (Text Surface: T1–T4)
-                  </div>
-                  <p className="text-[14px] text-[#1b2a2f] mt-1">
-                    {currentLanguage === "python"
-                      ? "อ่านการย่อหน้า (Indentation), เครื่องหมายโคลอน (:), if/elif/else และขอบเขต range() ออกอย่างถูกต้อง"
-                      : currentLanguage === "sql"
-                      ? "อ่านโครงสร้างคำสั่ง SELECT, FROM, WHERE, GROUP BY, HAVING และ ORDER BY ออกอย่างชัดเจน"
-                      : "อ่านไวยากรณ์ เครื่องหมาย ขอบเขตปีกกา if/else, ลูป for/while และการส่งพารามิเตอร์ออกอย่างถูกต้อง"}
+                {joinMsg && (
+                  <p
+                    className={`text-xs font-bold ${
+                      joinMsg.type === "error"
+                        ? "text-[#ff6b81]"
+                        : "text-[#2fbf71]"
+                    }`}
+                  >
+                    {joinMsg.text}
                   </p>
-                </div>
-                <div className="p-4 rounded-xl bg-[#fff4d6] border border-[#f0a92e]">
-                  <div className="text-[15px] font-extrabold text-[#3d2603]">
-                    มิติที่ 2 · การทำงานเมื่อรันจริง (Execution: E1–E4)
-                  </div>
-                  <p className="text-[14px] text-[#3d2603] mt-1">
-                    {currentLanguage === "sql"
-                      ? "แกะรอยลำดับการประมวลผลจริงของฐานข้อมูล (FROM -> WHERE -> GROUP BY -> HAVING -> SELECT -> ORDER BY)"
-                      : "แกะรอยได้ว่าเมื่อรันจริง โค้ดเดินไปบรรทัดไหนบ้าง ค่าตัวแปรเปลี่ยนเป็นเท่าไหร่ และแสดงผลลัพธ์อะไรออกมา"}
-                  </p>
-                </div>
-                <div className="p-4 rounded-xl bg-[#d8efdc] border border-[#86efac]">
-                  <div className="text-[15px] font-extrabold text-[#14532d]">
-                    มิติที่ 3 · หน้าที่และเป้าหมาย (Function: F1–F4)
-                  </div>
-                  <p className="text-[14px] text-[#14532d] mt-1">
-                    อธิบายได้ว่าแต่ละส่วนของโค้ด {currentTrackMeta.name}{" "}
-                    มีไว้ทำไม แก้ปัญหาอะไร และตรวจจับบั๊กที่ขัดกับเป้าหมายได้
-                  </p>
-                </div>
-              </div>
-            </div>
+                )}
 
-            <BlockModelGrid
-              cellScores={currentStudent.cellScores}
-              title={`สำรวจทั้ง 12 ช่องของ Block Model (หมวดภาษา ${currentTrackMeta.name})`}
-              onSelectTopic={(topicId) => {
-                const target =
-                  currentLanguageTopics.find((t) => t.id === topicId) ||
-                  currentLanguageTopics[0];
-                setSelectedTopicId(target.id);
-                setActiveTab("practice");
-              }}
-            />
-
-            <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-6 flex flex-col gap-4">
-              <div>
-                <h3 className="text-[18px] font-extrabold text-[#1b2a2f] flex items-center gap-2">
-                  <Icon name="code" size={20} className="text-[#0f766e]" />
-                  <span>
-                    ห้องทดลองรันโค้ดภาษา {currentTrackMeta.name} (ตรวจสอบผลลัพธ์จริง)
-                  </span>
-                </h3>
-                <p className="text-[13px] font-semibold text-[#475b60]">
-                  {currentTrackMeta.playgroundDescription}
-                </p>
-              </div>
-
-              <textarea
-                rows={6}
-                value={playgroundCode}
-                onChange={(e) => setPlaygroundCode(e.target.value)}
-                className="w-full p-4 rounded-xl bg-[#eef3f1] border-2 border-[#b6c9c5] font-code font-bold text-[#1b2a2f]"
-              />
-
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const res = runCodeByLanguage(
-                      playgroundCode,
-                      currentLanguage
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {languageFilteredCourses.map((course) => {
+                    const courseLessons = lessons.filter(
+                      (l) => l.course_id === course.id && l.is_published
                     );
-                    setPlaygroundOutput(
-                      res.success
-                        ? res.finalOutput || "(โค้ดทำงานสำเร็จแต่ไม่มีข้อความแสดงผล)"
-                        : `ข้อผิดพลาด: ${res.error}`
+                    const isEnrolled = Boolean(
+                      session &&
+                        enrollments.some(
+                          (e) =>
+                            e.course_id === course.id &&
+                            e.student_id === session.userId
+                        )
                     );
-                  }}
-                  className="press-teal px-5 py-2.5 rounded-xl text-[14px] font-extrabold flex items-center gap-2 cursor-pointer"
-                >
-                  <Icon name="play" size={18} />
-                  <span>รันโค้ด {currentTrackMeta.name}</span>
-                </button>
-              </div>
 
-              {playgroundOutput && (
-                <div className="p-4 rounded-xl bg-[#d8efdc] border-2 border-[#86efac] text-[#14532d]">
-                  <div className="text-[13px] font-extrabold">
-                    ผลลัพธ์จากการรันโค้ด {currentTrackMeta.name}:
-                  </div>
-                  <pre className="font-code font-extrabold text-[16px] mt-1">
-                    {playgroundOutput}
-                  </pre>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ==================== TAB 4: โปรไฟล์ & ผลการฝึกของนักเรียน (ต้องเข้าสู่ระบบก่อน) ==================== */}
-        {activeTab === "profile" && session && (
-          <div className="flex flex-col gap-6">
-            <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <StatusCircle
-                  variant="badge"
-                  size="lg"
-                  label="โปรไฟล์นักเรียน"
-                />
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-[24px] font-extrabold text-[#1b2a2f]">
-                      โปรไฟล์ของ {currentStudent.nickname}
-                    </h2>
-                    <span className="px-3 py-0.5 rounded-full bg-[#e3f1ee] text-[#0b4f49] text-[13px] font-extrabold">
-                      รหัสห้อง {currentStudent.roomCode}
-                    </span>
-                  </div>
-                  <p className="text-[14px] font-semibold text-[#475b60] mt-0.5">
-                    เลเวล {studentLevel} · สะสม {currentStudent.xp} XP ·
-                    ต่อเนื่อง {currentStudent.streak} วัน · ความเข้าใจเฉลี่ย{" "}
-                    {studentAvgMastery}% (
-                    {getMasteryStatus(studentAvgMastery).label})
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("quest")}
-                  className="press-teal px-4 py-2.5 rounded-xl text-[14px] font-extrabold flex items-center gap-2 cursor-pointer"
-                >
-                  <Icon name="route" size={18} />
-                  <span>ไปฝึกเควสต์ {currentTrackMeta.name} ต่อ</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-[#d8efdc] border-2 border-[#86efac] rounded-2xl p-5 text-[#14532d]">
-                <div className="flex items-center gap-2 font-extrabold text-[16px]">
-                  <Icon name="check" size={20} />
-                  <span>ด้านที่เก่ง (เข้าใจ 80% ขึ้นไป)</span>
-                </div>
-                <div className="mt-3 space-y-2">
-                  {strongStudentCells.length > 0 ? (
-                    strongStudentCells.slice(0, 4).map((c) => (
-                      <div
-                        key={c.id}
-                        className="p-2.5 rounded-xl bg-white/80 flex items-center justify-between text-[14px] font-bold"
-                      >
-                        <span>
-                          ช่อง {c.id} · {c.shortTitle}
-                        </span>
-                        <span className="font-extrabold">
-                          {currentStudent.cellScores[c.id]}%
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-[14px]">
-                      ฝึกทำโจทย์เพิ่มเพื่อปลดล็อกช่องที่เก่งเกิน 80%!
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-[#f8d9d4] border-2 border-[#fca5a5] rounded-2xl p-5 text-[#7d1d10]">
-                <div className="flex items-center gap-2 font-extrabold text-[16px]">
-                  <Icon name="bulb" size={20} />
-                  <span>ด้านที่ควรทบทวนเพิ่มเติม</span>
-                </div>
-                <div className="mt-3 space-y-2">
-                  {reviewStudentCells.length > 0 ? (
-                    reviewStudentCells.slice(0, 4).map((c) => (
-                      <div
-                        key={c.id}
-                        className="p-2.5 rounded-xl bg-white/85 flex items-center justify-between gap-2 text-[14px] font-bold"
-                      >
-                        <span>
-                          ช่อง {c.id} · {c.shortTitle} (
-                          {currentStudent.cellScores[c.id]}%)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const target =
-                              currentLanguageTopics.find(
-                                (t) => t.id === c.relatedTopicId
-                              ) || currentLanguageTopics[0];
-                            setSelectedTopicId(target.id);
-                            setActiveTab("practice");
-                          }}
-                          className="px-2.5 py-1 rounded-lg bg-[#7d1d10] text-white text-[12px] font-extrabold cursor-pointer"
-                        >
-                          ฝึกทบทวน →
-                        </button>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-[14px] font-bold">
-                      ยอดเยี่ยมมาก! คุณผ่านเกณฑ์ความเข้าใจเกิน 60% ทุกช่องแล้ว
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <BlockModelGrid
-              cellScores={currentStudent.cellScores}
-              title={`แผนที่ความเข้าใจ 12 ช่องของ ${currentStudent.nickname}`}
-              onSelectTopic={(topicId) => {
-                const target =
-                  currentLanguageTopics.find((t) => t.id === topicId) ||
-                  currentLanguageTopics[0];
-                setSelectedTopicId(target.id);
-                setActiveTab("practice");
-              }}
-            />
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-              <div className="lg:col-span-6 bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 flex flex-col gap-3">
-                <h3 className="text-[17px] font-extrabold text-[#1b2a2f] flex items-center gap-2">
-                  <Icon name="shield" size={20} className="text-[#0f766e]" />
-                  <span>
-                    ตราความสำเร็จหมวด {currentTrackMeta.name} (
-                    {
-                      currentLanguageTopics.filter((t) =>
-                        currentStudent.badges.includes(t.badgeReward.id)
-                      ).length
-                    }
-                    /{currentLanguageTopics.length})
-                  </span>
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {currentLanguageTopics.map((t) => {
-                    const unlocked = currentStudent.badges.includes(
-                      t.badgeReward.id
-                    );
                     return (
                       <div
-                        key={t.badgeReward.id}
-                        className={`p-3 rounded-xl border flex items-center gap-3 ${
-                          unlocked
-                            ? "bg-[#e3f1ee] border-[#0f766e] text-[#0b4f49]"
-                            : "bg-[#eef3f1] border-[#cfe0dc] text-[#475b60] opacity-65"
-                        }`}
+                        key={course.id}
+                        className="flex flex-col justify-between rounded-2xl border border-[#2f2d45] bg-[#1c1b2b] p-4 gap-3 hover:border-[#2fbf71]/60 transition-colors"
                       >
-                        <StatusCircle
-                          variant={unlocked ? "badge" : "locked"}
-                          size="sm"
-                          label={t.badgeReward.name}
-                        />
-                        <div className="min-w-0">
-                          <div className="text-[14px] font-extrabold truncate">
-                            {t.badgeReward.name}
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <span className="rounded-full bg-[#152922] border border-[#2fbf71]/40 px-2.5 py-0.5 text-[11px] font-extrabold text-[#86efac]">
+                              {courseLessons.length} {t("บทเรียน", "lessons")}
+                            </span>
+                            <span className="rounded-lg border border-[#2f2d45] bg-[#0d0b14] px-2 py-0.5 text-[11px] font-mono font-bold text-[#ffe27a]">
+                              {course.join_code}
+                            </span>
                           </div>
-                          <div className="text-[12px] truncate">
-                            {t.badgeReward.description}
+                          <h3 className="text-base font-extrabold text-[#f4efe6]">
+                            {course.title}
+                          </h3>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-[#2f2d45]">
+                          <span className="text-xs font-semibold text-[#9a93ad]">
+                            {course.teacher_name}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <Link
+                              href={`/dungeon/${course.id}`}
+                              className="rounded-xl border border-[#5a2d91] bg-[#252238] hover:bg-[#322c4a] px-3 py-1.5 text-xs font-extrabold flex items-center gap-1 text-[#e9d5ff] transition-colors"
+                            >
+                              <Icon name="gamepad" size={13} />
+                              <span>{t("ดันเจี้ยน", "Dungeon")}</span>
+                            </Link>
+                            <Link
+                              href={`/courses/${course.id}`}
+                              className="rounded-xl border border-[#2f2d45] bg-[#0d0b14] hover:border-[#4a4766] px-3 py-1.5 text-xs font-extrabold text-[#f4efe6] transition-colors"
+                            >
+                              {t("บทเรียน", "Lessons")}
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => handleEnrollCourse(course)}
+                              className="rounded-xl bg-[#2fbf71] hover:bg-[#34d37d] px-3 py-1.5 text-xs font-extrabold text-[#120f1c] cursor-pointer transition-colors"
+                            >
+                              {isEnrolled
+                                ? t("เรียนต่อ →", "Continue →")
+                                : t("เข้าร่วม", "Enroll")}
+                            </button>
                           </div>
                         </div>
                       </div>
                     );
                   })}
                 </div>
-              </div>
+              </section>
 
-              <div className="lg:col-span-6 bg-white border-2 border-[#cfe0dc] rounded-2xl p-5 flex flex-col gap-3">
-                <h3 className="text-[17px] font-extrabold text-[#1b2a2f] flex items-center gap-2">
-                  <Icon name="chart" size={20} className="text-[#0f766e]" />
-                  <span>ประวัติการฝึกอ่านโค้ดล่าสุด</span>
-                </h3>
-                {currentStudent.history.length > 0 ? (
-                  <div className="space-y-2.5">
-                    {currentStudent.history.map((h, i) => (
-                      <div
-                        key={i}
-                        className="p-3 rounded-xl bg-[#eef3f1] border border-[#cfe0dc] flex items-center justify-between gap-2"
-                      >
-                        <div>
-                          <div className="text-[14px] font-extrabold text-[#1b2a2f]">
-                            {h.topicTitle}
-                          </div>
-                          <div className="text-[12px] text-[#475b60]">
-                            {h.timestamp} · ความเข้าใจ {h.scorePercent}%
-                          </div>
-                        </div>
-                        <span className="px-2.5 py-1 rounded-lg bg-[#fff4d6] text-[#3d2603] border border-[#f0a92e] text-[13px] font-extrabold">
-                          +{h.xpEarned} XP
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[14px] text-[#475b60]">
-                    ยังไม่มีประวัติการเล่น เริ่มฝึกด่านที่ 1 ในหน้าเส้นทางเควสต์ได้เลย!
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ==================== TAB 5: บันทึกการใช้ AI ==================== */}
-        {activeTab === "ailog" && (
-          <div className="bg-white border-2 border-[#cfe0dc] rounded-2xl p-6 flex flex-col gap-5">
-            <div>
-              <span className="px-3 py-1 rounded-full bg-[#e3f1ee] text-[#0b4f49] text-[12px] font-extrabold">
-                รายการส่งงาน · บันทึกการใช้ AI (AI Log ≥ 5 Prompts)
-              </span>
-              <h2 className="text-[22px] font-extrabold text-[#1b2a2f] mt-2">
-                บันทึกการใช้ AI พัฒนาโปรเจกต์ &ldquo;โค้ดนี้ฉันอธิบายได้&rdquo;
-              </h2>
-              <p className="text-[14px] text-[#475b60]">
-                แสดงรายการ Prompt ที่ใช้จริง ปัญหาที่พบจากผลลัพธ์ของ AI
-                และวิธีที่ทีมปรับปรุงแก้ไขด้วยตัวเองตามหลักการที่ต้องรักษา
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {AI_USAGE_LOGS.map((log) => (
-                <div
-                  key={log.id}
-                  className="p-4 rounded-2xl bg-[#eef3f1] border-2 border-[#cfe0dc] flex flex-col gap-2.5"
-                >
-                  <div className="text-[16px] font-extrabold text-[#0b4f49]">
-                    {log.promptTitle}
-                  </div>
-                  <div className="p-3 rounded-xl bg-white border border-[#cfe0dc] text-[14px]">
-                    <strong className="text-[#0f766e]">
-                      Prompt ที่สั่ง AI:{" "}
-                    </strong>
-                    {log.promptText}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[13px]">
-                    <div className="p-3 rounded-xl bg-[#f8d9d4] text-[#7d1d10]">
-                      <strong>ปัญหาที่พบจากโค้ด/เนื้อหาที่ AI สร้าง:</strong>
-                      <p className="mt-0.5">{log.problemFound}</p>
-                    </div>
-                    <div className="p-3 rounded-xl bg-[#d8efdc] text-[#14532d]">
-                      <strong>วิธีที่ทีมปรับแก้และพัฒนาต่อ:</strong>
-                      <p className="mt-0.5">{log.solutionApplied}</p>
-                    </div>
+              {/* Subsection C: Compact Hall of Fame Leaderboard */}
+              <section className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#2f2d45]">
+                  <h2 className="text-base sm:text-lg font-extrabold text-[#ffe27a] flex items-center gap-2">
+                    <Icon name="trophy" size={18} className="text-[#ffe27a]" />
+                    <span>{t("ทำเนียบผู้พิชิต (Hall of Fame)", "Hall of Fame")}</span>
+                  </h2>
+                  <div className="flex items-center gap-3 text-[11px]">
+                    <Link
+                      href="/dungeon/trial"
+                      className="text-[#e9d5ff] hover:text-[#ffe27a] font-bold"
+                    >
+                      {t("ทดลอง 1 ห้อง →", "1-Room Trial →")}
+                    </Link>
+                    <Link
+                      href="/dungeon/credits"
+                      className="text-[#9a93ad] hover:text-[#ffe27a] underline"
+                    >
+                      {t("Credits & Licenses", "Credits & Licenses")}
+                    </Link>
                   </div>
                 </div>
-              ))}
+
+                {leaderboard.length === 0 ? (
+                  <div className="py-4 text-center text-xs text-[#9a93ad]">
+                    {t(
+                      "ยังไม่มีข้อมูลอันดับ — มาร่วมเป็นผู้พิชิตคนแรกกันเลย!",
+                      "No leaderboard entries yet — be the first adventurer!"
+                    )}
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[#2f2d45]">
+                    {leaderboard.slice(0, 5).map((entry, idx) => {
+                      const entryAvatar = getAvatar(entry.avatar);
+                      return (
+                        <div
+                          key={idx}
+                          className="py-2.5 flex items-center justify-between gap-3 text-xs px-1"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              className={`pixel-font text-xs font-black w-6 text-center ${
+                                idx === 0
+                                  ? "text-[#f6c945]"
+                                  : idx === 1
+                                  ? "text-[#e8e1cf]"
+                                  : idx === 2
+                                  ? "text-[#ffb347]"
+                                  : "text-[#9a93ad]"
+                              }`}
+                            >
+                              #{idx + 1}
+                            </span>
+                            <div className="p-1 rounded bg-[#0d0b14] border border-[#2f2d45] shrink-0">
+                              <PixelSpriteView sprite={entryAvatar.sprite} size={22} />
+                            </div>
+                            <div>
+                              <span className="font-bold text-[#f4efe6] block">
+                                {entry.displayName}
+                              </span>
+                              <span className="text-[10px] text-[#9a93ad] pixel-font">
+                                Lv.{entry.level} · {entry.totalMonstersDefeated}{" "}
+                                {t("มอนสเตอร์", "defeated")}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-[#2fbf71] font-black pixel-font block">
+                              {entry.xp} XP
+                            </span>
+                            <span className="text-[10px] text-[#9a93ad]">
+                              {entry.totalDungeonsCleared} {t("ดันเจี้ยน", "cleared")}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* ==================== TAB 2: PLAY FLOOR ==================== */}
+          {activeTab === "practice" && activeTopic && (
+            <TopicDungeonArena
+              key={`${currentLanguage}-${activeTopic.id}-${playAttemptNonce}`}
+              topic={activeTopic}
+              language={currentLanguage}
+              topicIndex={activeTopicIndex}
+              totalTopics={currentLanguageTopics.length}
+              currentStudent={currentStudent}
+              studentId={currentStudent?.id}
+              embedded
+              onBackToMap={() => setActiveTab("quest")}
+              onCompleteTopic={handleCompleteTopic}
+            />
+          )}
+
+          {/* ==================== TAB 3: CUSTOM CODE DUNGEON ==================== */}
+          {activeTab === "custom" && (
+            <DungeonRunScreen
+              embedded
+              onBackToPortal={() => setActiveTab("quest")}
+              onRecordAttempt={(summary) => {
+                if (!session) return;
+                const currentStudentSnapshot = currentStudent;
+                const nextCells = { ...currentStudentSnapshot.cellScores };
+                Object.entries(summary.cellScores).forEach(([cellKey, val]) => {
+                  const k = cellKey as BlockCellId;
+                  if (typeof val === "number") {
+                    nextCells[k] = Math.max(nextCells[k] || 0, val);
+                  }
+                });
+                const updatedStudent: StudentRecord = {
+                  ...currentStudentSnapshot,
+                  xp: currentStudentSnapshot.xp + summary.earnedXp,
+                  cellScores: nextCells,
+                  history: [
+                    {
+                      topicId: 0,
+                      topicTitle: `Custom Code: ${summary.spellName}`,
+                      scorePercent: summary.integrityLeft,
+                      xpEarned: summary.earnedXp,
+                      timestamp: "เมื่อสักครู่",
+                    },
+                    ...currentStudentSnapshot.history,
+                  ],
+                };
+                const updatedList = students.map((stu) =>
+                  stu.id === currentStudentSnapshot.id ? updatedStudent : stu
+                );
+                if (!updatedList.some((stu) => stu.id === currentStudentSnapshot.id)) {
+                  updatedList.push(updatedStudent);
+                }
+                saveStudentsToStorage(updatedList);
+              }}
+            />
+          )}
+
+          {/* ==================== TAB 4: SKILLS & SANDBOX ==================== */}
+          {activeTab === "learn" && (
+            <div className="flex flex-col gap-5">
+              {/* Compact Profile & Mastery Summary */}
+              <section className="rounded-2xl border border-[#2f2d45] bg-[#1c1b2b] p-5 flex flex-wrap items-center justify-between gap-4">
+                {session ? (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-[#0d0b14] border border-[#2f2d45]">
+                        <PixelSpriteView sprite={currentAvatar.sprite} size={36} />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-extrabold text-[#f4efe6]">
+                          {currentStudent.nickname} · Lv.{studentLevel}
+                        </h2>
+                        <p className="text-xs font-semibold text-[#9a93ad]">
+                          {currentStudent.xp} XP · {t("สตรีค", "Streak")}{" "}
+                          {currentStudent.streak} {t("วัน", "days")} ·{" "}
+                          {t("ความเข้าใจเฉลี่ย", "Avg Mastery")}{" "}
+                          {studentAvgMastery}% (
+                          {getMasteryStatus(studentAvgMastery).label})
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-xs font-extrabold">
+                      <span className="px-3 py-1 rounded-xl bg-[#24163b] border border-[#9b5de5]/40 text-[#e9d5ff]">
+                        T1–T4: {t("โครงสร้างโค้ด", "Text Surface")}
+                      </span>
+                      <span className="px-3 py-1 rounded-xl bg-[#281d08] border border-[#f6c945]/40 text-[#ffe27a]">
+                        E1–E4: {t("การรันจริง", "Execution")}
+                      </span>
+                      <span className="px-3 py-1 rounded-xl bg-[#152922] border border-[#2fbf71]/40 text-[#86efac]">
+                        F1–F4: {t("หน้าที่โค้ด", "Function")}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+                    <span className="text-xs sm:text-sm font-bold text-[#9a93ad]">
+                      {t(
+                        "เข้าสู่ระบบเพื่อบันทึกคะแนน 12 ช่อง ตราเกียรติยศ และประวัติการฝึก",
+                        "Log in to save your 12-cell mastery, badges, and practice history."
+                      )}
+                    </span>
+                    <Link
+                      href={`/login?redirect=${encodeURIComponent(
+                        `/courses?lang=${currentLanguage}`
+                      )}`}
+                      className="retro-button rounded-xl bg-[#2fbf71] hover:bg-[#34d37d] px-4 py-2 text-xs font-extrabold text-[#120f1c]"
+                    >
+                      {t("เข้าสู่ระบบ", "Log in")}
+                    </Link>
+                  </div>
+                )}
+              </section>
+
+              {/* 12-Cell Block Model Grid */}
+              <BlockModelGrid
+                cellScores={currentStudent.cellScores}
+                title={t(
+                  `Block Model 12 ช่อง (${currentTrackMeta.name})`,
+                  `12-Cell Block Model (${currentTrackMeta.name})`
+                )}
+                onSelectTopic={(topicId) => {
+                  const target =
+                    currentLanguageTopics.find((tp) => tp.id === topicId) ||
+                    currentLanguageTopics[0];
+                  handleStartTopic(target.id);
+                }}
+              />
+
+              {/* Code Runner Sandbox */}
+              <section className="rounded-2xl border border-[#2f2d45] bg-[#1c1b2b] p-5 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-base font-extrabold text-[#ffe27a] flex items-center gap-2">
+                    <Icon name="code" size={18} className="text-[#2fbf71]" />
+                    <span>
+                      {t(
+                        `ทดลองรันโค้ด ${currentTrackMeta.name}`,
+                        `${currentTrackMeta.name} Code Sandbox`
+                      )}
+                    </span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const res = runCodeByLanguage(
+                        playgroundCode,
+                        currentLanguage
+                      );
+                      setPlaygroundOutput(
+                        res.success
+                          ? res.finalOutput ||
+                              t("(ไม่มีข้อความแสดงผล)", "(No output)")
+                          : `${t("ข้อผิดพลาด:", "Error:")} ${res.error}`
+                      );
+                    }}
+                    className="retro-button px-4 py-2 rounded-xl bg-[#2fbf71] hover:bg-[#34d37d] text-xs font-extrabold flex items-center gap-1.5 cursor-pointer text-[#120f1c]"
+                  >
+                    <Icon name="play" size={15} />
+                    <span>{t("รันโค้ด", "Run Code")}</span>
+                  </button>
+                </div>
+
+                <textarea
+                  rows={5}
+                  value={playgroundCode}
+                  onChange={(e) => setPlaygroundCode(e.target.value)}
+                  className="w-full p-3.5 rounded-xl bg-[#0d0b14] border border-[#2f2d45] focus:border-[#f6c945] focus:outline-hidden font-code text-xs sm:text-sm font-bold text-[#ffe27a]"
+                />
+
+                {playgroundOutput && (
+                  <div className="p-3.5 rounded-xl bg-[#152922] border border-[#2fbf71]/50 text-[#86efac]">
+                    <div className="text-[11px] font-extrabold">
+                      {t("ผลลัพธ์:", "Output:")}
+                    </div>
+                    <pre className="font-code font-extrabold text-sm mt-0.5">
+                      {playgroundOutput}
+                    </pre>
+                  </div>
+                )}
+              </section>
+
+              {/* Logged-in Student Details: Strong/Review Cells, Badges & Recent History */}
+              {session && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="rounded-2xl border border-[#2fbf71]/40 bg-[#152922]/70 p-4 text-[#86efac]">
+                      <div className="flex items-center gap-2 font-extrabold text-sm">
+                        <Icon name="check" size={17} />
+                        <span>{t("จุดแข็ง (≥80%)", "Strengths (≥80%)")}</span>
+                      </div>
+                      <div className="mt-2.5 space-y-1.5">
+                        {strongStudentCells.length > 0 ? (
+                          strongStudentCells.slice(0, 4).map((c) => (
+                            <div
+                              key={c.id}
+                              className="p-2 rounded-xl bg-[#0d0b14]/70 border border-[#2fbf71]/30 flex items-center justify-between text-xs font-bold text-[#f4efe6]"
+                            >
+                              <span>
+                                {c.id} · {c.shortTitle}
+                              </span>
+                              <span className="font-extrabold text-[#86efac]">
+                                {currentStudent.cellScores[c.id]}%
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs text-[#c4bdd6]">
+                            {t(
+                              "ลุยด่านเพิ่มเพื่อปลดล็อกช่อง ≥80%",
+                              "Clear more floors to unlock 80%+ cells."
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-[#ff4d6d]/40 bg-[#361416]/60 p-4 text-[#fca5a5]">
+                      <div className="flex items-center gap-2 font-extrabold text-sm">
+                        <Icon name="bulb" size={17} />
+                        <span>{t("ควรทบทวน (<60%)", "Needs Review (<60%)")}</span>
+                      </div>
+                      <div className="mt-2.5 space-y-1.5">
+                        {reviewStudentCells.length > 0 ? (
+                          reviewStudentCells.slice(0, 4).map((c) => (
+                            <div
+                              key={c.id}
+                              className="p-2 rounded-xl bg-[#0d0b14]/70 border border-[#ff4d6d]/30 flex items-center justify-between gap-2 text-xs font-bold text-[#f4efe6]"
+                            >
+                              <span>
+                                {c.id} · {c.shortTitle} (
+                                {currentStudent.cellScores[c.id]}%)
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const target =
+                                    currentLanguageTopics.find(
+                                      (tp) => tp.id === c.relatedTopicId
+                                    ) || currentLanguageTopics[0];
+                                  setSelectedTopicId(target.id);
+                                  setActiveTab("practice");
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-[#c0283a] hover:bg-[#ff4d6d] text-white text-[11px] font-extrabold cursor-pointer"
+                              >
+                                {t("ฝึก →", "Practice →")}
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs font-bold text-[#c4bdd6]">
+                            {t(
+                              "ผ่านเกณฑ์ 60% ทุกช่องแล้ว!",
+                              "Above 60% across all cells!"
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="rounded-2xl border border-[#2f2d45] bg-[#1c1b2b] p-4 flex flex-col gap-3">
+                      <h3 className="text-sm font-extrabold text-[#ffe27a] flex items-center gap-2">
+                        <Icon name="shield" size={17} className="text-[#f6c945]" />
+                        <span>
+                          {t("ตราความสำเร็จ", "Badges")} (
+                          {
+                            currentLanguageTopics.filter((tp) =>
+                              currentStudent.badges.includes(tp.badgeReward.id)
+                            ).length
+                          }
+                          /{currentLanguageTopics.length})
+                        </span>
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {currentLanguageTopics.map((tp) => {
+                          const unlocked = currentStudent.badges.includes(
+                            tp.badgeReward.id
+                          );
+                          return (
+                            <div
+                              key={tp.badgeReward.id}
+                              className={`p-2.5 rounded-xl border flex items-center gap-2.5 ${
+                                unlocked
+                                  ? "bg-[#152922] border-[#2fbf71]/50 text-[#86efac]"
+                                  : "bg-[#0d0b14] border-[#2f2d45] text-[#9a93ad] opacity-65"
+                              }`}
+                            >
+                              <StatusCircle
+                                variant={unlocked ? "badge" : "locked"}
+                                size="sm"
+                                label={tp.badgeReward.name}
+                              />
+                              <div className="min-w-0">
+                                <div className="text-xs font-extrabold truncate">
+                                  {tp.badgeReward.name}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-[#2f2d45] bg-[#1c1b2b] p-4 flex flex-col gap-3">
+                      <h3 className="text-sm font-extrabold text-[#ffe27a] flex items-center gap-2">
+                        <Icon name="chart" size={17} className="text-[#2fbf71]" />
+                        <span>{t("ประวัติการเล่นล่าสุด", "Recent History")}</span>
+                      </h3>
+                      {currentStudent.history.length > 0 ? (
+                        <div className="space-y-2">
+                          {currentStudent.history.slice(0, 5).map((h, i) => (
+                            <div
+                              key={i}
+                              className="p-2.5 rounded-xl bg-[#0d0b14] border border-[#2f2d45] flex items-center justify-between gap-2"
+                            >
+                              <div>
+                                <div className="text-xs font-extrabold text-[#f4efe6]">
+                                  {h.topicTitle}
+                                </div>
+                                <div className="text-[11px] text-[#9a93ad]">
+                                  {h.timestamp} · {h.scorePercent}%
+                                </div>
+                              </div>
+                              <span className="px-2 py-0.5 rounded-lg bg-[#281d08] text-[#ffe27a] border border-[#f6c945]/40 text-xs font-extrabold">
+                                +{h.xpEarned} XP
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-[#9a93ad]">
+                          {t(
+                            "ยังไม่มีประวัติการเล่น ลองลุยด่านแรกได้เลย!",
+                            "No runs yet — enter Floor 1 to get started!"
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
@@ -1713,8 +1668,8 @@ export default function CoursesPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#eef3f1] p-8 text-center text-sm font-bold text-[#0b4f49]">
-          กำลังโหลดหน้าเลือกภาษาและเนื้อหาการเรียนรู้...
+        <div className="min-h-screen bg-[#0d0b14] p-8 text-center text-sm font-bold text-[#ffe27a]">
+          Loading Learning Dungeon...
         </div>
       }
     >

@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
-import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { AVATARS, getAvatar, DEFAULT_AVATAR, AvatarKey } from "../../lib/dungeon/sprites";
 import { hashString, dungeonNameForCourse } from "../../lib/dungeon/seed";
 import { generateDungeonRoom, DungeonRoom } from "../../lib/dungeon/mapgen";
 import { getMonsterDef, MonsterDef } from "../../lib/dungeon/monsters";
 import { getQuestionForFloor, DungeonQuestion } from "../../lib/dungeon/questions";
+import { LANGUAGE_TRACKS, LearningLanguage } from "../../lib/language-tracks";
 import { GameCanvas } from "../../components/dungeon/GameCanvas";
 import { DungeonHud } from "../../components/dungeon/DungeonHud";
 import { BattleOverlay } from "../../components/dungeon/BattleOverlay";
@@ -24,11 +24,68 @@ import {
   saveLocalEnrollments,
 } from "../../lib/lms-data";
 import { getClientSession } from "../../components/SiteHeader";
+import { useUiLanguage } from "../../components/LanguageProvider";
+
+function detectCourseLanguage(course: Course | null, courseLessons: Lesson[]): LearningLanguage {
+  const lessonLang = courseLessons
+    .find((l) => l?.programming_language)
+    ?.programming_language?.toLowerCase();
+
+  if (lessonLang === "python") return "python";
+  if (lessonLang === "sql") return "sql";
+  if (lessonLang === "typescript" || lessonLang === "ts") return "typescript";
+  if (lessonLang === "cpp" || lessonLang === "c++") return "cpp";
+  if (lessonLang === "java") return "java";
+  if (lessonLang === "javascript" || lessonLang === "js") return "javascript";
+
+  if (!course) return "javascript";
+  const haystack = `${course.id} ${course.join_code} ${course.title}`.toUpperCase();
+  if (
+    course.id.includes("-ts-") ||
+    course.join_code.toUpperCase().startsWith("TS") ||
+    haystack.includes("TYPESCRIPT")
+  ) {
+    return "typescript";
+  }
+  if (
+    course.id.includes("-cpp-") ||
+    course.join_code.toUpperCase().startsWith("CPP") ||
+    haystack.includes("C++") ||
+    haystack.includes("CPP")
+  ) {
+    return "cpp";
+  }
+  if (
+    course.id.includes("python") ||
+    course.join_code.toUpperCase().startsWith("PY") ||
+    haystack.includes("PYTHON")
+  ) {
+    return "python";
+  }
+  if (
+    course.id.includes("sql") ||
+    course.join_code.toUpperCase().startsWith("SQL") ||
+    haystack.includes("SQL")
+  ) {
+    return "sql";
+  }
+  if (
+    course.id.includes("-java-") ||
+    course.join_code.toUpperCase().startsWith("JAVA") ||
+    /\bJAVA\b/.test(haystack)
+  ) {
+    return "java";
+  }
+  return "javascript";
+}
 
 function DungeonPlayContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { uiLang, t } = useUiLanguage();
+  const isEn = uiLang === "en";
+
   const courseId = String(params?.courseId || "");
   const initialFloor = Math.max(0, parseInt(searchParams.get("floor") || "0", 10) || 0);
 
@@ -78,9 +135,9 @@ function DungeonPlayContent() {
       const foundCourse = allCourses.find((c) => c.id === courseId) || allCourses[0];
       setCourse(foundCourse);
 
-      const relevantLessons = allLessons.filter(
-        (l) => l.course_id === foundCourse?.id && l.is_published
-      );
+      const relevantLessons = allLessons
+        .filter((l) => l.course_id === foundCourse?.id && l.is_published)
+        .sort((a, b) => a.order_index - b.order_index);
       setCourseLessons(relevantLessons.length > 0 ? relevantLessons : [allLessons[0]]);
       setLoading(false);
 
@@ -112,6 +169,16 @@ function DungeonPlayContent() {
   const courseSeed = useMemo(() => hashString(courseId || "default"), [courseId]);
   const dungeonTitle = useMemo(() => dungeonNameForCourse(courseId || "default"), [courseId]);
 
+  const courseLang = useMemo(
+    () => detectCourseLanguage(course, courseLessons),
+    [course, courseLessons]
+  );
+
+  const trackMeta = useMemo(
+    () => LANGUAGE_TRACKS.find((tr) => tr.id === courseLang) || LANGUAGE_TRACKS[0],
+    [courseLang]
+  );
+
   // Current floor dungeon room
   const [room, setRoom] = useState<DungeonRoom>(() =>
     generateDungeonRoom(courseSeed, 0, totalFloors)
@@ -133,11 +200,13 @@ function DungeonPlayContent() {
   }, [room.entity?.monsterType, isBossFloor]);
 
   const currentQuestion: DungeonQuestion = useMemo(
-    () => getQuestionForFloor(floorIndex, isBossFloor),
-    [floorIndex, isBossFloor]
+    () => getQuestionForFloor(floorIndex, isBossFloor, courseLang, course?.id || courseId),
+    [floorIndex, isBossFloor, courseLang, course?.id, courseId]
   );
 
-  const currentLessonTitle = courseLessons[floorIndex]?.title || `ชั้นที่ ${floorIndex + 1}`;
+  const currentLessonTitle =
+    courseLessons[floorIndex]?.title ||
+    t(`ชั้นที่ ${floorIndex + 1}`, `Floor ${floorIndex + 1}`);
 
   const handleToggleSound = useCallback(() => {
     const next = !soundEnabled;
@@ -153,7 +222,6 @@ function DungeonPlayContent() {
 
   const handleCorrectAnswer = useCallback(
     (xpAwarded?: number, coinsAwarded?: number) => {
-      // Award rewards
       const gainedCoins = coinsAwarded !== undefined ? coinsAwarded : currentMonster.coinReward;
       const gainedXp = xpAwarded !== undefined ? xpAwarded : currentMonster.xpReward;
       setCoins((prev) => prev + gainedCoins);
@@ -196,7 +264,6 @@ function DungeonPlayContent() {
         }
         saveLocalLessonProgress(updatedProgs);
 
-        // Update enrollments
         const enrolls = loadLocalEnrollments();
         const existingEnrollIdx = enrolls.findIndex(
           (e) => e.course_id === courseId && e.student_id === session.userId
@@ -227,7 +294,6 @@ function DungeonPlayContent() {
   );
 
   const handleWrongAnswer = useCallback(() => {
-    // Player hurt
     setScreenShake(1);
     setTimeout(() => setScreenShake(0), 300);
 
@@ -252,6 +318,8 @@ function DungeonPlayContent() {
 
   const handleRetry = useCallback(() => {
     setHearts(3);
+    setCoins(0);
+    setXp(0);
     setFloorIndex(0);
     setIsGameOver(false);
     setIsVictory(false);
@@ -275,16 +343,18 @@ function DungeonPlayContent() {
         avatar={avatar}
         floorIndex={floorIndex}
         totalFloors={totalFloors}
-        dungeonTitle={dungeonTitle}
+        dungeonTitle={isEn ? trackMeta.dungeonRealmNameEn : `${trackMeta.dungeonRealmName} · ${dungeonTitle}`}
         roomTitle={currentLessonTitle}
         hearts={hearts}
         maxHearts={maxHearts}
         coins={coins}
         xp={xp}
         soundEnabled={soundEnabled}
+        languageName={trackMeta.name}
+        languageBadge={trackMeta.name}
         onToggleSound={handleToggleSound}
         onTogglePause={() => setIsPaused(true)}
-        onExit={() => router.push("/dungeon")}
+        onExit={() => router.push("/courses")}
       />
 
       {/* Canvas Viewport */}
@@ -301,39 +371,30 @@ function DungeonPlayContent() {
         />
       </div>
 
-      {/* Instructions / Status hint */}
-      <div className="w-full max-w-[640px] flex items-center justify-between text-xs text-[#9a93ad] px-1 select-none">
-        <span className="hidden sm:inline">
-          เดินด้วย <strong>WASD</strong> หรือ <strong>ลูกศร</strong> · โต้ตอบด้วย <strong>Space/Enter</strong>
-        </span>
-        <span className="text-[#ffe27a] font-bold">
-          {room.isDoorUnlocked
-            ? "ประตูเปิดแล้ว! เดินขึ้นไปที่ประตูเพื่อไปชั้นถัดไป"
-            : isBossFloor
-            ? "ประจันหน้ากับบอสใหญ่ท้ายคอร์ส!"
-            : "เดินไปชนเป้าหมายเพื่อตอบคำถาม"}
-        </span>
-      </div>
-
       {/* Mobile On-Screen D-Pad */}
       <div className="w-full sm:hidden">
         <MobileDpad
           disabled={isPaused || isInBattle || isGameOver || isVictory}
           onMove={(dx, dy) => {
+            const dirKey =
+              dx < 0
+                ? "ArrowLeft"
+                : dx > 0
+                ? "ArrowRight"
+                : dy < 0
+                ? "ArrowUp"
+                : "ArrowDown";
             const event = new KeyboardEvent("keydown", {
-              key:
-                dx < 0
-                  ? "ArrowLeft"
-                  : dx > 0
-                  ? "ArrowRight"
-                  : dy < 0
-                  ? "ArrowUp"
-                  : "ArrowDown",
+              key: dirKey,
+              code: dirKey,
             });
             window.dispatchEvent(event);
           }}
           onAction={() => {
-            const event = new KeyboardEvent("keydown", { key: " " });
+            const event = new KeyboardEvent("keydown", {
+              key: " ",
+              code: "Space",
+            });
             window.dispatchEvent(event);
           }}
         />
@@ -348,6 +409,8 @@ function DungeonPlayContent() {
           monsterHp={room.entity?.isCompleted ? 0 : currentMonster.maxHp}
           maxMonsterHp={currentMonster.maxHp}
           playerHearts={hearts}
+          initialFocus={3}
+          maxFocus={6}
           courseId={courseId}
           lessonId={courseLessons[floorIndex]?.id}
           onCorrectAnswer={handleCorrectAnswer}
@@ -360,24 +423,24 @@ function DungeonPlayContent() {
       <PauseModal
         isOpen={isPaused}
         onResume={() => setIsPaused(false)}
-        onExit={() => router.push("/dungeon")}
+        onExit={() => router.push("/courses")}
       />
 
       {/* Game Over Modal */}
       <GameOverModal
         isOpen={isGameOver}
         onRetry={handleRetry}
-        onExit={() => router.push("/dungeon")}
+        onExit={() => router.push("/courses")}
       />
 
       {/* Victory Modal */}
       <VictoryModal
         isOpen={isVictory}
         dungeonTitle={dungeonTitle}
-        courseTitle={course?.title || "คอร์สเรียน"}
+        courseTitle={course?.title || t("คอร์สเรียน", "Course")}
         totalCoins={coins}
         totalXp={xp}
-        onExit={() => router.push("/dungeon")}
+        onExit={() => router.push("/courses")}
       />
     </div>
   );

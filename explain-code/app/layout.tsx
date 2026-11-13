@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "./components/ThemeProvider";
+import { LanguageProvider } from "./components/LanguageProvider";
 
 const notoSansThai = Noto_Sans_Thai({
   variable: "--font-noto-thai",
@@ -23,18 +24,21 @@ export default function RootLayout({
   return (
     <html
       lang="th"
+      data-theme="dark"
       suppressHydrationWarning
-      className={`${notoSansThai.variable} h-full antialiased`}
+      className={`${notoSansThai.variable} dark h-full antialiased`}
     >
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=localStorage.getItem('explain_code_theme');var d=false;if(s==='dark'){d=true;}else if(s==='light'){d=false;}else{d=window.matchMedia('(prefers-color-scheme: dark)').matches;}if(d){document.documentElement.classList.add('dark');document.documentElement.setAttribute('data-theme','dark');}else{document.documentElement.classList.remove('dark');document.documentElement.setAttribute('data-theme','light');}}catch(e){}})();`,
+            __html: `(function(){document.documentElement.classList.add('dark');document.documentElement.setAttribute('data-theme','dark');try{localStorage.setItem('explain_code_theme','dark');}catch(e){}})();`,
           }}
         />
       </head>
       <body className="min-h-full flex flex-col bg-[var(--bg)] text-[var(--ink)] selection:bg-[#0f766e]/30 selection:text-white transition-colors duration-150">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <LanguageProvider>{children}</LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

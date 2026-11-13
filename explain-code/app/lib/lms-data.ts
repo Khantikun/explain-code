@@ -65,6 +65,45 @@ export const INITIAL_COURSES: Course[] = [
     created_at: "2026-11-10T11:00:00.000Z",
     updated_at: "2026-11-10T11:00:00.000Z",
   },
+  {
+    id: "course-ts-fundamentals",
+    teacher_id: "tch-1",
+    teacher_name: "อ.ธนากร เว็บสถาปัตย์",
+    title: "TypeScript ฉบับนักแกะโค้ด: Interface, Union และ Generics",
+    description:
+      "ฝึกอ่านสัญญาข้อมูล (interface), การบีบชนิดข้อมูล (Type Narrowing) และ Generic <T> เพื่อตรวจจับข้อผิดพลาดในโค้ดเว็บที่ AI สร้าง",
+    join_code: "TS2026",
+    level: "beginner",
+    is_published: true,
+    created_at: "2026-11-10T12:00:00.000Z",
+    updated_at: "2026-11-10T12:00:00.000Z",
+  },
+  {
+    id: "course-cpp-fundamentals",
+    teacher_id: "tch-1",
+    teacher_name: "ดร.ปวีณา ระบบคอมพิวเตอร์",
+    title: "พื้นฐาน C++: การหารจำนวนเต็ม, Reference (&) และ std::vector",
+    description:
+      "เจาะลึกกับดัก C++ ที่พบบ่อยในโค้ดจาก AI ทั้ง Integer Division, Pass-by-Reference (&) และขอบเขตดัชนีใน vector",
+    join_code: "CPP2026",
+    level: "intermediate",
+    is_published: true,
+    created_at: "2026-11-10T13:00:00.000Z",
+    updated_at: "2026-11-10T13:00:00.000Z",
+  },
+  {
+    id: "course-java-fundamentals",
+    teacher_id: "tch-1",
+    teacher_name: "อ.ภานุพงศ์ วิศวกรรมซอฟต์แวร์",
+    title: "Java & OOP: คลาส, String.equals() และการคุมสถานะ Object",
+    description:
+      "ฝึกอ่านโครงสร้าง Class, เมธอด main, ความต่างระหว่าง == กับ .equals() และ การออกแบบเมธอดเปลี่ยนสถานะใน OOP",
+    join_code: "JAVA2026",
+    level: "beginner",
+    is_published: true,
+    created_at: "2026-11-10T14:00:00.000Z",
+    updated_at: "2026-11-10T14:00:00.000Z",
+  },
 ];
 
 export const INITIAL_LESSONS: Lesson[] = [
@@ -351,6 +390,242 @@ HAVING SUM(price) >= 1000;`,
     is_published: true,
     created_at: "2026-11-10T11:20:00.000Z",
     updated_at: "2026-11-10T11:20:00.000Z",
+  },
+  {
+    id: "lesson-ts-1",
+    course_id: "course-ts-fundamentals",
+    title: "บทที่ 1: Interface และ Type Annotations ใน TypeScript",
+    content_md: `### ทำไม TypeScript จึงช่วยลดบั๊กจากโค้ด AI ได้มาก?
+ใน JavaScript ธรรมดา เราสามารถส่งค่าผิดชนิดเข้าไปคำนวณได้โดยไม่รู้ตัวจนกว่าโปรแกรมจะพังตอนรันจริง แต่ **TypeScript** จะตรวจชนิดข้อมูลตั้งแต่ก่อนรัน!
+
+- \`interface\` ใช้กำหนดโครงสร้างฟิลด์และชนิดข้อมูลของ Object
+- \`: number\`, \`: string\` ใช้ระบุชนิดข้อมูลของตัวแปรและพารามิเตอร์
+- ตัวตรวจสอบ (Type Checker) จะแจ้งเตือนทันทีหากส่งค่าผิดชนิด`,
+    code_example: `interface Product {
+  name: string;
+  price: number;
+}
+const item: Product = { name: "Mouse", price: 450 };
+const qty: number = 2;
+const total: number = item.price * qty;
+console.log(total);`,
+    programming_language: "typescript",
+    external_url: "https://www.typescriptlang.org/docs/handbook/2/everyday-types.html",
+    video_url: null,
+    quiz_questions: [
+      {
+        id: "q-ts-1-1",
+        question: "คำสั่ง interface Product ใน TypeScript มีหน้าที่หลักอย่างไร?",
+        options: [
+          "กำหนดโครงสร้าง property และชนิดข้อมูลของ Object เพื่อตรวจสอบก่อนรัน",
+          "แปลงโค้ดให้กลายเป็นภาษา C++",
+          "สร้างตารางในฐานข้อมูล SQL อัตโนมัติ",
+          "บังคับให้ตัวแปรทุกตัวเปลี่ยนค่าได้ตลอดเวลา",
+        ],
+        correctIndex: 0,
+        explanation: "interface คือสัญญาโครงสร้างข้อมูลระดับ Compile-time ที่ช่วยตรวจจับฟิลด์ที่หายไปหรือชนิดข้อมูลที่ผิด",
+      },
+      {
+        id: "q-ts-1-2",
+        question: "เมื่อรันโค้ดตัวอย่างข้างต้น console.log(total) จะแสดงค่าใด?",
+        options: ["900", "450", "2", "452"],
+        correctIndex: 0,
+        explanation: "item.price (450) * qty (2) = 900",
+      },
+    ],
+    order_index: 1,
+    is_published: true,
+    created_at: "2026-11-10T12:10:00.000Z",
+    updated_at: "2026-11-10T12:10:00.000Z",
+  },
+  {
+    id: "lesson-ts-2",
+    course_id: "course-ts-fundamentals",
+    title: "บทที่ 2: Union Type, Type Narrowing และ Generic <T>",
+    content_md: `### การบีบชนิดข้อมูล (Type Narrowing) และ Generic <T>
+เมื่อฟังก์ชันรับค่าได้หลายรูปแบบ เราใช้ **Union Type** เช่น \`"paid" | "pending" | "failed"\` จากนั้นใช้ \`if\` เพื่อแคบชนิดข้อมูลลงอย่างปลอดภัย
+
+- **Generic \`<T>\`** ช่วยให้ฟังก์ชันทำงานกับข้อมูลหลายชนิดโดยยังคงความปลอดภัยของ Type ไว้ครบถ้วน (ดีกว่าการใช้ \`any\`)`,
+    code_example: `type Status = "paid" | "pending" | "failed";
+function getBadge(status: Status): string {
+  if (status === "paid") return "Verified";
+  if (status === "pending") return "Waiting";
+  return "Retry";
+}
+console.log(getBadge("pending"));`,
+    programming_language: "typescript",
+    external_url: "https://www.typescriptlang.org/docs/handbook/2/narrowing.html",
+    video_url: null,
+    quiz_questions: [
+      {
+        id: "q-ts-2-1",
+        question: 'เมื่อเรียก getBadge("pending") โปรแกรมจะพิมพ์ข้อความใด?',
+        options: ["Waiting", "Verified", "Retry", "pending"],
+        correctIndex: 0,
+        explanation: 'ตรงกับเงื่อนไข if (status === "pending") จึงคืนค่า "Waiting"',
+      },
+    ],
+    order_index: 2,
+    is_published: true,
+    created_at: "2026-11-10T12:20:00.000Z",
+    updated_at: "2026-11-10T12:20:00.000Z",
+  },
+  {
+    id: "lesson-cpp-1",
+    course_id: "course-cpp-fundamentals",
+    title: "บทที่ 1: ชนิดตัวแปรและกับดักการหารจำนวนเต็มใน C++",
+    content_md: `### จุดที่ต้องระวังเมื่ออ่านโค้ดคำนวณ C++
+ในภาษา C++ ตัวแปรต้องประกาศชนิดชัดเจน เช่น \`int\` (จำนวนเต็ม) หรือ \`double\` (ทศนิยม)
+
+- **กับดัก Integer Division**: หากนำ \`int\` หารด้วย \`int\` เช่น \`7 / 2\` ผลลัพธ์จะถูก **ตัดทศนิยมทิ้งเหลือ 3** ทันที!
+- หากต้องการค่าทศนิยม \`3.5\` ต้องแปลงฝั่งหนึ่งเป็น \`double\` เช่น \`(double)total / count\``,
+    code_example: `#include <iostream>
+using namespace std;
+
+int main() {
+    int total = 7;
+    int count = 2;
+    int avg = total / count;
+    cout << avg << endl;
+    return 0;
+}`,
+    programming_language: "cpp",
+    external_url: "https://en.cppreference.com/w/cpp/language/operator_arithmetic",
+    video_url: null,
+    quiz_questions: [
+      {
+        id: "q-cpp-1-1",
+        question: "ใน C++ หาก total = 7 และ count = 2 เป็น int ทั้งคู่ ผลของ total / count คือเท่าไร?",
+        options: ["3", "3.5", "4", "2"],
+        correctIndex: 0,
+        explanation: "การหารจำนวนเต็ม (Integer Division) ใน C++ จะตัดเศษทศนิยมทิ้ง 7 / 2 จึงได้ 3",
+      },
+    ],
+    order_index: 1,
+    is_published: true,
+    created_at: "2026-11-10T13:10:00.000Z",
+    updated_at: "2026-11-10T13:10:00.000Z",
+  },
+  {
+    id: "lesson-cpp-2",
+    course_id: "course-cpp-fundamentals",
+    title: "บทที่ 2: Pass-by-Reference (&) และ std::vector",
+    content_md: `### การส่งตัวแปรเข้าฟังก์ชันด้วย Reference (&)
+- \`void addBonus(int hp, int bonus)\`: ส่งแบบ **Pass-by-Value** (คัดลอกค่า) ตัวแปรเดิมใน \`main\` ไม่เปลี่ยน
+- \`void addBonus(int& hp, int bonus)\`: ส่งแบบ **Pass-by-Reference** (อ้างอิงกล่องหน่วยความจำเดิม) การแก้ไขในฟังก์ชันจะเปลี่ยนค่าใน \`main\` จริง!`,
+    code_example: `#include <iostream>
+using namespace std;
+
+void addBonus(int& hp, int bonus) {
+    hp = hp + bonus;
+}
+
+int main() {
+    int hp = 50;
+    addBonus(hp, 25);
+    cout << hp << endl;
+    return 0;
+}`,
+    programming_language: "cpp",
+    external_url: "https://en.cppreference.com/w/cpp/container/vector",
+    video_url: null,
+    quiz_questions: [
+      {
+        id: "q-cpp-2-1",
+        question: "เมื่อใช้ void addBonus(int& hp, int bonus) ค่า hp ที่พิมพ์ใน main จะเป็นเท่าใด?",
+        options: ["75", "50", "25", "0"],
+        correctIndex: 0,
+        explanation: "พารามิเตอร์ int& hp อ้างอิงตัวแปร hp ใน main โดยตรง จึงเปลี่ยนจาก 50 เป็น 75",
+      },
+    ],
+    order_index: 2,
+    is_published: true,
+    created_at: "2026-11-10T13:20:00.000Z",
+    updated_at: "2026-11-10T13:20:00.000Z",
+  },
+  {
+    id: "lesson-java-1",
+    course_id: "course-java-fundamentals",
+    title: "บทที่ 1: โครงสร้างคลาส Java และกับดัก String.equals() vs ==",
+    content_md: `### อ่าน String Comparison ใน Java อย่างไรไม่ให้โดนหลอก?
+ใน Java คำสั่ง \`String\` เป็น **Object** ไม่ใช่ Primitive (เช่น \`int\`)
+- **\`role == "admin"\`**: เปรียบเทียบ **ตำแหน่งหน่วยความจำ (Reference)** ซึ่งอาจได้ \`false\` แม้ตัวอักษรเหมือนกัน!
+- **\`role.equals("admin")\`**: เปรียบเทียบ **เนื้อหาข้อความจริง** ซึ่งเป็นวิธีที่ถูกต้อง`,
+    code_example: `public class Main {
+    public static void main(String[] args) {
+        String role = new String("admin");
+        if (role.equals("admin")) {
+            System.out.println("Access Granted");
+        } else {
+            System.out.println("Access Denied");
+        }
+    }
+}`,
+    programming_language: "java",
+    external_url: "https://docs.oracle.com/javase/tutorial/java/data/comparestrings.html",
+    video_url: null,
+    quiz_questions: [
+      {
+        id: "q-java-1-1",
+        question: "หากสร้าง String role = new String(\"admin\"); ข้อใดเปรียบเทียบเนื้อหาข้อความได้ถูกต้องใน Java?",
+        options: [
+          'role.equals("admin")',
+          'role == "admin"',
+          'role = "admin"',
+          'role === "admin"',
+        ],
+        correctIndex: 0,
+        explanation: "ใน Java ต้องใช้ .equals() เพื่อเปรียบเทียบเนื้อหาข้อความของ String Object แทนเครื่องหมาย ==",
+      },
+    ],
+    order_index: 1,
+    is_published: true,
+    created_at: "2026-11-10T14:10:00.000Z",
+    updated_at: "2026-11-10T14:10:00.000Z",
+  },
+  {
+    id: "lesson-java-2",
+    course_id: "course-java-fundamentals",
+    title: "บทที่ 2: OOP Class, Constructor และการควบคุมสถานะ Object",
+    content_md: `### การอ่าน Class และ Object ใน Java
+เวลา AI สร้าง Class เช่น \`class Hero\` ให้สังเกต 3 ส่วน:
+1. **Fields**: ตัวแปรเก็บสถานะภายใน เช่น \`int hp;\`
+2. **Constructor**: เมธอดชื่อเดียวกับคลาส (\`Hero(int startHp)\`) ที่ทำงานตอน \`new Hero(100)\`
+3. **Methods**: พฤติกรรมที่อัปเดตสถานะ เช่น \`takeDamage(dmg)\` พร้อมเงื่อนไขป้องกันค่าติดลบ`,
+    code_example: `class Hero {
+    int hp;
+    Hero(int startHp) { this.hp = startHp; }
+    void takeDamage(int dmg) {
+        if (dmg > this.hp) { this.hp = 0; }
+        else { this.hp -= dmg; }
+    }
+}
+public class Main {
+    public static void main(String[] args) {
+        Hero hero = new Hero(100);
+        int[] hits = {30, 45, 50};
+        for (int i = 0; i < hits.length; i++) {
+            hero.takeDamage(hits[i]);
+        }
+        System.out.println(hero.hp);
+    }
+}`,
+    programming_language: "java",
+    external_url: "https://docs.oracle.com/javase/tutorial/java/javaOO/classes.html",
+    video_url: null,
+    quiz_questions: [
+      {
+        id: "q-java-2-1",
+        question: "เมื่อ Hero เริ่มต้นด้วย HP 100 และโดนโจมตี 30, 45, 50 ตามลำดับ ค่า hero.hp สุดท้ายคือเท่าใด?",
+        options: ["0", "-25", "25", "100"],
+        correctIndex: 0,
+        explanation: "100 - 30 = 70, 70 - 45 = 25, จากนั้น 50 > 25 จึงตั้งค่า hp = 0 ไม่ให้ติดลบ",
+      },
+    ],
+    order_index: 2,
+    is_published: true,
+    created_at: "2026-11-10T14:20:00.000Z",
+    updated_at: "2026-11-10T14:20:00.000Z",
   },
 ];
 

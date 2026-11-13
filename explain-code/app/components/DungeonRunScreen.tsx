@@ -16,6 +16,7 @@ import { dungeonSound } from "../lib/dungeon/sound";
 
 interface DungeonRunScreenProps {
   onBackToPortal: () => void;
+  embedded?: boolean;
   onRecordAttempt?: (summary: {
     spellName: string;
     cleared: boolean;
@@ -27,6 +28,7 @@ interface DungeonRunScreenProps {
 
 export function DungeonRunScreen({
   onBackToPortal,
+  embedded = false,
   onRecordAttempt,
 }: DungeonRunScreenProps) {
   // Setup state for Ingestion
@@ -412,45 +414,50 @@ export function DungeonRunScreen({
   const codeAnalysis = extractCodeFeatures(customCode);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
-      {/* Top Cyber/Dungeon HUD */}
-      <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-30 px-4 py-3">
+    <div
+      className={`${
+        embedded
+          ? "rounded-2xl border-2 border-[#3d395a] overflow-hidden"
+          : "min-h-screen"
+      } bg-[#0d0b14] text-[#f4efe6] flex flex-col font-sans selection:bg-[#9b5de5] selection:text-white`}
+    >
+      {/* Top Dungeon HUD */}
+      <header
+        className={`border-b border-[#2f2d45] bg-[#141220]/95 backdrop-blur ${
+          embedded ? "" : "sticky top-0"
+        } z-30 px-4 py-3`}
+      >
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <span className="text-xl font-black text-white">CD</span>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#5a2d91] to-[#9b5de5] border border-[#9b5de5]/60 flex items-center justify-center shadow-lg">
+              <Icon name="sword" size={18} className="text-[#ffe27a]" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">
-                  Roguelite Mode
-                </span>
-                <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-mono border border-indigo-500/30">
-                  v1.0 Prototype
-                </span>
-              </div>
-              <h1 className="text-base font-bold text-slate-100 leading-tight">
-                CODE DEPTHS : ดันเจี้ยนแห่งการเข้าใจ
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#f6c945] block">
+                ดันเจี้ยนการเรียนรู้ · Custom Code
+              </span>
+              <h1 className="text-sm sm:text-base font-bold text-[#f4efe6] leading-tight">
+                สร้างดันเจี้ยนจากโค้ดของคุณ
               </h1>
             </div>
           </div>
 
           {runState && (
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
               {/* Program Integrity (HP) */}
-              <div className="w-40 sm:w-48">
+              <div className="w-36 sm:w-48">
                 <div className="flex justify-between text-xs font-bold mb-1">
-                  <span className="text-rose-400">Program Integrity</span>
-                  <span className="font-mono">{runState.integrity}%</span>
+                  <span className="text-[#ff6b81]">Program Integrity</span>
+                  <span className="font-mono text-[#f4efe6]">{runState.integrity}%</span>
                 </div>
-                <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                <div className="w-full h-2.5 bg-[#1c1b2b] rounded-full overflow-hidden border border-[#2f2d45]">
                   <div
                     className={`h-full transition-all duration-300 ${
                       runState.integrity > 60
-                        ? "bg-gradient-to-r from-emerald-500 to-teal-400"
+                        ? "bg-gradient-to-r from-[#2fbf71] to-[#34d37d]"
                         : runState.integrity > 30
-                        ? "bg-gradient-to-r from-amber-500 to-orange-400"
-                        : "bg-gradient-to-r from-rose-600 to-red-500 animate-pulse"
+                        ? "bg-gradient-to-r from-[#f6c945] to-[#ffb347]"
+                        : "bg-gradient-to-r from-[#c0283a] to-[#ff4d6d] animate-pulse"
                     }`}
                     style={{ width: `${runState.integrity}%` }}
                   />
@@ -458,14 +465,14 @@ export function DungeonRunScreen({
               </div>
 
               {/* Focus Mana */}
-              <div className="w-36 sm:w-44">
+              <div className="w-32 sm:w-44">
                 <div className="flex justify-between text-xs font-bold mb-1">
-                  <span className="text-cyan-400">Focus Mana</span>
-                  <span className="font-mono">{runState.focus}%</span>
+                  <span className="text-[#9b5de5]">Focus Mana</span>
+                  <span className="font-mono text-[#f4efe6]">{runState.focus}%</span>
                 </div>
-                <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                <div className="w-full h-2.5 bg-[#1c1b2b] rounded-full overflow-hidden border border-[#2f2d45]">
                   <div
-                    className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-300"
+                    className="h-full bg-gradient-to-r from-[#5a2d91] to-[#9b5de5] transition-all duration-300"
                     style={{ width: `${runState.focus}%` }}
                   />
                 </div>
@@ -473,19 +480,19 @@ export function DungeonRunScreen({
 
               {/* Spell Badge */}
               <div className="hidden lg:flex flex-col text-right">
-                <span className="text-[10px] uppercase text-slate-400">มนตร์ประจำรอบ</span>
-                <span className="text-xs font-semibold text-indigo-300 max-w-[180px] truncate">
+                <span className="text-[10px] uppercase text-[#9a93ad]">มนตร์ประจำรอบ</span>
+                <span className="text-xs font-semibold text-[#ffe27a] max-w-[180px] truncate">
                   {runState.spellName}
                 </span>
               </div>
             </div>
           )}
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={handleToggleSound}
-              className="px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 transition flex items-center gap-1.5 cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg border border-[#3d395a] bg-[#1c1b2b] hover:border-[#f6c945] hover:bg-[#252238] text-xs text-[#f4efe6] transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
               title="เปิด/ปิดเสียงเอฟเฟกต์ 8-bit"
             >
               <Icon name={soundEnabled ? "volume-2" : "volume-x"} size={14} />
@@ -493,17 +500,19 @@ export function DungeonRunScreen({
             </button>
             {runState && (
               <button
+                type="button"
                 onClick={() => setRunState(null)}
-                className="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 transition"
+                className="px-3 py-1.5 rounded-lg border border-[#3d395a] bg-[#1c1b2b] hover:border-[#f6c945] hover:bg-[#252238] text-xs text-[#f4efe6] transition cursor-pointer whitespace-nowrap"
               >
                 เลือกมนตร์ใหม่
               </button>
             )}
             <button
+              type="button"
               onClick={onBackToPortal}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition border border-slate-700 cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-[#1c1b2b] hover:bg-[#252238] hover:border-[#f6c945] text-xs font-semibold text-[#f4efe6] transition border border-[#3d395a] cursor-pointer whitespace-nowrap"
             >
-              กลับหน้าหลัก
+              {embedded ? "กลับแผนที่" : "กลับหน้าหลัก"}
             </button>
           </div>
         </div>
@@ -511,28 +520,21 @@ export function DungeonRunScreen({
 
       {/* VIEW 1: CODE INGESTION SCREEN */}
       {!runState && (
-        <main className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-8 flex flex-col justify-center">
-          <div className="text-center max-w-2xl mx-auto mb-8">
-            <span className="text-xs font-bold tracking-widest uppercase text-indigo-400 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
-              นำเข้าโค้ดเป็นร่องรอยพลัง
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white mt-3 mb-2">
-              AI ประกอบมนตร์ให้คุณได้ แต่คุณต้องเข้าใจมนตร์ก่อนร่าย
-            </h2>
-            <p className="text-sm text-slate-400">
-              เลือกมนตร์ตัวอย่างหรือวางโค้ดที่คุณสั่งให้ AI เขียนขึ้นมา
-              โค้ดจะถูกสร้างเป็นดันเจี้ยน 5 ชั้นที่คุณต้องทำนาย แกะรอย อธิบาย และซ่อมแซมเพื่อพิชิตบอสใหญ่
+        <main className="flex-1 max-w-6xl mx-auto w-full p-4 md:p-6 flex flex-col justify-center">
+          <div className="text-center max-w-xl mx-auto mb-5">
+            <p className="text-xs sm:text-sm text-[#c4bdd6]">
+              เลือกตัวอย่างหรือวางโค้ดจาก AI เพื่อสร้างดันเจี้ยน 5 ชั้นพร้อมบอส
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left: Code Spell Presets & Custom Paste */}
-            <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-slate-200">
+            <div className="lg:col-span-7 bg-[#141220] border border-[#2f2d45] rounded-2xl p-5 shadow-xl">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <h3 className="text-sm font-bold text-[#f4efe6]">
                   เลือกมนตร์ต้นแบบ หรือวางโค้ดของคุณเอง
                 </h3>
-                <span className="text-xs text-slate-400">JavaScript / Pure Logic</span>
+                <span className="text-xs text-[#9a93ad]">JavaScript / Pure Logic</span>
               </div>
 
               {/* Presets List */}
@@ -540,25 +542,26 @@ export function DungeonRunScreen({
                 {CODE_SPELL_PRESETS.map((preset) => (
                   <button
                     key={preset.id}
+                    type="button"
                     onClick={() => handleSelectPreset(preset.id)}
-                    className={`p-3 rounded-xl text-left border transition text-xs flex flex-col justify-between h-24 ${
+                    className={`p-3 rounded-xl text-left border transition text-xs flex flex-col justify-between h-24 cursor-pointer ${
                       selectedPresetId === preset.id
-                        ? "bg-indigo-600/20 border-indigo-500 text-white shadow-md shadow-indigo-500/10"
-                        : "bg-slate-800/60 border-slate-700/80 hover:bg-slate-800 text-slate-300"
+                        ? "bg-[#5a2d91]/35 border-[#9b5de5] text-[#f4efe6] shadow-md"
+                        : "bg-[#1c1b2b] border-[#2f2d45] hover:border-[#3d395a] hover:bg-[#252238] text-[#c4bdd6]"
                     }`}
                   >
                     <div>
-                      <div className="font-bold truncate">{preset.name}</div>
-                      <div className="text-[10px] text-slate-400 mt-1 truncate">
+                      <div className="font-bold truncate text-[#f4efe6]">{preset.name}</div>
+                      <div className="text-[10px] text-[#9a93ad] mt-1 truncate">
                         {preset.category}
                       </div>
                     </div>
                     <div className="flex items-center justify-between mt-2">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900/60 text-slate-300">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded border border-[#2f2d45] bg-[#141220] text-[#c4bdd6]">
                         {preset.difficulty}
                       </span>
                       {selectedPresetId === preset.id && (
-                        <span className="text-[10px] text-indigo-400 font-bold">เลือกอยู่</span>
+                        <span className="text-[10px] text-[#f6c945] font-bold">เลือกอยู่</span>
                       )}
                     </div>
                   </button>
@@ -567,7 +570,7 @@ export function DungeonRunScreen({
 
               {/* Code Editor Area */}
               <div className="relative">
-                <div className="flex items-center justify-between bg-slate-950 px-4 py-2 rounded-t-xl border border-b-0 border-slate-800 text-xs text-slate-400 font-mono">
+                <div className="flex items-center justify-between bg-[#120f1c] px-4 py-2 rounded-t-xl border border-b-0 border-[#2f2d45] text-xs text-[#9a93ad] font-mono">
                   <span>code_seed.js</span>
                   <span>{customCode.split("\n").length} lines</span>
                 </div>
@@ -579,7 +582,7 @@ export function DungeonRunScreen({
                     setSpellTitle("มนตร์แต่งเอง (Custom Spell)");
                   }}
                   rows={9}
-                  className="w-full bg-slate-950/90 border border-slate-800 rounded-b-xl p-4 font-mono text-xs text-emerald-400 leading-relaxed focus:outline-none focus:border-indigo-500 transition resize-none"
+                  className="w-full bg-[#120f1c] border border-[#2f2d45] rounded-b-xl p-4 font-mono text-xs text-[#86efac] leading-relaxed focus:outline-none focus:border-[#f6c945] transition resize-none"
                   placeholder="วางโค้ด JavaScript ที่นี่..."
                 />
               </div>
@@ -587,51 +590,51 @@ export function DungeonRunScreen({
 
             {/* Right: Instant AST & Knowledge Insights */}
             <div className="lg:col-span-5 flex flex-col gap-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
-                <h3 className="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <div className="bg-[#141220] border border-[#2f2d45] rounded-2xl p-5 shadow-xl">
+                <h3 className="text-sm font-bold text-[#f4efe6] mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#2fbf71] animate-ping" />
                   การวิเคราะห์โครงสร้างมนตร์อัตโนมัติ (AST Inspection)
                 </h3>
 
                 <div className="space-y-3 text-xs">
-                  <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800/80">
-                    <span className="text-slate-400 block mb-1">ตัวแปรที่ตรวจพบ:</span>
+                  <div className="bg-[#1c1b2b] p-3 rounded-xl border border-[#2f2d45]">
+                    <span className="text-[#9a93ad] block mb-1">ตัวแปรที่ตรวจพบ:</span>
                     <div className="flex flex-wrap gap-1.5">
                       {codeAnalysis.variableNames.length > 0 ? (
                         codeAnalysis.variableNames.map((v) => (
                           <span
                             key={v}
-                            className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded font-mono"
+                            className="bg-[#5a2d91]/30 text-[#ffe27a] border border-[#9b5de5]/40 px-2 py-0.5 rounded font-mono"
                           >
                             {v}
                           </span>
                         ))
                       ) : (
-                        <span className="text-slate-500 italic">ไม่พบตัวแปร</span>
+                        <span className="text-[#9a93ad] italic">ไม่พบตัวแปร</span>
                       )}
                     </div>
                   </div>
 
-                  <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800/80">
-                    <span className="text-slate-400 block mb-1">แกนความคิดหลัก (Core Concepts):</span>
+                  <div className="bg-[#1c1b2b] p-3 rounded-xl border border-[#2f2d45]">
+                    <span className="text-[#9a93ad] block mb-1">แกนความคิดหลัก (Core Concepts):</span>
                     <div className="flex flex-wrap gap-1.5">
                       {codeAnalysis.hasLoop && (
-                        <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded">
+                        <span className="bg-[#281d08] text-[#ffe27a] border border-[#f6c945]/40 px-2 py-0.5 rounded">
                           ลูปและการวนซ้ำ
                         </span>
                       )}
                       {codeAnalysis.hasAccumulator && (
-                        <span className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded">
+                        <span className="bg-[#102a1e] text-[#86efac] border border-[#2fbf71]/40 px-2 py-0.5 rounded">
                           รูปแบบสะสมค่า (Accumulator)
                         </span>
                       )}
                       {codeAnalysis.hasIf && (
-                        <span className="bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded">
+                        <span className="bg-[#5a2d91]/30 text-[#c084fc] border border-[#9b5de5]/40 px-2 py-0.5 rounded">
                           เงื่อนไขและการแตกกิ่ง
                         </span>
                       )}
                       {codeAnalysis.hasArray && (
-                        <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded">
+                        <span className="bg-[#102a1e] text-[#86efac] border border-[#2fbf71]/40 px-2 py-0.5 rounded">
                           การเข้าถึงแอเรย์
                         </span>
                       )}
@@ -639,9 +642,9 @@ export function DungeonRunScreen({
                   </div>
 
                   {codeAnalysis.risks.length > 0 && (
-                    <div className="bg-rose-950/30 p-3 rounded-xl border border-rose-800/40 text-rose-300">
+                    <div className="bg-[#2d141c] p-3 rounded-xl border border-[#c0283a]/50 text-[#fca5a5]">
                       <span className="font-bold block mb-1">จุดเสี่ยงที่จะถูกทดสอบในดันเจี้ยน:</span>
-                      <ul className="list-disc list-inside space-y-1 text-[11px] text-rose-300/90">
+                      <ul className="list-disc list-inside space-y-1 text-[11px] text-[#fca5a5]/90">
                         {codeAnalysis.risks.map((r, i) => (
                           <li key={i}>{r}</li>
                         ))}
@@ -653,15 +656,16 @@ export function DungeonRunScreen({
 
               {/* Start Run Action Button */}
               <button
+                type="button"
                 onClick={handleStartRun}
                 disabled={!customCode.trim()}
                 className={`w-full py-4 rounded-2xl font-extrabold text-base shadow-xl transition transform ${
                   customCode.trim()
-                    ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white shadow-indigo-500/25 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
-                    : "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
+                    ? "bg-[#2fbf71] hover:bg-[#34d37d] text-[#0b0b14] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                    : "bg-[#1c1b2b] text-[#9a93ad] cursor-not-allowed border border-[#2f2d45]"
                 }`}
               >
-                เปิดประตูดันเจี้ยน CODE DEPTHS
+                เริ่มลุยดันเจี้ยนจากโค้ดของคุณ →
               </button>
             </div>
           </div>
@@ -673,21 +677,21 @@ export function DungeonRunScreen({
         <main className="flex-1 max-w-5xl mx-auto w-full p-4 md:p-8 flex flex-col">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <span className="text-xs font-bold uppercase text-indigo-400">
+              <span className="text-xs font-bold uppercase text-[#f6c945]">
                 Floor Map Navigation
               </span>
-              <h2 className="text-2xl font-black text-white mt-0.5">
+              <h2 className="text-2xl font-black text-[#f4efe6] mt-0.5">
                 เลือกเส้นทางเผชิญหน้าบนแผนที่ดันเจี้ยน
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                คลิกที่ห้องที่มีสถานะ &ldquo;พร้อมเข้าสู่ห้อง&rdquo; เพื่อเริ่มการท้าทาย
+              <p className="text-xs text-[#9a93ad] mt-1">
+                คลิกที่ห้องที่มีสถานะ &ldquo;เข้าได้&rdquo; เพื่อเริ่มการท้าทาย
               </p>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 px-4 py-2.5 rounded-xl flex items-center gap-4 text-xs">
+            <div className="bg-[#141220] border border-[#2f2d45] px-4 py-2.5 rounded-xl flex items-center gap-4 text-xs">
               <div>
-                <span className="text-slate-400 block text-[10px]">ความคืบหน้า</span>
-                <span className="font-bold text-emerald-400">
+                <span className="text-[#9a93ad] block text-[10px]">ความคืบหน้า</span>
+                <span className="font-bold text-[#2fbf71]">
                   {Math.min(
                     5,
                     new Set(
@@ -699,10 +703,10 @@ export function DungeonRunScreen({
                   / 5 ชั้น
                 </span>
               </div>
-              <div className="w-px h-6 bg-slate-800" />
+              <div className="w-px h-6 bg-[#2f2d45]" />
               <div>
-                <span className="text-slate-400 block text-[10px]">XP สะสมรอบนี้</span>
-                <span className="font-bold text-amber-400">
+                <span className="text-[#9a93ad] block text-[10px]">XP สะสมรอบนี้</span>
+                <span className="font-bold text-[#f6c945]">
                   {runState.answersLog.reduce((acc, a) => acc + a.xpEarned, 0)} XP
                 </span>
               </div>
@@ -710,9 +714,9 @@ export function DungeonRunScreen({
           </div>
 
           {/* 5-Floor Connected Visual Node Map */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl flex flex-col gap-8 relative overflow-hidden">
+          <div className="bg-[#141220] border border-[#2f2d45] rounded-2xl p-6 sm:p-8 shadow-2xl flex flex-col gap-8 relative overflow-hidden">
             {/* Background cyber grid pattern */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:2rem_2rem] pointer-events-none" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#2f2d4522_1px,transparent_1px),linear-gradient(to_bottom,#2f2d4522_1px,transparent_1px)] bg-[size:2rem_2rem] pointer-events-none" />
 
             {runState.mapFloors.map((floorRoomIds, floorIdx) => {
               const floorLabels = [
@@ -725,8 +729,8 @@ export function DungeonRunScreen({
 
               return (
                 <div key={floorIdx} className="relative z-10">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#9a93ad] mb-3 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#f6c945]" />
                     {floorLabels[floorIdx] || `ชั้นที่ ${floorIdx + 1}`}
                   </div>
 
@@ -740,26 +744,27 @@ export function DungeonRunScreen({
                       return (
                         <button
                           key={room.id}
+                          type="button"
                           disabled={!isAvailable}
                           onClick={() => handleEnterRoom(room.id)}
-                          className={`group relative flex items-center gap-3 p-4 rounded-xl border text-left transition-all duration-200 min-w-[240px] sm:min-w-[280px] max-w-sm ${
+                          className={`group relative flex items-center gap-3 p-4 rounded-xl border text-left transition-all duration-200 w-full sm:w-auto sm:min-w-[260px] max-w-sm ${
                             isCleared
-                              ? "bg-slate-900/60 border-emerald-500/40 opacity-75"
+                              ? "bg-[#102a1e]/60 border-[#2fbf71]/50 opacity-85"
                               : isAvailable
-                              ? "bg-gradient-to-r from-slate-900 to-indigo-950/60 border-indigo-500 shadow-lg shadow-indigo-500/20 hover:scale-[1.02] cursor-pointer"
+                              ? "bg-gradient-to-r from-[#1c1b2b] to-[#252238] border-[#9b5de5] shadow-lg hover:scale-[1.02] cursor-pointer"
                               : isCurrent
-                              ? "bg-indigo-950 border-indigo-400 ring-2 ring-indigo-500/50"
-                              : "bg-slate-950/40 border-slate-800/80 opacity-40 cursor-not-allowed"
+                              ? "bg-[#5a2d91]/30 border-[#f6c945] ring-2 ring-[#f6c945]/40"
+                              : "bg-[#120f1c] border-[#2f2d45] opacity-45 cursor-not-allowed"
                           }`}
                         >
                           {/* Room Type Icon Pill */}
                           <div
                             className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
                               isCleared
-                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                ? "bg-[#2fbf71]/20 text-[#2fbf71] border border-[#2fbf71]/40"
                                 : isAvailable
-                                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                                : "bg-slate-800 text-slate-500"
+                                ? "bg-[#9b5de5] text-[#f4efe6] shadow-md"
+                                : "bg-[#1c1b2b] text-[#9a93ad]"
                             }`}
                           >
                             {room.type === "combat" && <Icon name="sword" size={18} />}
@@ -772,22 +777,22 @@ export function DungeonRunScreen({
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-1">
-                              <span className="text-xs font-bold text-white truncate">
+                              <span className="text-xs font-bold text-[#f4efe6] truncate">
                                 {room.name}
                               </span>
                               {isCleared && (
-                                <span className="text-[10px] text-emerald-400 font-bold shrink-0 flex items-center gap-1">
+                                <span className="text-[10px] text-[#2fbf71] font-bold shrink-0 flex items-center gap-1">
                                   <Icon name="check" size={12} />
                                   <span>ผ่านแล้ว</span>
                                 </span>
                               )}
                               {isAvailable && (
-                                <span className="text-[10px] bg-indigo-500 text-white px-1.5 py-0.5 rounded font-bold shrink-0 animate-pulse">
+                                <span className="text-[10px] bg-[#9b5de5] text-[#f4efe6] px-1.5 py-0.5 rounded font-bold shrink-0 animate-pulse">
                                   เข้าได้
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                            <p className="text-[11px] text-[#9a93ad] truncate mt-0.5">
                               {room.monsterName}
                             </p>
                           </div>
@@ -806,21 +811,21 @@ export function DungeonRunScreen({
       {runState && runState.status === "encounter" && currentRoom && currentEncounter && (
         <main className="flex-1 max-w-7xl mx-auto w-full p-4 md:p-6 flex flex-col gap-5">
           {/* Room & Monster Header Banner */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-lg">
+          <div className="bg-[#141220] border border-[#2f2d45] rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-lg">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                <span className="text-xs font-bold text-[#f6c945] uppercase tracking-wider">
                   {currentRoom.name}
                 </span>
-                <span className="text-[10px] text-slate-400">·</span>
-                <span className="text-xs text-slate-300">
+                <span className="text-[10px] text-[#9a93ad]">·</span>
+                <span className="text-xs text-[#c4bdd6]">
                   เฟสที่ {runState.currentEncounterIndex + 1} จาก {currentRoom.encounters.length}
                 </span>
               </div>
-              <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
+              <h2 className="text-xl sm:text-2xl font-black text-[#f4efe6] mt-1">
                 {currentEncounter.monsterName}
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">{currentEncounter.subtitle}</p>
+              <p className="text-xs text-[#9a93ad] mt-0.5">{currentEncounter.subtitle}</p>
             </div>
 
             {/* Relic Focus Bar & Quick Action */}
@@ -830,6 +835,7 @@ export function DungeonRunScreen({
                 return (
                   <button
                     key={relic.id}
+                    type="button"
                     disabled={!canUse}
                     onClick={() => {
                       if (relic.id === "relic-rubber-duck") handleUseRubberDuck();
@@ -837,23 +843,23 @@ export function DungeonRunScreen({
                       if (relic.id === "relic-test-oracle") handleUseTestOracle();
                     }}
                     title={`${relic.name} (ใช้ ${relic.focusCost} Focus) — ${relic.description}`}
-                    className={`px-3 py-2 rounded-xl text-xs font-semibold border flex items-center gap-2 transition ${
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold border flex items-center gap-2 transition whitespace-nowrap ${
                       canUse
-                        ? "bg-slate-800 hover:bg-slate-700 border-slate-700 text-cyan-300 hover:border-cyan-500 shadow-sm cursor-pointer"
-                        : "bg-slate-950/60 border-slate-800/60 text-slate-600 cursor-not-allowed"
+                        ? "bg-[#1c1b2b] hover:bg-[#252238] border-[#3d395a] text-[#ffe27a] hover:border-[#f6c945] shadow-sm cursor-pointer"
+                        : "bg-[#120f1c] border-[#2f2d45] text-[#9a93ad]/50 cursor-not-allowed"
                     }`}
                   >
                     <span className="flex items-center gap-1.5">
                       {relic.id === "relic-rubber-duck" ? (
-                        <Icon name="bulb" size={14} className="text-amber-400" />
+                        <Icon name="bulb" size={14} className="text-[#f6c945]" />
                       ) : relic.id === "relic-trace-lens" ? (
-                        <Icon name="eye" size={14} className="text-cyan-400" />
+                        <Icon name="eye" size={14} className="text-[#9b5de5]" />
                       ) : (
-                        <Icon name="play" size={14} className="text-emerald-400" />
+                        <Icon name="play" size={14} className="text-[#2fbf71]" />
                       )}
                       <span>{relic.name}</span>
                     </span>
-                    <span className="text-[10px] bg-slate-900 px-1.5 py-0.5 rounded text-cyan-400 font-mono">
+                    <span className="text-[10px] bg-[#141220] border border-[#2f2d45] px-1.5 py-0.5 rounded text-[#c4bdd6] font-mono">
                       {relic.usesLeft} ครั้ง ({relic.focusCost} MP)
                     </span>
                   </button>
@@ -864,11 +870,12 @@ export function DungeonRunScreen({
 
           {/* Relic Notice Banner */}
           {relicNotice && (
-            <div className="bg-cyan-950/40 border border-cyan-800/60 text-cyan-300 text-xs px-4 py-2.5 rounded-xl flex items-center justify-between">
+            <div className="bg-[#252238] border border-[#9b5de5]/50 text-[#ffe27a] text-xs px-4 py-2.5 rounded-xl flex items-center justify-between">
               <span>{relicNotice}</span>
               <button
+                type="button"
                 onClick={() => setRelicNotice(null)}
-                className="text-cyan-400 hover:text-white font-bold ml-2 p-1"
+                className="text-[#f4efe6] hover:text-[#f6c945] font-bold ml-2 p-1 cursor-pointer"
                 title="ปิดการแจ้งเตือน"
               >
                 <Icon name="close" size={14} />
@@ -879,16 +886,16 @@ export function DungeonRunScreen({
           {/* Two-Column Arena: Code on Left, Challenge on Right */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 items-start">
             {/* Left: Code Snippet & Memory State */}
-            <div className="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col">
-              <div className="flex items-center justify-between text-xs text-slate-400 mb-3">
-                <span className="font-mono text-indigo-400 font-bold">คัมภีร์เวทมนตร์ (Code View)</span>
-                <span className="bg-slate-800 px-2 py-0.5 rounded text-[10px]">
+            <div className="lg:col-span-6 bg-[#141220] border border-[#2f2d45] rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#9a93ad] mb-3">
+                <span className="font-mono text-[#f6c945] font-bold">คัมภีร์เวทมนตร์ (Code View)</span>
+                <span className="bg-[#1c1b2b] border border-[#2f2d45] px-2 py-0.5 rounded text-[10px] text-[#c4bdd6]">
                   วัดผลช่อง Block Model: {currentEncounter.blockCell}
                 </span>
               </div>
 
               {/* Code Box */}
-              <div className="bg-slate-950 rounded-xl p-4 border border-slate-800/90 font-mono text-xs leading-relaxed overflow-x-auto text-slate-200">
+              <div className="bg-[#120f1c] rounded-xl p-4 border border-[#2f2d45] font-mono text-xs leading-relaxed overflow-x-auto text-[#f4efe6]">
                 <pre>
                   <code>
                     {currentEncounter.codeSnippet.split("\n").map((line, idx) => {
@@ -899,11 +906,11 @@ export function DungeonRunScreen({
                           key={idx}
                           className={`flex items-start gap-3 py-0.5 px-2 rounded ${
                             isActive
-                              ? "bg-indigo-600/30 text-indigo-200 border-l-2 border-indigo-400 font-bold"
-                              : "hover:bg-slate-900/60"
+                              ? "bg-[#5a2d91]/40 text-[#ffe27a] border-l-2 border-[#f6c945] font-bold"
+                              : "hover:bg-[#1c1b2b]"
                           }`}
                         >
-                          <span className="text-slate-600 select-none w-5 text-right shrink-0">
+                          <span className="text-[#9a93ad]/60 select-none w-5 text-right shrink-0">
                             {lineNum}
                           </span>
                           <span className="flex-1">{line}</span>
@@ -916,9 +923,9 @@ export function DungeonRunScreen({
 
               {/* Trace Lens Exposed Variable State */}
               {(revealedTrace || currentEncounter.variableTrace) && (
-                <div className="mt-4 bg-cyan-950/20 border border-cyan-800/40 rounded-xl p-3.5">
-                  <span className="text-xs font-bold text-cyan-300 flex items-center gap-1.5 mb-2">
-                    <Icon name="eye" size={14} className="text-cyan-400" />
+                <div className="mt-4 bg-[#1c1b2b] border border-[#9b5de5]/40 rounded-xl p-3.5">
+                  <span className="text-xs font-bold text-[#c084fc] flex items-center gap-1.5 mb-2">
+                    <Icon name="eye" size={14} className="text-[#9b5de5]" />
                     <span>ค่าตัวแปรใน RAM (Variable State Inspection)</span>
                   </span>
                   <div className="grid grid-cols-2 gap-2 text-xs font-mono">
@@ -931,10 +938,10 @@ export function DungeonRunScreen({
                     ).map(([k, v]) => (
                       <div
                         key={k}
-                        className="bg-slate-950/80 p-2 rounded border border-cyan-900/40 flex justify-between"
+                        className="bg-[#120f1c] p-2 rounded border border-[#2f2d45] flex justify-between"
                       >
-                        <span className="text-slate-400">{k}:</span>
-                        <span className="text-cyan-300 font-bold">{v}</span>
+                        <span className="text-[#9a93ad]">{k}:</span>
+                        <span className="text-[#ffe27a] font-bold">{v}</span>
                       </div>
                     ))}
                   </div>
@@ -943,9 +950,9 @@ export function DungeonRunScreen({
 
               {/* Hint Callout */}
               {revealedHint && (
-                <div className="mt-4 bg-amber-950/30 border border-amber-800/40 rounded-xl p-3.5 text-xs text-amber-300">
-                  <span className="font-bold flex items-center gap-1.5 mb-1">
-                    <Icon name="bulb" size={14} className="text-amber-400" />
+                <div className="mt-4 bg-[#281d08] border border-[#f6c945]/40 rounded-xl p-3.5 text-xs text-[#ffe27a]">
+                  <span className="font-bold flex items-center gap-1.5 mb-1 text-[#f6c945]">
+                    <Icon name="bulb" size={14} className="text-[#f6c945]" />
                     <span>คำใบ้จากสารวัตรเป็ด:</span>
                   </span>
                   <p>{currentEncounter.hint}</p>
@@ -954,12 +961,12 @@ export function DungeonRunScreen({
 
               {/* Test Oracle Simulation Output */}
               {revealedSimulation && currentEncounter.testSimulation && (
-                <div className="mt-4 bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-3.5 text-xs text-emerald-300">
-                  <span className="font-bold flex items-center gap-1.5 mb-1 text-emerald-400">
-                    <Icon name="play" size={14} className="text-emerald-400" />
+                <div className="mt-4 bg-[#102a1e] border border-[#2fbf71]/40 rounded-xl p-3.5 text-xs text-[#86efac]">
+                  <span className="font-bold flex items-center gap-1.5 mb-1 text-[#2fbf71]">
+                    <Icon name="play" size={14} className="text-[#2fbf71]" />
                     <span>ผลึกทดสอบเวท (Sandbox Simulation Result):</span>
                   </span>
-                  <p className="font-mono bg-slate-950/80 p-2 rounded border border-emerald-900/50 text-emerald-200">
+                  <p className="font-mono bg-[#120f1c] p-2 rounded border border-[#2f2d45] text-[#86efac]">
                     {currentEncounter.testSimulation}
                   </p>
                 </div>
@@ -967,17 +974,17 @@ export function DungeonRunScreen({
             </div>
 
             {/* Right: Challenge Prompt & Options */}
-            <div className="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col justify-between">
+            <div className="lg:col-span-6 bg-[#141220] border border-[#2f2d45] rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col justify-between">
               <div>
-                <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 mb-2">
-                  <span className="px-2 py-0.5 rounded bg-slate-800 text-indigo-300">
+                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#9a93ad] mb-2">
+                  <span className="px-2 py-0.5 rounded border border-[#3d395a] bg-[#1c1b2b] text-[#c084fc]">
                     ภารกิจ: {currentEncounter.title}
                   </span>
                   <span>·</span>
-                  <span className="text-amber-400">รางวัล: +{currentEncounter.xpReward} XP</span>
+                  <span className="text-[#f6c945]">รางวัล: +{currentEncounter.xpReward} XP</span>
                 </div>
 
-                <h3 className="text-base sm:text-lg font-bold text-white mb-4 leading-snug">
+                <h3 className="text-base sm:text-lg font-bold text-[#f4efe6] mb-4 leading-snug">
                   {currentEncounter.prompt}
                 </h3>
 
@@ -989,29 +996,30 @@ export function DungeonRunScreen({
                     const isAttemptedWrong = attemptedWrongOptionIds.includes(opt.id);
 
                     let optionStyle =
-                      "bg-slate-950/70 border-slate-800 hover:bg-slate-800/70 text-slate-200 cursor-pointer";
+                      "bg-[#1c1b2b] border-[#2f2d45] hover:border-[#9b5de5] hover:bg-[#252238] text-[#f4efe6] cursor-pointer";
 
                     if (isSelected && !encounterSolved) {
-                      optionStyle = "bg-indigo-950/80 border-indigo-500 text-white ring-1 ring-indigo-500 cursor-pointer";
+                      optionStyle = "bg-[#5a2d91]/35 border-[#9b5de5] text-[#ffe27a] ring-1 ring-[#9b5de5] cursor-pointer";
                     }
 
                     if (encounterSolved) {
                       if (opt.isCorrect) {
                         optionStyle =
-                          "bg-emerald-950/80 border-emerald-500 text-emerald-200 font-semibold";
+                          "bg-[#102a1e] border-[#2fbf71] text-[#86efac] font-semibold";
                       } else {
-                        optionStyle = "bg-slate-950/40 border-slate-800/40 opacity-40 cursor-not-allowed";
+                        optionStyle = "bg-[#120f1c] border-[#2f2d45] opacity-40 cursor-not-allowed";
                       }
                     } else if (isAttemptedWrong) {
-                      optionStyle = "bg-rose-950/60 border-rose-800 text-rose-300 opacity-60 line-through cursor-not-allowed";
+                      optionStyle = "bg-[#2d141c] border-[#c0283a]/60 text-[#fca5a5] opacity-70 line-through cursor-not-allowed";
                     } else if (isEliminated) {
                       optionStyle =
-                        "bg-slate-950/40 border-slate-900 text-slate-600 line-through opacity-50 cursor-not-allowed";
+                        "bg-[#120f1c] border-[#2f2d45] text-[#9a93ad] line-through opacity-50 cursor-not-allowed";
                     }
 
                     return (
                       <button
                         key={opt.id}
+                        type="button"
                         disabled={encounterSolved || isEliminated || isAttemptedWrong}
                         onClick={() => setSelectedOptionId(opt.id)}
                         className={`w-full p-3.5 rounded-xl border text-left text-xs transition leading-relaxed flex items-start gap-3 ${optionStyle}`}
@@ -1019,10 +1027,10 @@ export function DungeonRunScreen({
                         <div
                           className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 text-[10px] mt-0.5 ${
                             isSelected
-                              ? "border-indigo-400 bg-indigo-600 text-white"
+                              ? "border-[#9b5de5] bg-[#9b5de5] text-[#f4efe6]"
                               : isAttemptedWrong
-                              ? "border-rose-500 bg-rose-900 text-rose-300"
-                              : "border-slate-700 text-slate-500"
+                              ? "border-[#c0283a] bg-[#2d141c] text-[#fca5a5]"
+                              : "border-[#3d395a] text-[#9a93ad]"
                           }`}
                         >
                           {opt.id.replace("opt-", "")}
@@ -1030,7 +1038,7 @@ export function DungeonRunScreen({
                         <div className="flex-1">
                           <span>{opt.label}</span>
                           {isAttemptedWrong && !encounterSolved && (
-                            <span className="block text-[11px] text-rose-400 mt-1 font-sans">
+                            <span className="block text-[11px] text-[#fca5a5] mt-1 font-sans">
                               (เลือกผิดแล้ว: {opt.feedback})
                             </span>
                           )}
@@ -1042,24 +1050,24 @@ export function DungeonRunScreen({
               </div>
 
               {/* Bottom Result & Action Button */}
-              <div className="mt-6 pt-4 border-t border-slate-800">
+              <div className="mt-6 pt-4 border-t border-[#2f2d45]">
                 {lastAnswerFeedback && (
                   <div
                     className={`p-4 rounded-xl border text-xs leading-relaxed mb-4 ${
                       lastAnswerFeedback.isCorrect
-                        ? "bg-emerald-950/40 border-emerald-800/60 text-emerald-200"
-                        : "bg-rose-950/40 border-rose-800/60 text-rose-200"
+                        ? "bg-[#102a1e] border-[#2fbf71]/60 text-[#86efac]"
+                        : "bg-[#2d141c] border-[#c0283a]/60 text-[#fca5a5]"
                     }`}
                   >
                     <div className="font-bold text-sm mb-1 flex items-center gap-2">
                       {lastAnswerFeedback.isCorrect ? (
                         <>
-                          <Icon name="check" size={16} className="text-emerald-400" />
+                          <Icon name="check" size={16} className="text-[#2fbf71]" />
                           <span>โจมตีสำเร็จ! การคำนวณถูกต้อง (Critical Hit)</span>
                         </>
                       ) : (
                         <>
-                          <Icon name="alert" size={16} className="text-rose-400" />
+                          <Icon name="alert" size={16} className="text-[#ff6b81]" />
                           <span>โดนโจมตีสวนกลับ! คำนวณผิดพลาด (-{lastAnswerFeedback.damageTaken}% Integrity)</span>
                         </>
                       )}
@@ -1070,15 +1078,17 @@ export function DungeonRunScreen({
 
                 {runState.integrity <= 0 ? (
                   <button
+                    type="button"
                     onClick={handleProceedAfterAnswer}
-                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold text-sm shadow-lg transition cursor-pointer"
+                    className="w-full py-3.5 rounded-xl bg-[#c0283a] hover:bg-[#dc3548] text-white font-bold text-sm shadow-lg transition cursor-pointer"
                   >
                     ดูผลการท้าทาย (Integrity หมดลง) -&gt;
                   </button>
                 ) : encounterSolved ? (
                   <button
+                    type="button"
                     onClick={handleProceedAfterAnswer}
-                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-lg transition cursor-pointer"
+                    className="w-full py-3.5 rounded-xl bg-[#2fbf71] hover:bg-[#34d37d] text-[#0b0b14] font-extrabold text-sm shadow-lg transition cursor-pointer"
                   >
                     {runState.currentEncounterIndex + 1 < currentRoom.encounters.length
                       ? "เข้าสู่เฟสถัดไป ->"
@@ -1088,12 +1098,13 @@ export function DungeonRunScreen({
                   </button>
                 ) : (
                   <button
+                    type="button"
                     disabled={!selectedOptionId}
                     onClick={handleSubmitAnswer}
                     className={`w-full py-3.5 rounded-xl font-bold text-sm shadow-lg transition ${
                       selectedOptionId
-                        ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white cursor-pointer"
-                        : "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
+                        ? "bg-[#9b5de5] hover:bg-[#b07af0] text-[#f4efe6] cursor-pointer"
+                        : "bg-[#1c1b2b] text-[#9a93ad] cursor-not-allowed border border-[#2f2d45]"
                     }`}
                   >
                     ร่ายมนตร์ / ส่งคำตอบ
@@ -1108,35 +1119,35 @@ export function DungeonRunScreen({
       {/* VIEW 4: VICTORY & DEFEAT SCREENS */}
       {runState && (runState.status === "victory" || runState.status === "defeated") && (
         <main className="flex-1 max-w-4xl mx-auto w-full p-4 md:p-8 flex flex-col justify-center">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl text-center">
+          <div className="bg-[#141220] border border-[#2f2d45] rounded-3xl p-6 sm:p-10 shadow-2xl text-center">
             {runState.status === "victory" ? (
               <>
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600 mx-auto flex items-center justify-center text-slate-950 shadow-xl shadow-amber-500/20 mb-4 animate-bounce">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#f6c945] to-[#b8860b] mx-auto flex items-center justify-center text-[#0b0b14] shadow-xl mb-4 animate-bounce">
                   <Icon name="trophy" size={36} />
                 </div>
-                <span className="text-xs font-bold uppercase tracking-widest text-amber-400">
+                <span className="text-xs font-bold uppercase tracking-widest text-[#f6c945]">
                   Dungeon Cleared
                 </span>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-white mt-1 mb-2">
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-[#f4efe6] mt-1 mb-2">
                   คุณพิชิตเดอะ คอร์ สำเร็จ!
                 </h2>
-                <p className="text-sm text-slate-400 max-w-xl mx-auto mb-6">
+                <p className="text-sm text-[#9a93ad] max-w-xl mx-auto mb-6">
                   คุณได้พิสูจน์แล้วว่าคุณไม่ได้แค่รันโค้ดตาม AI แต่เข้าใจโครงสร้าง การทำงาน
                   การจัดการกรณีขอบเขต และสามารถซ่อมแซมโค้ดได้จริง
                 </p>
               </>
             ) : (
               <>
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-rose-600 to-red-800 mx-auto flex items-center justify-center text-white shadow-xl shadow-rose-500/20 mb-4">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#c0283a] to-[#7f1d1d] mx-auto flex items-center justify-center text-white shadow-xl mb-4">
                   <Icon name="alert" size={36} />
                 </div>
-                <span className="text-xs font-bold uppercase tracking-widest text-rose-400">
+                <span className="text-xs font-bold uppercase tracking-widest text-[#ff6b81]">
                   Program Integrity Depleted
                 </span>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-white mt-1 mb-2">
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-[#f4efe6] mt-1 mb-2">
                   มนตร์เกิดข้อผิดพลาดรุนแรง
                 </h2>
-                <p className="text-sm text-slate-400 max-w-xl mx-auto mb-6">
+                <p className="text-sm text-[#9a93ad] max-w-xl mx-auto mb-6">
                   ความสมบูรณ์ของโปรแกรมหมดลงก่อนถึงแกนกลาง แต่การพ่ายแพ้ทำให้เห็นจุดที่ยังเข้าใจคลาดเคลื่อน
                   สามารถทบทวนแนวคิดและกลับมาท้าทายใหม่ได้ทันที
                 </p>
@@ -1145,21 +1156,21 @@ export function DungeonRunScreen({
 
             {/* Assessment Evidence vs Game Score Breakdown */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8 text-left">
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
-                <span className="text-xs text-slate-400 block mb-1">XP ที่ได้รับรอบนี้</span>
-                <span className="text-2xl font-black text-amber-400 font-mono">
+              <div className="bg-[#1c1b2b] p-4 rounded-2xl border border-[#2f2d45]">
+                <span className="text-xs text-[#9a93ad] block mb-1">XP ที่ได้รับรอบนี้</span>
+                <span className="text-2xl font-black text-[#f6c945] font-mono">
                   +{runState.answersLog.reduce((acc, a) => acc + a.xpEarned, 0)} XP
                 </span>
               </div>
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
-                <span className="text-xs text-slate-400 block mb-1">Program Integrity คงเหลือ</span>
-                <span className="text-2xl font-black text-emerald-400 font-mono">
+              <div className="bg-[#1c1b2b] p-4 rounded-2xl border border-[#2f2d45]">
+                <span className="text-xs text-[#9a93ad] block mb-1">Program Integrity คงเหลือ</span>
+                <span className="text-2xl font-black text-[#2fbf71] font-mono">
                   {runState.integrity}%
                 </span>
               </div>
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800">
-                <span className="text-xs text-slate-400 block mb-1">อัตราตอบถูกรอบแรก</span>
-                <span className="text-2xl font-black text-indigo-400 font-mono">
+              <div className="bg-[#1c1b2b] p-4 rounded-2xl border border-[#2f2d45]">
+                <span className="text-xs text-[#9a93ad] block mb-1">อัตราตอบถูกรอบแรก</span>
+                <span className="text-2xl font-black text-[#c084fc] font-mono">
                   {Math.round(
                     (runState.answersLog.filter((a) => a.isCorrect).length /
                       Math.max(1, runState.answersLog.length)) *
@@ -1171,8 +1182,8 @@ export function DungeonRunScreen({
             </div>
 
             {/* 4 Pillars Mastery Summary */}
-            <div className="bg-slate-950/70 rounded-2xl p-5 border border-slate-800/80 mb-8 text-left">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
+            <div className="bg-[#1c1b2b] rounded-2xl p-5 border border-[#2f2d45] mb-8 text-left">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#c4bdd6] mb-3">
                 หลักฐานความเข้าใจ 4 มิติ (Learning Mastery Evidence)
               </h4>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
@@ -1181,11 +1192,11 @@ export function DungeonRunScreen({
                   const correct = relevant.filter((a) => a.isCorrect).length;
                   const percent = relevant.length > 0 ? Math.round((correct / relevant.length) * 100) : 100;
                   return (
-                    <div key={pillar} className="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                      <span className="text-slate-400 capitalize block mb-1">{pillar}</span>
+                    <div key={pillar} className="bg-[#141220] p-3 rounded-xl border border-[#2f2d45]">
+                      <span className="text-[#9a93ad] capitalize block mb-1">{pillar}</span>
                       <div className="flex items-baseline justify-between">
-                        <span className="font-bold text-white text-base font-mono">{percent}%</span>
-                        <span className="text-[10px] text-slate-500">
+                        <span className="font-bold text-[#f4efe6] text-base font-mono">{percent}%</span>
+                        <span className="text-[10px] text-[#9a93ad]">
                           {correct}/{relevant.length} ข้อ
                         </span>
                       </div>
@@ -1198,22 +1209,25 @@ export function DungeonRunScreen({
             {/* Action Buttons */}
             <div className="flex flex-wrap items-center justify-center gap-3">
               <button
+                type="button"
                 onClick={handleStartRun}
-                className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg transition"
+                className="px-6 py-3 rounded-xl bg-[#2fbf71] hover:bg-[#34d37d] text-[#0b0b14] font-extrabold text-sm shadow-lg transition cursor-pointer whitespace-nowrap"
               >
                 เล่นรอบใหม่ด้วยมนตร์นี้อีกครั้ง
               </button>
               <button
+                type="button"
                 onClick={() => setRunState(null)}
-                className="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm border border-slate-700 transition"
+                className="px-6 py-3 rounded-xl bg-[#1c1b2b] hover:bg-[#252238] hover:border-[#f6c945] text-[#f4efe6] font-semibold text-sm border border-[#3d395a] transition cursor-pointer whitespace-nowrap"
               >
                 เลือกหรือนำเข้ามนตร์บทอื่น
               </button>
               <button
+                type="button"
                 onClick={onBackToPortal}
-                className="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm border border-slate-700 transition"
+                className="px-6 py-3 rounded-xl bg-[#1c1b2b] hover:bg-[#252238] hover:border-[#f6c945] text-[#c4bdd6] font-semibold text-sm border border-[#3d395a] transition cursor-pointer whitespace-nowrap"
               >
-                กลับหน้าหลัก
+                {embedded ? "กลับแผนที่ดันเจี้ยน" : "กลับหน้าหลัก"}
               </button>
             </div>
           </div>

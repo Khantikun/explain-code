@@ -274,7 +274,7 @@ export default function TeacherLMSDashboardPage() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-[#faf8f4] p-8 text-center text-sm text-[#6e6a63]">
+      <div className="min-h-screen bg-[#0d0b14] p-8 text-center text-sm text-[#9a93ad]">
         กำลังโหลดแดชบอร์ดครู...
       </div>
     );
@@ -580,21 +580,21 @@ export default function TeacherLMSDashboardPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#faf8f4] text-[#1e1e1c]">
+    <div className="min-h-screen bg-[#0d0b14] text-[#f4efe6]">
       <SiteHeader />
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         {/* Top Header */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f0ec] px-3 py-1 text-xs font-bold text-[#2a4d3e]">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#3d395a] bg-[#1c1b2b] px-3 py-1 text-xs font-bold text-[#f6c945]">
               <Icon name="users" className="h-3.5 w-3.5" />
               ระบบจัดการคอร์สและบทเรียนสำหรับครูผู้สอน
             </span>
-            <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#1e1e1c]">
+            <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#f4efe6]">
               แดชบอร์ดครูผู้สอน ({session.displayName || session.username})
             </h1>
-            <p className="mt-1 text-sm text-[#524f49]">
+            <p className="mt-1 text-sm text-[#9a93ad]">
               สร้างคอร์ส เพิ่มบทเรียนแบบ Markdown พร้อมโค้ดตัวอย่างและแบบทดสอบ รวมถึงติดตามความคืบหน้าของนักเรียนรายคน
             </p>
           </div>
@@ -610,7 +610,7 @@ export default function TeacherLMSDashboardPage() {
                   is_published: true,
                 })
               }
-              className="inline-flex items-center gap-2 rounded-xl bg-[#2a4d3e] px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-[#1f3b2f] cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#2fbf71] px-4 py-2.5 text-xs font-extrabold text-[#0b0b14] shadow-md hover:bg-[#34d37d] transition-colors cursor-pointer whitespace-nowrap"
             >
               <span>+ สร้างคอร์สเรียนใหม่</span>
             </button>
@@ -619,34 +619,34 @@ export default function TeacherLMSDashboardPage() {
 
         {/* Teacher Approval Banner if Pending */}
         {!isApproved && (
-          <div className="mb-6 rounded-2xl border border-[#fde68a] bg-[#fffbeb] p-6">
-            <h2 className="text-base font-bold text-[#92400e]">
+          <div className="mb-6 rounded-2xl border border-[#f6c945]/40 bg-[#281d08] p-6 shadow-lg">
+            <h2 className="text-base font-bold text-[#f6c945]">
               ⏳ บัญชีครูของคุณอยู่ในสถานะรออนุมัติ (teacher_status: pending)
             </h2>
-            <p className="mt-1 text-xs text-[#78350f]">
+            <p className="mt-1 text-xs text-[#ffe27a]">
               เพื่อป้องกันการสร้างเนื้อหาโดยไม่ได้รับอนุญาต กรุณากรอกรหัสเชิญครูจากโรงเรียนเพื่ออนุมัติบัญชีทันที (รหัสทดสอบคือ{" "}
-              <code className="font-mono font-bold">TEACHER2026</code>)
+              <code className="font-mono font-bold text-[#f6c945]">TEACHER2026</code>)
             </p>
             <form
               onSubmit={handleVerifyInviteCode}
-              className="mt-3 flex max-w-md gap-2"
+              className="mt-3 flex flex-wrap max-w-md gap-2"
             >
               <input
                 type="text"
                 value={inviteCodeInput}
                 onChange={(e) => setInviteCodeInput(e.target.value)}
                 placeholder="กรอกรหัสเชิญครู เช่น TEACHER2026"
-                className="flex-1 rounded-xl border border-[#d8d1c5] bg-white px-3.5 py-2 text-xs font-mono"
+                className="flex-1 min-w-[200px] rounded-xl border border-[#3d395a] bg-[#141220] px-3.5 py-2 text-xs font-mono text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
               />
               <button
                 type="submit"
-                className="rounded-xl bg-[#2a4d3e] px-4 py-2 text-xs font-bold text-white cursor-pointer"
+                className="rounded-xl bg-[#f6c945] px-4 py-2 text-xs font-extrabold text-[#0b0b14] hover:bg-[#ffe27a] transition-colors cursor-pointer whitespace-nowrap"
               >
                 ยืนยันรหัสเชิญ
               </button>
             </form>
             {approvalMsg && (
-              <p className="mt-2 text-xs font-bold text-[#92400e]">
+              <p className="mt-2 text-xs font-bold text-[#ffe27a]">
                 {approvalMsg}
               </p>
             )}
@@ -657,12 +657,12 @@ export default function TeacherLMSDashboardPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* Left Column: Teacher's Courses */}
           <div className="lg:col-span-4 space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-[#524f49]">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[#9a93ad]">
               คอร์สของฉัน ({myCourses.length})
             </h2>
 
             {myCourses.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#d8d1c5] bg-white p-6 text-center text-xs text-[#6e6a63]">
+              <div className="rounded-2xl border border-dashed border-[#3d395a] bg-[#141220] p-6 text-center text-xs text-[#9a93ad]">
                 คุณยังไม่มีคอร์สเรียน กดปุ่ม &ldquo;+ สร้างคอร์สเรียนใหม่&rdquo; ด้านบนเพื่อเริ่มต้น
               </div>
             ) : (
@@ -678,58 +678,58 @@ export default function TeacherLMSDashboardPage() {
                     onClick={() => setSelectedCourseId(course.id)}
                     className={`cursor-pointer rounded-2xl border p-4 transition-all ${
                       isSelected
-                        ? "border-[#2a4d3e] bg-white shadow-xs"
-                        : "border-[#e5dfd3] bg-white/80 hover:bg-white"
+                        ? "border-[#f6c945] bg-[#1c1b2b] shadow-lg"
+                        : "border-[#2f2d45] bg-[#141220] hover:border-[#3d395a] hover:bg-[#1c1b2b]"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <span
-                        className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                        className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${
                           course.is_published
-                            ? "bg-[#dcfce7] text-[#166534]"
-                            : "bg-[#f3f4f6] text-[#4b5563]"
+                            ? "border-[#2fbf71]/40 bg-[#102a1e] text-[#86efac]"
+                            : "border-[#3d395a] bg-[#252238] text-[#9a93ad]"
                         }`}
                       >
                         {course.is_published ? "เผยแพร่แล้ว" : "ฉบับร่าง (ซ่อน)"}
                       </span>
-                      <span className="font-mono text-[11px] font-bold text-[#524f49]">
+                      <span className="font-mono text-[11px] font-bold text-[#f6c945]">
                         รหัส: {course.join_code}
                       </span>
                     </div>
 
-                    <h3 className="text-sm font-bold text-[#1e1e1c]">
+                    <h3 className="text-sm font-bold text-[#f4efe6]">
                       {course.title}
                     </h3>
-                    <p className="mt-1 line-clamp-2 text-xs text-[#6e6a63]">
+                    <p className="mt-1 line-clamp-2 text-xs text-[#9a93ad]">
                       {course.description}
                     </p>
 
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#ece7dc] pt-2.5 text-[11px]">
-                      <span className="font-semibold text-[#524f49]">
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#2f2d45] pt-2.5 text-[11px]">
+                      <span className="font-semibold text-[#c4bdd6]">
                         {lessonCount} บทเรียน
                       </span>
                       <div
-                        className="flex items-center gap-1.5"
+                        className="flex flex-wrap items-center gap-1.5"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
                           type="button"
                           onClick={() => handleTogglePublishCourse(course)}
-                          className="rounded-lg border border-[#d8d1c5] bg-[#faf8f4] px-2 py-1 font-semibold text-[#1e1e1c] hover:bg-[#f2efe8] cursor-pointer"
+                          className="rounded-lg border border-[#3d395a] bg-[#141220] px-2 py-1 font-semibold text-[#f4efe6] hover:border-[#f6c945] hover:bg-[#252238] transition-colors cursor-pointer whitespace-nowrap"
                         >
                           {course.is_published ? "ยกเลิกเผยแพร่" : "เผยแพร่"}
                         </button>
                         <button
                           type="button"
                           onClick={() => setEditingCourse(course)}
-                          className="rounded-lg border border-[#d8d1c5] bg-[#faf8f4] px-2 py-1 font-semibold text-[#2a4d3e] hover:bg-[#f2efe8] cursor-pointer"
+                          className="rounded-lg border border-[#2fbf71]/40 bg-[#102a1e] px-2 py-1 font-semibold text-[#86efac] hover:bg-[#1a3d2d] transition-colors cursor-pointer whitespace-nowrap"
                         >
                           แก้ไข
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteCourse(course.id)}
-                          className="rounded-lg border border-[#fecaca] bg-[#fef2f2] px-2 py-1 font-semibold text-[#991b1b] hover:bg-[#fee2e2] cursor-pointer"
+                          className="rounded-lg border border-[#c0283a]/50 bg-[#2d141c] px-2 py-1 font-semibold text-[#fca5a5] hover:bg-[#3d1a24] transition-colors cursor-pointer whitespace-nowrap"
                         >
                           ลบ
                         </button>
@@ -744,21 +744,21 @@ export default function TeacherLMSDashboardPage() {
           {/* Right Column: Selected Course Lessons & Enrolled Students */}
           <div className="lg:col-span-8">
             {selectedCourse ? (
-              <div className="rounded-2xl border border-[#e5dfd3] bg-white p-6 shadow-xs">
-                <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#ece7dc] pb-4">
+              <div className="rounded-2xl border border-[#2f2d45] bg-[#141220] p-6 shadow-lg">
+                <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#2f2d45] pb-4">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-md bg-[#e8f0ec] px-2.5 py-0.5 font-mono text-xs font-bold text-[#2a4d3e]">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-md border border-[#3d395a] bg-[#1c1b2b] px-2.5 py-0.5 font-mono text-xs font-bold text-[#f6c945]">
                         รหัสเข้าคอร์ส: {selectedCourse.join_code}
                       </span>
                       <Link
                         href={`/courses/${selectedCourse.id}`}
-                        className="text-xs font-bold text-[#2a4d3e] underline"
+                        className="text-xs font-bold text-[#2fbf71] underline hover:text-[#34d37d]"
                       >
                         ดูหน้าคอร์สฝั่งนักเรียน ↗
                       </Link>
                     </div>
-                    <h2 className="mt-2 text-xl font-bold text-[#1e1e1c]">
+                    <h2 className="mt-2 text-xl font-bold text-[#f4efe6]">
                       {selectedCourse.title}
                     </h2>
                   </div>
@@ -767,7 +767,7 @@ export default function TeacherLMSDashboardPage() {
                     <button
                       type="button"
                       onClick={openNewLessonModal}
-                      className="rounded-xl bg-[#2a4d3e] px-4 py-2 text-xs font-bold text-white hover:bg-[#1f3b2f] cursor-pointer"
+                      className="rounded-xl bg-[#2fbf71] px-4 py-2 text-xs font-extrabold text-[#0b0b14] hover:bg-[#34d37d] transition-colors cursor-pointer whitespace-nowrap"
                     >
                       + เพิ่มบทเรียนใหม่
                     </button>
@@ -775,14 +775,14 @@ export default function TeacherLMSDashboardPage() {
                 </div>
 
                 {/* Sub-tabs: บทเรียนในคอร์ส | นักเรียนและความคืบหน้า */}
-                <div className="mt-4 mb-5 flex gap-2 border-b border-[#ece7dc]">
+                <div className="mt-4 mb-5 flex flex-wrap gap-2 border-b border-[#2f2d45]">
                   <button
                     type="button"
                     onClick={() => setActiveTab("lessons")}
-                    className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+                    className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
                       activeTab === "lessons"
-                        ? "border-[#2a4d3e] text-[#2a4d3e]"
-                        : "border-transparent text-[#6e6a63]"
+                        ? "border-[#2fbf71] text-[#2fbf71]"
+                        : "border-transparent text-[#9a93ad] hover:text-[#f4efe6]"
                     }`}
                   >
                     จัดการบทเรียน ({selectedCourseLessons.length})
@@ -790,10 +790,10 @@ export default function TeacherLMSDashboardPage() {
                   <button
                     type="button"
                     onClick={() => setActiveTab("students")}
-                    className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+                    className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
                       activeTab === "students"
-                        ? "border-[#2a4d3e] text-[#2a4d3e]"
-                        : "border-transparent text-[#6e6a63]"
+                        ? "border-[#2fbf71] text-[#2fbf71]"
+                        : "border-transparent text-[#9a93ad] hover:text-[#f4efe6]"
                     }`}
                   >
                     นักเรียนในคอร์ส ({courseStudentIds.length})
@@ -801,10 +801,10 @@ export default function TeacherLMSDashboardPage() {
                   <button
                     type="button"
                     onClick={() => setActiveTab("dungeon")}
-                    className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+                    className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                       activeTab === "dungeon"
-                        ? "border-[#9b5de5] text-[#5a2d91]"
-                        : "border-transparent text-[#6e6a63]"
+                        ? "border-[#9b5de5] text-[#ffe27a]"
+                        : "border-transparent text-[#9a93ad] hover:text-[#f4efe6]"
                     }`}
                   >
                     <span>ดันเจี้ยน &amp; มอนสเตอร์</span>
@@ -814,35 +814,35 @@ export default function TeacherLMSDashboardPage() {
                 {activeTab === "lessons" ? (
                   <div className="space-y-3">
                     {selectedCourseLessons.length === 0 ? (
-                      <p className="py-8 text-center text-xs text-[#6e6a63]">
+                      <p className="py-8 text-center text-xs text-[#9a93ad]">
                         ยังไม่มีบทเรียนในคอร์สนี้ กดปุ่ม &ldquo;+ เพิ่มบทเรียนใหม่&rdquo; เพื่อเพิ่มเนื้อหา
                       </p>
                     ) : (
                       selectedCourseLessons.map((lesson, idx) => (
                         <div
                           key={lesson.id}
-                          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#e5dfd3] bg-[#faf8f4] p-4"
+                          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#2f2d45] bg-[#1c1b2b] p-4"
                         >
                           <div>
-                            <span className="text-[11px] font-bold text-[#2a4d3e]">
+                            <span className="text-[11px] font-bold text-[#f6c945]">
                               ลำดับที่ {idx + 1} • ภาษา{" "}
                               {lesson.programming_language.toUpperCase()}
                             </span>
-                            <h3 className="text-sm font-bold text-[#1e1e1c]">
+                            <h3 className="text-sm font-bold text-[#f4efe6]">
                               {lesson.title}
                             </h3>
-                            <p className="text-[11px] text-[#6e6a63]">
+                            <p className="text-[11px] text-[#9a93ad]">
                               แบบทดสอบท้ายบท:{" "}
                               {lesson.quiz_questions?.length || 0} ข้อ
                             </p>
                           </div>
 
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             <button
                               type="button"
                               onClick={() => handleMoveLesson(lesson.id, "up")}
                               disabled={idx === 0}
-                              className="rounded-lg border border-[#d8d1c5] bg-white px-2.5 py-1 text-xs font-bold disabled:opacity-40 cursor-pointer"
+                              className="rounded-lg border border-[#3d395a] bg-[#141220] px-2.5 py-1 text-xs font-bold text-[#f4efe6] hover:border-[#f6c945] disabled:opacity-40 cursor-pointer"
                               title="เลื่อนขึ้น"
                             >
                               ↑
@@ -855,7 +855,7 @@ export default function TeacherLMSDashboardPage() {
                               disabled={
                                 idx === selectedCourseLessons.length - 1
                               }
-                              className="rounded-lg border border-[#d8d1c5] bg-white px-2.5 py-1 text-xs font-bold disabled:opacity-40 cursor-pointer"
+                              className="rounded-lg border border-[#3d395a] bg-[#141220] px-2.5 py-1 text-xs font-bold text-[#f4efe6] hover:border-[#f6c945] disabled:opacity-40 cursor-pointer"
                               title="เลื่อนลง"
                             >
                               ↓
@@ -863,14 +863,14 @@ export default function TeacherLMSDashboardPage() {
                             <button
                               type="button"
                               onClick={() => setEditingLesson(lesson)}
-                              className="rounded-lg border border-[#d8d1c5] bg-white px-3 py-1 text-xs font-bold text-[#2a4d3e] hover:bg-[#f2efe8] cursor-pointer"
+                              className="rounded-lg border border-[#2fbf71]/40 bg-[#102a1e] px-3 py-1 text-xs font-bold text-[#86efac] hover:bg-[#1a3d2d] cursor-pointer whitespace-nowrap"
                             >
                               แก้ไข
                             </button>
                             <button
                               type="button"
                               onClick={() => handleDeleteLesson(lesson.id)}
-                              className="rounded-lg border border-[#fecaca] bg-[#fef2f2] px-3 py-1 text-xs font-bold text-[#991b1b] hover:bg-[#fee2e2] cursor-pointer"
+                              className="rounded-lg border border-[#c0283a]/50 bg-[#2d141c] px-3 py-1 text-xs font-bold text-[#fca5a5] hover:bg-[#3d1a24] cursor-pointer whitespace-nowrap"
                             >
                               ลบ
                             </button>
@@ -879,13 +879,13 @@ export default function TeacherLMSDashboardPage() {
                       ))
                     )}
                   </div>
-                ) : (
+                ) : activeTab === "students" ? (
                   /* รายชื่อนักเรียนและความคืบหน้าในคอร์ส */
                   <div className="space-y-3">
                     {courseStudentIds.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-[#d8d1c5] p-8 text-center text-xs text-[#6e6a63]">
+                      <div className="rounded-xl border border-dashed border-[#3d395a] bg-[#1c1b2b] p-8 text-center text-xs text-[#9a93ad]">
                         ยังไม่มีนักเรียนลงทะเบียนในคอร์สนี้ (แจกรหัสคอร์ส{" "}
-                        <strong className="font-mono text-[#1e1e1c]">
+                        <strong className="font-mono text-[#f6c945]">
                           {selectedCourse.join_code}
                         </strong>{" "}
                         ให้นักเรียนกรอกในหน้าคอร์สเรียนได้เลย)
@@ -910,18 +910,18 @@ export default function TeacherLMSDashboardPage() {
                         return (
                           <div
                             key={stuId}
-                            className="rounded-xl border border-[#e5dfd3] bg-[#faf8f4] p-4"
+                            className="rounded-xl border border-[#2f2d45] bg-[#1c1b2b] p-4"
                           >
                             <div className="flex items-center justify-between text-xs font-bold mb-2">
-                              <span>รหัสนักเรียน: {stuId}</span>
-                              <span className="text-[#2a4d3e]">
+                              <span className="text-[#f4efe6]">รหัสนักเรียน: {stuId}</span>
+                              <span className="text-[#2fbf71]">
                                 เรียนจบ {doneCount}/
                                 {selectedCourseLessons.length} บทเรียน ({pct}%)
                               </span>
                             </div>
-                            <div className="h-2 w-full overflow-hidden rounded-full bg-[#e5dfd3]">
+                            <div className="h-2 w-full overflow-hidden rounded-full border border-[#2f2d45] bg-[#141220]">
                               <div
-                                className="h-full rounded-full bg-[#2a4d3e]"
+                                className="h-full rounded-full bg-[#2fbf71]"
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
@@ -930,7 +930,7 @@ export default function TeacherLMSDashboardPage() {
                       })
                     )}
                   </div>
-                )}
+                ) : null}
 
                 {/* Sub-tab 3: ดันเจี้ยน & มอนสเตอร์ */}
                 {activeTab === "dungeon" && (
@@ -956,14 +956,14 @@ export default function TeacherLMSDashboardPage() {
                           <button
                             type="button"
                             onClick={() => handleOpenDungeonModal(undefined, undefined, false)}
-                            className="rounded-xl bg-[#2fbf71] px-3.5 py-2 text-xs font-black text-[#0b0b14] hover:bg-[#34d37d] cursor-pointer"
+                            className="rounded-xl bg-[#2fbf71] px-3.5 py-2 text-xs font-black text-[#0b0b14] hover:bg-[#34d37d] cursor-pointer whitespace-nowrap"
                           >
                             + เพิ่มคำถามดันเจี้ยน
                           </button>
                           <Link
                             href={`/dungeon/${selectedCourse.id}`}
                             target="_blank"
-                            className="rounded-xl border border-[#9b5de5] bg-[#252238] px-3.5 py-2 text-xs font-bold text-[#ffe27a] hover:bg-[#322c4a]"
+                            className="rounded-xl border border-[#9b5de5] bg-[#252238] px-3.5 py-2 text-xs font-bold text-[#ffe27a] hover:bg-[#322c4a] whitespace-nowrap"
                           >
                             ทดลองเล่นดันเจี้ยน ↗
                           </Link>
@@ -978,12 +978,12 @@ export default function TeacherLMSDashboardPage() {
 
                     {/* Floor by Floor Configuration */}
                     <div className="space-y-4">
-                      <h4 className="text-xs font-bold text-[#3d3b36] uppercase tracking-wider">
+                      <h4 className="text-xs font-bold text-[#c4bdd6] uppercase tracking-wider">
                         โครงสร้างชั้นดันเจี้ยนและมอนสเตอร์ประจำบทเรียน ({selectedCourseLessons.length} ชั้น)
                       </h4>
 
                       {selectedCourseLessons.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-[#d8d1c5] bg-[#faf8f4] p-8 text-center text-xs text-[#6e6a63]">
+                        <div className="rounded-xl border border-dashed border-[#3d395a] bg-[#1c1b2b] p-8 text-center text-xs text-[#9a93ad]">
                           ยังไม่มีบทเรียนในคอร์สนี้ กรุณาเพิ่มบทเรียนในแท็บ &ldquo;จัดการบทเรียน&rdquo; ก่อนกำหนดคำถามดันเจี้ยน
                         </div>
                       ) : (
@@ -1004,14 +1004,14 @@ export default function TeacherLMSDashboardPage() {
                               key={lesson.id}
                               className={`rounded-2xl border p-4 sm:p-5 transition-all ${
                                 isBossFloor
-                                  ? "border-[#9b5de5] bg-[#faf5ff]"
-                                  : "border-[#e5dfd3] bg-[#faf8f4]"
+                                  ? "border-[#9b5de5] bg-[#252238]"
+                                  : "border-[#2f2d45] bg-[#1c1b2b]"
                               }`}
                             >
                               <div className="flex flex-wrap items-start justify-between gap-4">
                                 <div className="flex items-start gap-3.5">
                                   {/* Monster Sprite Box */}
-                                  <div className="p-2 rounded-xl bg-[#1c1b2b] border-2 border-[#4a4766] flex items-center justify-center shrink-0">
+                                  <div className="p-2 rounded-xl bg-[#120f1c] border-2 border-[#4a4766] flex items-center justify-center shrink-0">
                                     <PixelSpriteView sprite={monsterDef.sprite} size={40} />
                                   </div>
 
@@ -1021,29 +1021,29 @@ export default function TeacherLMSDashboardPage() {
                                         className={`rounded-md px-2 py-0.5 text-[10px] font-black uppercase ${
                                           isBossFloor
                                             ? "bg-[#5a2d91] text-[#ffe27a]"
-                                            : "bg-[#2a4d3e] text-white"
+                                            : "bg-[#2fbf71] text-[#0b0b14]"
                                         }`}
                                       >
                                         {isBossFloor ? "บอสใหญ่ชั้นสุดท้าย" : `ชั้นที่ ${idx + 1}`}
                                       </span>
-                                      <span className="text-xs font-bold text-[#1e1e1c]">
+                                      <span className="text-xs font-bold text-[#f4efe6]">
                                         {lesson.title}
                                       </span>
                                     </div>
 
-                                    <div className="flex items-center gap-2 text-xs text-[#524f49]">
-                                      <span>มอนสเตอร์: <strong>{monsterDef.name}</strong></span>
+                                    <div className="flex items-center gap-2 text-xs text-[#9a93ad]">
+                                      <span>มอนสเตอร์: <strong className="text-[#f6c945]">{monsterDef.name}</strong></span>
                                       <span>·</span>
-                                      <span className="text-[#c0283a] font-bold">HP {monsterDef.maxHp}</span>
+                                      <span className="text-[#ff6b81] font-bold">HP {monsterDef.maxHp}</span>
                                     </div>
                                   </div>
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                   <button
                                     type="button"
                                     onClick={() => handleOpenDungeonModal(attachedQ, lesson.id, isBossFloor)}
-                                    className="rounded-xl border border-[#2a4d3e] bg-white px-3.5 py-1.5 text-xs font-bold text-[#2a4d3e] hover:bg-[#e8f0ec] cursor-pointer"
+                                    className="rounded-xl border border-[#2fbf71]/50 bg-[#102a1e] px-3.5 py-1.5 text-xs font-bold text-[#86efac] hover:bg-[#1a3d2d] cursor-pointer whitespace-nowrap"
                                   >
                                     {attachedQ ? "แก้ไขคำถาม" : "+ กำหนดคำถาม"}
                                   </button>
@@ -1051,7 +1051,7 @@ export default function TeacherLMSDashboardPage() {
                                     <button
                                       type="button"
                                       onClick={() => handleDeleteDungeonQuestion(attachedQ.id)}
-                                      className="rounded-xl border border-[#c0283a] bg-white px-3 py-1.5 text-xs font-bold text-[#c0283a] hover:bg-[#fef2f2] cursor-pointer"
+                                      className="rounded-xl border border-[#c0283a]/50 bg-[#2d141c] px-3 py-1.5 text-xs font-bold text-[#fca5a5] hover:bg-[#3d1a24] cursor-pointer whitespace-nowrap"
                                     >
                                       ลบ
                                     </button>
@@ -1061,13 +1061,13 @@ export default function TeacherLMSDashboardPage() {
 
                               {/* Question preview & Error Analytics */}
                               {attachedQ ? (
-                                <div className="mt-4 pt-3.5 border-t border-[#ece7dc] space-y-2">
-                                  <div className="text-xs text-[#1e1e1c]">
-                                    <strong>คำถาม:</strong> {attachedQ.question}
+                                <div className="mt-4 pt-3.5 border-t border-[#2f2d45] space-y-2">
+                                  <div className="text-xs text-[#f4efe6]">
+                                    <strong className="text-[#f6c945]">คำถาม:</strong> {attachedQ.question}
                                   </div>
 
                                   {attachedQ.code_snippet && (
-                                    <pre className="p-2.5 rounded-lg bg-[#1c1b2b] text-[#ffe27a] font-mono text-[11px] overflow-x-auto">
+                                    <pre className="p-2.5 rounded-lg border border-[#2f2d45] bg-[#120f1c] text-[#ffe27a] font-mono text-[11px] overflow-x-auto">
                                       <code>{attachedQ.code_snippet}</code>
                                     </pre>
                                   )}
@@ -1079,8 +1079,8 @@ export default function TeacherLMSDashboardPage() {
                                           key={cIdx}
                                           className={`px-2.5 py-1 rounded-md border ${
                                             cIdx === attachedQ.correct_index
-                                              ? "bg-[#e8f0ec] border-[#2a4d3e] text-[#2a4d3e] font-bold"
-                                              : "bg-white border-[#e5dfd3] text-[#524f49]"
+                                              ? "bg-[#102a1e] border-[#2fbf71]/60 text-[#86efac] font-bold"
+                                              : "bg-[#141220] border-[#2f2d45] text-[#c4bdd6]"
                                           }`}
                                         >
                                           {cIdx + 1}. {c} {cIdx === attachedQ.correct_index && "✓ (เฉลย)"}
@@ -1090,7 +1090,7 @@ export default function TeacherLMSDashboardPage() {
 
                                   {/* Error Analytics Display */}
                                   <div className="flex flex-wrap items-center justify-between gap-2 pt-2 text-[11px]">
-                                    <span className="text-[#6e6a63]">
+                                    <span className="text-[#9a93ad]">
                                       คำอธิบาย: {attachedQ.explanation}
                                     </span>
 
@@ -1098,8 +1098,8 @@ export default function TeacherLMSDashboardPage() {
                                       <div
                                         className={`px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 ${
                                           stat.wrongPercent >= 50
-                                            ? "bg-[#fef2f2] text-[#991b1b] border border-[#fecaca]"
-                                            : "bg-[#e8f0ec] text-[#2a4d3e]"
+                                            ? "bg-[#2d141c] text-[#fca5a5] border border-[#c0283a]/50"
+                                            : "bg-[#102a1e] text-[#86efac] border border-[#2fbf71]/40"
                                         }`}
                                       >
                                         <span>สถิติ: ตอบแล้ว {stat.totalAttempts} ครั้ง</span>
@@ -1116,7 +1116,7 @@ export default function TeacherLMSDashboardPage() {
                                   </div>
                                 </div>
                               ) : (
-                                <p className="mt-3 pt-3 border-t border-[#ece7dc] text-xs text-[#9a93ad] italic">
+                                <p className="mt-3 pt-3 border-t border-[#2f2d45] text-xs text-[#9a93ad] italic">
                                   ยังไม่ได้กำหนดคำถามเฉพาะสำหรับชั้นนี้ (ระบบจะใช้คำถามมาตรฐานของคอร์ส)
                                 </p>
                               )}
@@ -1129,7 +1129,7 @@ export default function TeacherLMSDashboardPage() {
                 )}
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-[#d8d1c5] bg-white p-10 text-center text-xs text-[#6e6a63]">
+              <div className="rounded-2xl border border-dashed border-[#3d395a] bg-[#141220] p-10 text-center text-xs text-[#9a93ad]">
                 เลือกคอร์สทางด้านซ้าย หรือสร้างคอร์สใหม่เพื่อเริ่มจัดการเนื้อหาบทเรียน
               </div>
             )}
@@ -1138,17 +1138,17 @@ export default function TeacherLMSDashboardPage() {
 
         {/* Modal สร้าง/แก้ไขคอร์ส */}
         {editingCourse && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs">
             <form
               onSubmit={handleSaveCourse}
-              className="w-full max-w-lg rounded-2xl border border-[#e5dfd3] bg-white p-6 shadow-lg space-y-4"
+              className="w-full max-w-lg rounded-2xl border border-[#3d395a] bg-[#141220] p-6 text-[#f4efe6] shadow-2xl space-y-4"
             >
-              <h3 className="text-lg font-bold text-[#1e1e1c]">
+              <h3 className="text-lg font-bold text-[#f4efe6]">
                 {editingCourse.id ? "แก้ไขคอร์สเรียน" : "สร้างคอร์สเรียนใหม่"}
               </h3>
 
               <div>
-                <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                <label className="block text-xs font-bold text-[#c4bdd6] mb-1">
                   ชื่อคอร์สเรียน
                 </label>
                 <input
@@ -1159,12 +1159,12 @@ export default function TeacherLMSDashboardPage() {
                     setEditingCourse({ ...editingCourse, title: e.target.value })
                   }
                   placeholder="เช่น พื้นฐาน Python สำหรับการวิเคราะห์ข้อมูล"
-                  className="w-full rounded-xl border border-[#d8d1c5] px-3.5 py-2 text-xs"
+                  className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2 text-xs text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                <label className="block text-xs font-bold text-[#c4bdd6] mb-1">
                   คำอธิบายคอร์ส
                 </label>
                 <textarea
@@ -1177,13 +1177,13 @@ export default function TeacherLMSDashboardPage() {
                     })
                   }
                   placeholder="อธิบายสิ่งที่นักเรียนจะได้เรียนรู้ในคอร์สนี้..."
-                  className="w-full rounded-xl border border-[#d8d1c5] px-3.5 py-2 text-xs"
+                  className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2 text-xs text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                  <label className="block text-xs font-bold text-[#c4bdd6] mb-1">
                     ระดับความยาก
                   </label>
                   <select
@@ -1194,7 +1194,7 @@ export default function TeacherLMSDashboardPage() {
                         level: e.target.value,
                       })
                     }
-                    className="w-full rounded-xl border border-[#d8d1c5] px-3 py-2 text-xs"
+                    className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3 py-2 text-xs text-[#f4efe6] focus:border-[#f6c945] focus:outline-hidden"
                   >
                     <option value="beginner">เริ่มต้น (Beginner)</option>
                     <option value="intermediate">กลาง (Intermediate)</option>
@@ -1203,7 +1203,7 @@ export default function TeacherLMSDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                  <label className="block text-xs font-bold text-[#c4bdd6] mb-1">
                     รหัสเข้าร่วมคอร์ส (Join Code)
                   </label>
                   <input
@@ -1216,12 +1216,12 @@ export default function TeacherLMSDashboardPage() {
                       })
                     }
                     placeholder="สุ่มอัตโนมัติหากเว้นว่าง"
-                    className="w-full rounded-xl border border-[#d8d1c5] px-3 py-2 font-mono text-xs uppercase"
+                    className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3 py-2 font-mono text-xs uppercase text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
                   />
                 </div>
               </div>
 
-              <label className="flex items-center gap-2 text-xs font-bold text-[#1e1e1c]">
+              <label className="flex items-center gap-2 text-xs font-bold text-[#f4efe6] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={Boolean(editingCourse.is_published)}
@@ -1231,21 +1231,22 @@ export default function TeacherLMSDashboardPage() {
                       is_published: e.target.checked,
                     })
                   }
+                  className="accent-[#2fbf71] h-4 w-4"
                 />
                 <span>เผยแพร่คอร์สนี้ให้นักเรียนเห็นทันที</span>
               </label>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-[#ece7dc]">
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#2f2d45]">
                 <button
                   type="button"
                   onClick={() => setEditingCourse(null)}
-                  className="rounded-xl border border-[#d8d1c5] px-4 py-2 text-xs font-bold text-[#524f49] cursor-pointer"
+                  className="rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-4 py-2 text-xs font-bold text-[#f4efe6] hover:bg-[#252238] cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-[#2a4d3e] px-5 py-2 text-xs font-bold text-white cursor-pointer"
+                  className="rounded-xl bg-[#2fbf71] px-5 py-2 text-xs font-extrabold text-[#0b0b14] hover:bg-[#34d37d] cursor-pointer"
                 >
                   บันทึกคอร์ส
                 </button>
@@ -1256,18 +1257,18 @@ export default function TeacherLMSDashboardPage() {
 
         {/* Modal สร้าง/แก้ไขบทเรียน */}
         {editingLesson && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 overflow-y-auto backdrop-blur-xs">
             <form
               onSubmit={handleSaveLesson}
-              className="my-8 w-full max-w-2xl rounded-2xl border border-[#e5dfd3] bg-white p-6 shadow-lg space-y-4 max-h-[90vh] overflow-y-auto"
+              className="my-8 w-full max-w-2xl rounded-2xl border border-[#3d395a] bg-[#141220] p-6 text-[#f4efe6] shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
             >
-              <h3 className="text-lg font-bold text-[#1e1e1c]">
+              <h3 className="text-lg font-bold text-[#f4efe6]">
                 {editingLesson.id ? "แก้ไขบทเรียน" : "เพิ่มบทเรียนใหม่"}
               </h3>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                  <label className="block text-xs font-bold text-[#c4bdd6] mb-1">
                     ชื่อบทเรียน
                   </label>
                   <input
@@ -1281,12 +1282,12 @@ export default function TeacherLMSDashboardPage() {
                       })
                     }
                     placeholder="เช่น บทที่ 1: การทำงานของฟังก์ชัน"
-                    className="w-full rounded-xl border border-[#d8d1c5] px-3.5 py-2 text-xs"
+                    className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2 text-xs text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                  <label className="block text-xs font-bold text-[#c4bdd6] mb-1">
                     ภาษาโปรแกรม
                   </label>
                   <select
@@ -1297,7 +1298,7 @@ export default function TeacherLMSDashboardPage() {
                         programming_language: e.target.value,
                       })
                     }
-                    className="w-full rounded-xl border border-[#d8d1c5] px-3 py-2 text-xs"
+                    className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3 py-2 text-xs text-[#f4efe6] focus:border-[#f6c945] focus:outline-hidden"
                   >
                     <option value="javascript">JavaScript</option>
                     <option value="typescript">TypeScript</option>
@@ -1309,7 +1310,7 @@ export default function TeacherLMSDashboardPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                <label className="block text-xs font-bold text-[#c4bdd6] mb-1">
                   เนื้อหาบทเรียน (Markdown)
                 </label>
                 <textarea
@@ -1322,12 +1323,12 @@ export default function TeacherLMSDashboardPage() {
                     })
                   }
                   placeholder="เขียนเนื้อหาอธิบายบทเรียนที่นี่..."
-                  className="w-full rounded-xl border border-[#d8d1c5] px-3.5 py-2 text-xs"
+                  className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2 text-xs text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                <label className="block text-xs font-bold text-[#c4bdd6] mb-1">
                   ตัวอย่างโค้ดประกอบบทเรียน
                 </label>
                 <textarea
@@ -1340,13 +1341,13 @@ export default function TeacherLMSDashboardPage() {
                     })
                   }
                   placeholder="วางตัวอย่างโค้ดให้นักเรียนทดลองรัน..."
-                  className="w-full rounded-xl border border-[#d8d1c5] bg-[#1e1e1c] p-3 font-mono text-xs text-[#f8f8f2]"
+                  className="w-full rounded-xl border border-[#3d395a] bg-[#120f1c] p-3 font-mono text-xs text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
                 />
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                  <label className="block text-xs font-bold text-[#c4bdd6] mb-1">
                     ลิงก์ภายนอก (External URL - ถ้ามี)
                   </label>
                   <input
@@ -1359,11 +1360,11 @@ export default function TeacherLMSDashboardPage() {
                       })
                     }
                     placeholder="https://..."
-                    className="w-full rounded-xl border border-[#d8d1c5] px-3 py-2 text-xs"
+                    className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3 py-2 text-xs text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                  <label className="block text-xs font-bold text-[#c4bdd6] mb-1">
                     ลิงก์วิดีโอ (Video URL - ถ้ามี)
                   </label>
                   <input
@@ -1376,14 +1377,14 @@ export default function TeacherLMSDashboardPage() {
                       })
                     }
                     placeholder="https://youtube.com/..."
-                    className="w-full rounded-xl border border-[#d8d1c5] px-3 py-2 text-xs"
+                    className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3 py-2 text-xs text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
                   />
                 </div>
               </div>
 
               {/* Quiz Builder */}
-              <div className="rounded-xl border border-[#e5dfd3] bg-[#faf8f4] p-4 space-y-3">
-                <h4 className="text-xs font-bold text-[#1e1e1c]">
+              <div className="rounded-xl border border-[#2f2d45] bg-[#1c1b2b] p-4 space-y-3">
+                <h4 className="text-xs font-bold text-[#f6c945]">
                   คำถามแบบทดสอบท้ายบทเรียน (
                   {editingLesson.quiz_questions?.length || 0} ข้อ)
                 </h4>
@@ -1391,7 +1392,7 @@ export default function TeacherLMSDashboardPage() {
                 {(editingLesson.quiz_questions || []).map((q, idx) => (
                   <div
                     key={q.id || idx}
-                    className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-xs border border-[#ece7dc]"
+                    className="flex items-center justify-between rounded-lg border border-[#2f2d45] bg-[#141220] px-3 py-2 text-xs text-[#f4efe6]"
                   >
                     <span>
                       {idx + 1}. {q.question} (ตัวเลือก: {q.options.join(" / ")})
@@ -1406,20 +1407,20 @@ export default function TeacherLMSDashboardPage() {
                           ).filter((_, i) => i !== idx),
                         })
                       }
-                      className="text-[#991b1b] font-bold ml-2 cursor-pointer"
+                      className="text-[#fca5a5] hover:text-[#ff6b81] font-bold ml-2 cursor-pointer shrink-0"
                     >
                       ลบ
                     </button>
                   </div>
                 ))}
 
-                <div className="space-y-2 pt-2 border-t border-[#ece7dc]">
+                <div className="space-y-2 pt-2 border-t border-[#2f2d45]">
                   <input
                     type="text"
                     value={quizQuestionText}
                     onChange={(e) => setQuizQuestionText(e.target.value)}
                     placeholder="ตั้งโจทย์คำถามท้ายบท..."
-                    className="w-full rounded-lg border border-[#d8d1c5] bg-white px-3 py-1.5 text-xs"
+                    className="w-full rounded-lg border border-[#3d395a] bg-[#141220] px-3 py-1.5 text-xs text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
                   />
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <input
@@ -1427,7 +1428,7 @@ export default function TeacherLMSDashboardPage() {
                       value={quizOptionsText}
                       onChange={(e) => setQuizOptionsText(e.target.value)}
                       placeholder="ตัวเลือกคั่นด้วยลูกน้ำ เช่น 10, 20, 30"
-                      className="sm:col-span-2 rounded-lg border border-[#d8d1c5] bg-white px-3 py-1.5 text-xs"
+                      className="sm:col-span-2 rounded-lg border border-[#3d395a] bg-[#141220] px-3 py-1.5 text-xs text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
                     />
                     <input
                       type="number"
@@ -1438,30 +1439,30 @@ export default function TeacherLMSDashboardPage() {
                         setQuizCorrectIdx(Number(e.target.value))
                       }
                       placeholder="ลำดับข้อถูก (เริ่มที่ 0)"
-                      className="rounded-lg border border-[#d8d1c5] bg-white px-3 py-1.5 text-xs"
+                      className="rounded-lg border border-[#3d395a] bg-[#141220] px-3 py-1.5 text-xs text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
                     />
                   </div>
                   <button
                     type="button"
                     onClick={handleAddQuizItem}
-                    className="rounded-lg bg-[#e8f0ec] px-3 py-1.5 text-xs font-bold text-[#2a4d3e] cursor-pointer"
+                    className="rounded-lg border border-[#2fbf71]/50 bg-[#102a1e] px-3 py-1.5 text-xs font-bold text-[#86efac] hover:bg-[#1a3d2d] cursor-pointer"
                   >
                     + เพิ่มคำถามเข้าบทเรียนนี้
                   </button>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-[#ece7dc]">
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#2f2d45]">
                 <button
                   type="button"
                   onClick={() => setEditingLesson(null)}
-                  className="rounded-xl border border-[#d8d1c5] px-4 py-2 text-xs font-bold text-[#524f49] cursor-pointer"
+                  className="rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-4 py-2 text-xs font-bold text-[#f4efe6] hover:bg-[#252238] cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-[#2a4d3e] px-5 py-2 text-xs font-bold text-white cursor-pointer"
+                  className="rounded-xl bg-[#2fbf71] px-5 py-2 text-xs font-extrabold text-[#0b0b14] hover:bg-[#34d37d] cursor-pointer"
                 >
                   บันทึกบทเรียน
                 </button>
@@ -1472,19 +1473,19 @@ export default function TeacherLMSDashboardPage() {
 
         {/* Modal เพิ่ม/แก้ไขคำถามดันเจี้ยนและมอนสเตอร์ */}
         {editingDungeonQuestion && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 overflow-y-auto backdrop-blur-xs">
             <form
               onSubmit={handleSaveDungeonQuestion}
-              className="w-full max-w-xl rounded-2xl border border-[#e5dfd3] bg-white p-6 shadow-xl space-y-4 my-8"
+              className="w-full max-w-xl rounded-2xl border border-[#3d395a] bg-[#141220] p-6 text-[#f4efe6] shadow-2xl space-y-4 my-8"
             >
-              <div className="flex items-center justify-between border-b border-[#ece7dc] pb-3">
-                <h3 className="text-base sm:text-lg font-bold text-[#1e1e1c] flex items-center gap-2">
+              <div className="flex items-center justify-between border-b border-[#2f2d45] pb-3">
+                <h3 className="text-base sm:text-lg font-bold text-[#f6c945] flex items-center gap-2">
                   <span>กำหนดคำถามและมอนสเตอร์ดันเจี้ยน</span>
                 </h3>
                 <button
                   type="button"
                   onClick={() => setEditingDungeonQuestion(null)}
-                  className="text-xs text-[#6e6a63] hover:text-[#1e1e1c] font-bold cursor-pointer"
+                  className="text-xs text-[#9a93ad] hover:text-[#f4efe6] font-bold cursor-pointer"
                 >
                   ✕ ปิด
                 </button>
@@ -1493,13 +1494,13 @@ export default function TeacherLMSDashboardPage() {
               {/* Target Lesson & Monster Selection */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                  <label className="block text-xs font-bold text-[#c4bdd6] mb-1">
                     บทเรียน / ชั้นที่ต้องการผูก
                   </label>
                   <select
                     value={dqFormLessonId}
                     onChange={(e) => setDqFormLessonId(e.target.value)}
-                    className="w-full rounded-xl border border-[#d8d1c5] px-3 py-2 text-xs bg-white"
+                    className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3 py-2 text-xs text-[#f4efe6] focus:border-[#f6c945] focus:outline-hidden"
                   >
                     <option value="">คำถามทั่วไปประจำคอร์ส</option>
                     {selectedCourseLessons.map((l, i) => (
@@ -1511,7 +1512,7 @@ export default function TeacherLMSDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                  <label className="block text-xs font-bold text-[#c4bdd6] mb-1">
                     มอนสเตอร์ประจำห้อง
                   </label>
                   <select
@@ -1519,7 +1520,7 @@ export default function TeacherLMSDashboardPage() {
                     onChange={(e) =>
                       setDqFormMonster(e.target.value as MonsterType)
                     }
-                    className="w-full rounded-xl border border-[#d8d1c5] px-3 py-2 text-xs bg-white"
+                    className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3 py-2 text-xs text-[#f4efe6] focus:border-[#f6c945] focus:outline-hidden"
                   >
                     <option value="slime">สไลม์โค้ด (HP 1 - พื้นฐาน)</option>
                     <option value="skeleton">
@@ -1537,7 +1538,7 @@ export default function TeacherLMSDashboardPage() {
 
               {/* Question Text */}
               <div>
-                <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                <label className="block text-xs font-bold text-[#c4bdd6] mb-1">
                   ข้อความคำถาม *
                 </label>
                 <textarea
@@ -1546,13 +1547,13 @@ export default function TeacherLMSDashboardPage() {
                   value={dqFormQuestion}
                   onChange={(e) => setDqFormQuestion(e.target.value)}
                   placeholder="เช่น โค้ดด้านล่างนี้ ค่าของตัวแปร x หลังจบลูปจะมีค่าเท่าใด?"
-                  className="w-full rounded-xl border border-[#d8d1c5] px-3.5 py-2 text-xs"
+                  className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2 text-xs text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
                 />
               </div>
 
               {/* Code Snippet */}
               <div>
-                <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                <label className="block text-xs font-bold text-[#c4bdd6] mb-1">
                   โค้ดโปรแกรมประกอบคำถาม (ถ้ามี)
                 </label>
                 <textarea
@@ -1560,13 +1561,13 @@ export default function TeacherLMSDashboardPage() {
                   value={dqFormCode}
                   onChange={(e) => setDqFormCode(e.target.value)}
                   placeholder={"let x = 0;\nfor (let i = 1; i <= 3; i++) {\n  x += i;\n}"}
-                  className="w-full rounded-xl border border-[#d8d1c5] bg-[#faf8f4] font-mono px-3.5 py-2 text-xs"
+                  className="w-full rounded-xl border border-[#3d395a] bg-[#120f1c] font-mono px-3.5 py-2 text-xs text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
                 />
               </div>
 
               {/* 4 Choices */}
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-[#3d3b36]">
+                <label className="block text-xs font-bold text-[#c4bdd6]">
                   ตัวเลือก 4 ตัวเลือก (ติ๊กวงกลมเพื่อระบุข้อที่ถูกต้อง) *
                 </label>
                 {dqFormChoices.map((choice, idx) => (
@@ -1576,12 +1577,12 @@ export default function TeacherLMSDashboardPage() {
                       name="correct_choice"
                       checked={dqFormCorrectIndex === idx}
                       onChange={() => setDqFormCorrectIndex(idx)}
-                      className="accent-[#2a4d3e] h-4 w-4"
+                      className="accent-[#2fbf71] h-4 w-4"
                       id={`choice-${idx}`}
                     />
                     <label
                       htmlFor={`choice-${idx}`}
-                      className="text-xs font-bold w-6 text-[#6e6a63]"
+                      className="text-xs font-bold w-6 text-[#9a93ad]"
                     >
                       #{idx + 1}
                     </label>
@@ -1595,7 +1596,7 @@ export default function TeacherLMSDashboardPage() {
                         setDqFormChoices(next);
                       }}
                       placeholder={`ตัวเลือกที่ ${idx + 1}`}
-                      className="flex-1 rounded-xl border border-[#d8d1c5] px-3 py-1.5 text-xs"
+                      className="flex-1 rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3 py-1.5 text-xs text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
                     />
                   </div>
                 ))}
@@ -1603,7 +1604,7 @@ export default function TeacherLMSDashboardPage() {
 
               {/* Explanation */}
               <div>
-                <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                <label className="block text-xs font-bold text-[#c4bdd6] mb-1">
                   คำอธิบายเฉลยตาม Block Model / PRIMM
                 </label>
                 <textarea
@@ -1611,13 +1612,13 @@ export default function TeacherLMSDashboardPage() {
                   value={dqFormExplanation}
                   onChange={(e) => setDqFormExplanation(e.target.value)}
                   placeholder="อธิบายเหตุผลว่าทำไมคำตอบนี้จึงถูกต้อง เพื่อให้นักเรียนเข้าใจเมื่อตอบคำถาม..."
-                  className="w-full rounded-xl border border-[#d8d1c5] px-3.5 py-2 text-xs"
+                  className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2 text-xs text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#3d3b36] mb-1">
+                  <label className="block text-xs font-bold text-[#c4bdd6] mb-1">
                     ระดับความยาก
                   </label>
                   <select
@@ -1625,7 +1626,7 @@ export default function TeacherLMSDashboardPage() {
                     onChange={(e) =>
                       setDqFormDifficulty(e.target.value as any)
                     }
-                    className="w-full rounded-xl border border-[#d8d1c5] px-3 py-2 text-xs bg-white"
+                    className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3 py-2 text-xs text-[#f4efe6] focus:border-[#f6c945] focus:outline-hidden"
                   >
                     <option value="easy">ง่าย (Easy) - 25 XP</option>
                     <option value="medium">ปานกลาง (Medium) - 40 XP</option>
@@ -1633,13 +1634,13 @@ export default function TeacherLMSDashboardPage() {
                   </select>
                 </div>
 
-                <div className="flex items-center pt-5">
-                  <label className="flex items-center gap-2 text-xs font-bold text-[#3d3b36] cursor-pointer">
+                <div className="flex items-center sm:pt-5">
+                  <label className="flex items-center gap-2 text-xs font-bold text-[#f4efe6] cursor-pointer">
                     <input
                       type="checkbox"
                       checked={dqFormIsBoss}
                       onChange={(e) => setDqFormIsBoss(e.target.checked)}
-                      className="accent-[#5a2d91] h-4 w-4"
+                      className="accent-[#9b5de5] h-4 w-4"
                     />
                     <span>กำหนดให้เป็นห้องบอสท้ายคอร์ส</span>
                   </label>
@@ -1647,17 +1648,17 @@ export default function TeacherLMSDashboardPage() {
               </div>
 
               {/* Modal Buttons */}
-              <div className="flex justify-end gap-2 pt-3 border-t border-[#ece7dc]">
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#2f2d45]">
                 <button
                   type="button"
                   onClick={() => setEditingDungeonQuestion(null)}
-                  className="rounded-xl border border-[#d8d1c5] px-4 py-2 text-xs font-bold text-[#524f49] hover:bg-[#faf8f4] cursor-pointer"
+                  className="rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-4 py-2 text-xs font-bold text-[#f4efe6] hover:bg-[#252238] cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-[#2a4d3e] px-5 py-2 text-xs font-bold text-white hover:bg-[#1f3b2f] cursor-pointer"
+                  className="rounded-xl bg-[#2fbf71] px-5 py-2 text-xs font-extrabold text-[#0b0b14] hover:bg-[#34d37d] cursor-pointer"
                 >
                   บันทึกคำถามดันเจี้ยน
                 </button>

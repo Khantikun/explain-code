@@ -15,6 +15,7 @@ import {
 import { getMonsterDef } from "../../lib/dungeon/monsters";
 import { DungeonRoom, TileType, MAP_WIDTH, MAP_HEIGHT } from "../../lib/dungeon/mapgen";
 import { dungeonSound } from "../../lib/dungeon/sound";
+import { useUiLanguage } from "../LanguageProvider";
 
 interface GameCanvasProps {
   room: DungeonRoom;
@@ -41,6 +42,7 @@ export function GameCanvas({
   onAutoPause,
   screenShake,
 }: GameCanvasProps) {
+  const { t } = useUiLanguage();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Player position state in grid coordinates
@@ -119,49 +121,87 @@ export function GameCanvas({
     [isPaused, isInBattle, room, onEncounterEntity, onEnterNextFloor]
   );
 
-  // Keyboard navigation
+  // Keyboard navigation (layout-independent e.code + Thai/English e.key fallback)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isPaused || isInBattle) return;
 
-      switch (e.key) {
-        case "ArrowUp":
-        case "w":
-        case "W":
-          e.preventDefault();
-          tryMove(0, -1);
-          break;
-        case "ArrowDown":
-        case "s":
-        case "S":
-          e.preventDefault();
-          tryMove(0, 1);
-          break;
-        case "ArrowLeft":
-        case "a":
-        case "A":
-          e.preventDefault();
-          tryMove(-1, 0);
-          break;
-        case "ArrowRight":
-        case "d":
-        case "D":
-          e.preventDefault();
-          tryMove(1, 0);
-          break;
-        case " ":
-        case "Enter":
-          // Interact with entity if directly facing or standing adjacent
-          e.preventDefault();
-          if (room.entity && !room.entity.isCompleted) {
-            const dist =
-              Math.abs(playerPosRef.current.x - room.entity.x) +
-              Math.abs(playerPosRef.current.y - room.entity.y);
-            if (dist <= 1) {
-              onEncounterEntity();
-            }
+      // Do not hijack keystrokes while typing in form inputs
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      const code = e.code;
+      const key = e.key;
+
+      if (
+        code === "KeyW" ||
+        code === "ArrowUp" ||
+        key === "ArrowUp" ||
+        key === "w" ||
+        key === "W" ||
+        key === "ไ" ||
+        key === '"'
+      ) {
+        e.preventDefault();
+        tryMove(0, -1);
+      } else if (
+        code === "KeyS" ||
+        code === "ArrowDown" ||
+        key === "ArrowDown" ||
+        key === "s" ||
+        key === "S" ||
+        key === "ห" ||
+        key === "ฆ"
+      ) {
+        e.preventDefault();
+        tryMove(0, 1);
+      } else if (
+        code === "KeyA" ||
+        code === "ArrowLeft" ||
+        key === "ArrowLeft" ||
+        key === "a" ||
+        key === "A" ||
+        key === "ฟ" ||
+        key === "ฤ"
+      ) {
+        e.preventDefault();
+        tryMove(-1, 0);
+      } else if (
+        code === "KeyD" ||
+        code === "ArrowRight" ||
+        key === "ArrowRight" ||
+        key === "d" ||
+        key === "D" ||
+        key === "ก" ||
+        key === "ฏ"
+      ) {
+        e.preventDefault();
+        tryMove(1, 0);
+      } else if (
+        code === "Space" ||
+        code === "Enter" ||
+        code === "NumpadEnter" ||
+        key === " " ||
+        key === "Enter"
+      ) {
+        // Interact with entity if directly facing or standing adjacent
+        e.preventDefault();
+        if (room.entity && !room.entity.isCompleted) {
+          const dist =
+            Math.abs(playerPosRef.current.x - room.entity.x) +
+            Math.abs(playerPosRef.current.y - room.entity.y);
+          if (dist <= 1) {
+            onEncounterEntity();
           }
-          break;
+        }
       }
     };
 
@@ -169,21 +209,16 @@ export function GameCanvas({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [tryMove, isPaused, isInBattle, room.entity, onEncounterEntity]);
 
-  // Tab blur auto-pause
+  // Tab hidden auto-pause (avoid locking movement when clicking buttons / losing canvas focus)
   useEffect(() => {
-    const handleBlur = () => {
-      onAutoPause();
-    };
     const handleVisibilityChange = () => {
       if (document.hidden) {
         onAutoPause();
       }
     };
 
-    window.addEventListener("blur", handleBlur);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
-      window.removeEventListener("blur", handleBlur);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [onAutoPause]);
@@ -467,6 +502,27 @@ export function GameCanvas({
         className="pixelated w-full h-full block cursor-pointer"
         style={{ imageRendering: "pixelated" }}
       />
+
+      {/* Compact In-Screen Control / Objective HUD Hint */}
+      <div className="pointer-events-none absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2 z-10">
+        <div
+          className={`px-2.5 py-1 rounded-lg backdrop-blur-xs border text-[10px] sm:text-[11px] font-bold shadow-md ${
+            room.isDoorUnlocked
+              ? "bg-[#1a7a4a]/85 border-[#2fbf71]/80 text-[#ffe27a]"
+              : "bg-[#0b0a12]/75 border-[#4a4766]/80 text-[#f4efe6]/90"
+          }`}
+        >
+          {room.isDoorUnlocked
+            ? t(
+                "🚪 ประตูเปิดแล้ว! เดินเข้าประตู",
+                "🚪 Door open! Walk through top door"
+              )
+            : t(
+                "[WASD / ลูกศร] เดิน · ชนมอนสเตอร์เพื่อสู้",
+                "[WASD / Arrows] Move · Bump monster to fight"
+              )}
+        </div>
+      </div>
     </div>
   );
 }

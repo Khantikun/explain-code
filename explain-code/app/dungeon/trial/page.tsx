@@ -139,7 +139,7 @@ export default function DungeonTrialPage() {
         soundEnabled={soundEnabled}
         onToggleSound={handleToggleSound}
         onTogglePause={() => setIsPaused(true)}
-        onExit={() => router.push("/dungeon")}
+        onExit={() => router.push("/courses")}
       />
 
       {/* Canvas Viewport */}
@@ -156,37 +156,30 @@ export default function DungeonTrialPage() {
         />
       </div>
 
-      {/* Instructions / Controls hint */}
-      <div className="w-full max-w-[640px] flex items-center justify-between text-xs text-[#9a93ad] px-1 select-none">
-        <span className="hidden sm:inline">
-          เดินด้วย <strong>WASD</strong> หรือ <strong>ลูกศร</strong> · โต้ตอบด้วย <strong>Space/Enter</strong>
-        </span>
-        <span className="text-[#ffe27a] font-bold">
-          {room.isDoorUnlocked
-            ? "ประตูเปิดแล้ว! เดินขึ้นไปที่ประตูด้านบนเพื่อจบด่าน"
-            : "เดินไปชนสไลม์เพื่อเริ่มตอบคำถาม"}
-        </span>
-      </div>
-
       {/* Mobile On-Screen D-Pad */}
       <div className="w-full sm:hidden">
         <MobileDpad
           disabled={isPaused || isInBattle || isGameOver || isVictory}
           onMove={(dx, dy) => {
+            const dirKey =
+              dx < 0
+                ? "ArrowLeft"
+                : dx > 0
+                ? "ArrowRight"
+                : dy < 0
+                ? "ArrowUp"
+                : "ArrowDown";
             const event = new KeyboardEvent("keydown", {
-              key:
-                dx < 0
-                  ? "ArrowLeft"
-                  : dx > 0
-                  ? "ArrowRight"
-                  : dy < 0
-                  ? "ArrowUp"
-                  : "ArrowDown",
+              key: dirKey,
+              code: dirKey,
             });
             window.dispatchEvent(event);
           }}
           onAction={() => {
-            const event = new KeyboardEvent("keydown", { key: " " });
+            const event = new KeyboardEvent("keydown", {
+              key: " ",
+              code: "Space",
+            });
             window.dispatchEvent(event);
           }}
         />
@@ -201,6 +194,8 @@ export default function DungeonTrialPage() {
           monsterHp={room.entity?.isCompleted ? 0 : 1}
           maxMonsterHp={1}
           playerHearts={hearts}
+          initialFocus={3}
+          maxFocus={6}
           onCorrectAnswer={handleCorrectAnswer}
           onWrongAnswer={handleWrongAnswer}
           onClose={() => setIsInBattle(false)}
@@ -211,14 +206,14 @@ export default function DungeonTrialPage() {
       <PauseModal
         isOpen={isPaused}
         onResume={() => setIsPaused(false)}
-        onExit={() => router.push("/dungeon")}
+        onExit={() => router.push("/courses")}
       />
 
       {/* Game Over Modal */}
       <GameOverModal
         isOpen={isGameOver}
         onRetry={handleRetry}
-        onExit={() => router.push("/dungeon")}
+        onExit={() => router.push("/courses")}
       />
 
       {/* Victory Modal */}
@@ -228,7 +223,7 @@ export default function DungeonTrialPage() {
         courseTitle="โหมดทดลองเล่นสำหรับผู้เยี่ยมชม"
         totalCoins={coins}
         totalXp={xp}
-        onExit={() => router.push("/dungeon")}
+        onExit={() => router.push("/courses")}
       />
     </div>
   );

@@ -340,41 +340,41 @@ function LoginFormContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf8f4] text-[#1e1e1c]">
+    <div className="min-h-screen bg-[#0d0b14] text-[#f4efe6]">
       <SiteHeader />
 
       <main className="mx-auto max-w-xl px-4 py-10 sm:px-6">
-        <div className="rounded-2xl border border-[#e5dfd3] bg-white p-6 sm:p-8 shadow-xs">
+        <div className="rounded-2xl border border-[#2f2d45] bg-[#141220] p-6 sm:p-8 shadow-xl">
           <div className="mb-6 text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f0ec] px-3 py-1 text-xs font-bold text-[#2a4d3e]">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#3d395a] bg-[#1c1b2b] px-3 py-1 text-xs font-bold text-[#f6c945]">
               <Icon name="shield" className="h-3.5 w-3.5" />
               ระบบยืนยันตัวตนอัตโนมัติ (PDPA &amp; Supabase Auth)
             </span>
-            <h1 className="mt-3 text-2xl font-bold text-[#1e1e1c]">
+            <h1 className="mt-3 text-2xl font-bold text-[#f4efe6]">
               {mode === "login" ? "เข้าสู่ระบบ" : "สมัครสมาชิกใหม่"}
             </h1>
-            <p className="mt-1 text-sm text-[#6e6a63]">
+            <p className="mt-1 text-sm text-[#9a93ad]">
               {mode === "login"
                 ? "กรอกชื่อผู้ใช้หรือชื่อเล่นของคุณ ระบบจะตรวจสอบบทบาท (นักเรียน/ครู) ให้อัตโนมัติ"
                 : "เลือกบทบาทที่ต้องการสมัครเพื่อเริ่มบันทึกประวัติการเรียนรู้"}
             </p>
             {redirectPath && (
-              <p className="mt-2 rounded-lg bg-[#fef9c3] px-3 py-1.5 text-xs font-medium text-[#854d0e]">
+              <p className="mt-2 rounded-lg border border-[#f6c945]/40 bg-[#281d08] px-3 py-1.5 text-xs font-medium text-[#ffe27a]">
                 เมื่อเข้าสู่ระบบสำเร็จ ระบบจะพาคุณกลับไปยังหน้า{" "}
-                <code className="font-mono font-bold">{redirectPath}</code> อัตโนมัติ
+                <code className="font-mono font-bold text-[#f6c945]">{redirectPath}</code> อัตโนมัติ
               </p>
             )}
           </div>
 
           {/* สลับโหมด เข้าสู่ระบบ / สมัครสมาชิกใหม่ */}
-          <div className="mb-6 flex border-b border-[#e5dfd3]">
+          <div className="mb-6 flex border-b border-[#2f2d45]">
             <button
               type="button"
               onClick={() => setMode("login")}
               className={`flex-1 pb-3 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
                 mode === "login"
-                  ? "border-[#2a4d3e] text-[#2a4d3e]"
-                  : "border-transparent text-[#6e6a63] hover:text-[#1e1e1c]"
+                  ? "border-[#f6c945] text-[#f6c945]"
+                  : "border-transparent text-[#9a93ad] hover:text-[#f4efe6]"
               }`}
             >
               เข้าสู่ระบบ
@@ -384,8 +384,8 @@ function LoginFormContent() {
               onClick={() => setMode("register")}
               className={`flex-1 pb-3 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
                 mode === "register"
-                  ? "border-[#2a4d3e] text-[#2a4d3e]"
-                  : "border-transparent text-[#6e6a63] hover:text-[#1e1e1c]"
+                  ? "border-[#f6c945] text-[#f6c945]"
+                  : "border-transparent text-[#9a93ad] hover:text-[#f4efe6]"
               }`}
             >
               สมัครสมาชิกใหม่
@@ -396,8 +396,8 @@ function LoginFormContent() {
             <div
               className={`mb-5 rounded-xl border p-3.5 text-xs font-medium ${
                 message.type === "error"
-                  ? "border-[#fecaca] bg-[#fef2f2] text-[#991b1b]"
-                  : "border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]"
+                  ? "border-[#c0283a]/60 bg-[#2d141c] text-[#fca5a5]"
+                  : "border-[#2fbf71]/50 bg-[#102a1e] text-[#86efac]"
               }`}
             >
               {message.text}
@@ -408,7 +408,7 @@ function LoginFormContent() {
           {mode === "login" ? (
             <form onSubmit={handleUnifiedLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#3d3b36] mb-1.5">
+                <label className="block text-xs font-bold text-[#c4bdd6] mb-1.5">
                   ชื่อเล่นสมมติ หรือ ชื่อผู้ใช้ (Username)
                 </label>
                 <input
@@ -417,12 +417,12 @@ function LoginFormContent() {
                   onChange={(e) => setLoginIdentifier(e.target.value)}
                   placeholder="กรอกชื่อเล่นหรือชื่อผู้ใช้ของคุณ"
                   required
-                  className="w-full rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-3.5 py-2.5 text-sm text-[#1e1e1c] focus:border-[#2a4d3e] focus:bg-white focus:outline-hidden"
+                  className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2.5 text-sm text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:bg-[#252238] focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#3d3b36] mb-1.5">
+                <label className="block text-xs font-bold text-[#c4bdd6] mb-1.5">
                   รหัสผ่าน หรือ รหัส PIN 4 หลัก
                 </label>
                 <div className="relative">
@@ -432,12 +432,12 @@ function LoginFormContent() {
                     onChange={(e) => setLoginSecret(e.target.value)}
                     placeholder="กรอกรหัสผ่านหรือ PIN"
                     required
-                    className="w-full rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-3.5 py-2.5 pr-16 text-sm text-[#1e1e1c] focus:border-[#2a4d3e] focus:bg-white focus:outline-hidden"
+                    className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2.5 pr-16 text-sm text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:bg-[#252238] focus:outline-hidden"
                   />
                   <button
                     type="button"
                     onClick={() => setShowLoginSecret(!showLoginSecret)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#6e6a63] hover:text-[#1e1e1c] cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#9a93ad] hover:text-[#f4efe6] cursor-pointer"
                   >
                     {showLoginSecret ? "ซ่อน" : "แสดง"}
                   </button>
@@ -447,31 +447,31 @@ function LoginFormContent() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full rounded-xl bg-[#2a4d3e] py-3 text-sm font-bold text-white shadow-xs hover:bg-[#1f3b2f] disabled:opacity-60 transition-colors cursor-pointer"
+                className="w-full rounded-xl bg-[#2fbf71] py-3 text-sm font-extrabold text-[#0b0b14] shadow-md hover:bg-[#34d37d] disabled:opacity-60 transition-colors cursor-pointer"
               >
                 {isSubmitting ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"}
               </button>
 
-              <div className="pt-3 border-t border-[#ece7dc] flex flex-wrap items-center justify-center gap-3 text-xs">
-                <span className="text-[#6e6a63]">บัญชีทดสอบ:</span>
+              <div className="pt-3 border-t border-[#2f2d45] flex flex-wrap items-center justify-center gap-3 text-xs">
+                <span className="text-[#9a93ad]">บัญชีทดสอบ:</span>
                 <button
                   type="button"
                   onClick={() => {
                     setLoginIdentifier("ต้นกล้า_สายโค้ด");
                     setLoginSecret("1234");
                   }}
-                  className="font-semibold text-[#2a4d3e] underline hover:text-[#1f3b2f] cursor-pointer"
+                  className="font-semibold text-[#f6c945] underline hover:text-[#ffe27a] cursor-pointer"
                 >
                   ต้นกล้า_สายโค้ด (PIN: 1234)
                 </button>
-                <span className="text-[#d8d1c5]">|</span>
+                <span className="text-[#3d395a]">|</span>
                 <button
                   type="button"
                   onClick={() => {
                     setLoginIdentifier("ครูสมชาย");
                     setLoginSecret("12345678");
                   }}
-                  className="font-semibold text-[#2a4d3e] underline hover:text-[#1f3b2f] cursor-pointer"
+                  className="font-semibold text-[#f6c945] underline hover:text-[#ffe27a] cursor-pointer"
                 >
                   ครูสมชาย (รหัส: 12345678)
                 </button>
@@ -481,17 +481,17 @@ function LoginFormContent() {
             /* ==================== โหมดสมัครสมาชิกใหม่ (เลือกบทบาทตอนสมัคร) ==================== */
             <div>
               <div className="mb-5">
-                <label className="block text-xs font-bold text-[#3d3b36] mb-2">
+                <label className="block text-xs font-bold text-[#c4bdd6] mb-2">
                   เลือกบทบาทที่ต้องการสมัครสมาชิก:
                 </label>
-                <div className="grid grid-cols-2 gap-2.5 rounded-xl bg-[#f4f1ea] p-1.5">
+                <div className="grid grid-cols-2 gap-2.5 rounded-xl border border-[#2f2d45] bg-[#1c1b2b] p-1.5">
                   <button
                     type="button"
                     onClick={() => setRegisterRole("student")}
                     className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all cursor-pointer ${
                       registerRole === "student"
-                        ? "bg-[#2a4d3e] text-white shadow-xs"
-                        : "text-[#524f49] hover:text-[#1e1e1c]"
+                        ? "bg-[#9b5de5] text-[#f4efe6] shadow-md"
+                        : "text-[#9a93ad] hover:text-[#f4efe6]"
                     }`}
                   >
                     <Icon name="user" className="h-4 w-4" />
@@ -502,8 +502,8 @@ function LoginFormContent() {
                     onClick={() => setRegisterRole("teacher")}
                     className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all cursor-pointer ${
                       registerRole === "teacher"
-                        ? "bg-[#2a4d3e] text-white shadow-xs"
-                        : "text-[#524f49] hover:text-[#1e1e1c]"
+                        ? "bg-[#9b5de5] text-[#f4efe6] shadow-md"
+                        : "text-[#9a93ad] hover:text-[#f4efe6]"
                     }`}
                   >
                     <Icon name="users" className="h-4 w-4" />
@@ -515,7 +515,7 @@ function LoginFormContent() {
               {registerRole === "student" ? (
                 <form onSubmit={handleStudentRegister} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-[#3d3b36] mb-1.5">
+                    <label className="block text-xs font-bold text-[#c4bdd6] mb-1.5">
                       ตั้งชื่อเล่นสมมติ (ห้ามใช้อีเมลหรือชื่อ-นามสกุลจริงตาม PDPA)
                     </label>
                     <input
@@ -524,12 +524,12 @@ function LoginFormContent() {
                       onChange={(e) => setNickname(e.target.value)}
                       placeholder="เช่น ต้นกล้า_สายโค้ด"
                       required
-                      className="w-full rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-3.5 py-2.5 text-sm text-[#1e1e1c] focus:border-[#2a4d3e] focus:bg-white focus:outline-hidden"
+                      className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2.5 text-sm text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:bg-[#252238] focus:outline-hidden"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-[#3d3b36] mb-1.5">
+                    <label className="block text-xs font-bold text-[#c4bdd6] mb-1.5">
                       ตั้งรหัส PIN 4 หลัก (ตัวเลข)
                     </label>
                     <input
@@ -542,12 +542,12 @@ function LoginFormContent() {
                       }
                       placeholder="••••"
                       required
-                      className="w-full rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-3.5 py-2.5 text-sm tracking-widest text-[#1e1e1c] focus:border-[#2a4d3e] focus:bg-white focus:outline-hidden"
+                      className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2.5 text-sm tracking-widest text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:bg-[#252238] focus:outline-hidden"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-[#3d3b36] mb-1.5">
+                    <label className="block text-xs font-bold text-[#c4bdd6] mb-1.5">
                       รหัสห้องเรียนจากครู (ค่าเริ่มต้น VIBE26 สำหรับห้องเรียนเปิด)
                     </label>
                     <input
@@ -558,14 +558,14 @@ function LoginFormContent() {
                       }
                       placeholder="เช่น VIBE26"
                       required
-                      className="w-full rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-3.5 py-2.5 text-sm font-mono uppercase text-[#1e1e1c] focus:border-[#2a4d3e] focus:bg-white focus:outline-hidden"
+                      className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2.5 text-sm font-mono uppercase text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:bg-[#252238] focus:outline-hidden"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full rounded-xl bg-[#2a4d3e] py-3 text-sm font-bold text-white shadow-xs hover:bg-[#1f3b2f] disabled:opacity-60 transition-colors cursor-pointer"
+                    className="w-full rounded-xl bg-[#2fbf71] py-3 text-sm font-extrabold text-[#0b0b14] shadow-md hover:bg-[#34d37d] disabled:opacity-60 transition-colors cursor-pointer"
                   >
                     {isSubmitting ? "กำลังสมัคร..." : "สมัครสมาชิกนักเรียน"}
                   </button>
@@ -573,7 +573,7 @@ function LoginFormContent() {
               ) : (
                 <form onSubmit={handleTeacherRegister} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-[#3d3b36] mb-1.5">
+                    <label className="block text-xs font-bold text-[#c4bdd6] mb-1.5">
                       ตั้งชื่อผู้ใช้ครู (Username)
                     </label>
                     <input
@@ -582,12 +582,12 @@ function LoginFormContent() {
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="เช่น ครูสมชาย"
                       required
-                      className="w-full rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-3.5 py-2.5 text-sm text-[#1e1e1c] focus:border-[#2a4d3e] focus:bg-white focus:outline-hidden"
+                      className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2.5 text-sm text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:bg-[#252238] focus:outline-hidden"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-[#3d3b36] mb-1.5">
+                    <label className="block text-xs font-bold text-[#c4bdd6] mb-1.5">
                       ชื่อที่แสดงให้นักเรียนเห็น (Display Name)
                     </label>
                     <input
@@ -595,12 +595,12 @@ function LoginFormContent() {
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       placeholder="เช่น ครูสมชาย ใจดี (วิทยาการคำนวณ)"
-                      className="w-full rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-3.5 py-2.5 text-sm text-[#1e1e1c] focus:border-[#2a4d3e] focus:bg-white focus:outline-hidden"
+                      className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2.5 text-sm text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:bg-[#252238] focus:outline-hidden"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-[#3d3b36] mb-1.5">
+                    <label className="block text-xs font-bold text-[#c4bdd6] mb-1.5">
                       ตั้งรหัสผ่าน (อย่างน้อย 4 ตัวอักษร)
                     </label>
                     <div className="relative">
@@ -610,22 +610,22 @@ function LoginFormContent() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="w-full rounded-xl border border-[#d8d1c5] bg-[#faf8f4] px-3.5 py-2.5 pr-16 text-sm text-[#1e1e1c] focus:border-[#2a4d3e] focus:bg-white focus:outline-hidden"
+                        className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2.5 pr-16 text-sm text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:bg-[#252238] focus:outline-hidden"
                       />
                       <button
                         type="button"
                         onClick={() =>
                           setShowRegisterPassword(!showRegisterPassword)
                         }
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#6e6a63] hover:text-[#1e1e1c] cursor-pointer"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#9a93ad] hover:text-[#f4efe6] cursor-pointer"
                       >
                         {showRegisterPassword ? "ซ่อน" : "แสดง"}
                       </button>
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-[#d8d1c5] bg-[#f8f6f0] p-3.5">
-                    <label className="block text-xs font-bold text-[#2a4d3e] mb-1">
+                  <div className="rounded-xl border border-[#3d395a] bg-[#1c1b2b] p-3.5">
+                    <label className="block text-xs font-bold text-[#f6c945] mb-1">
                       รหัสเชิญครูเพื่ออนุมัติทันที (Teacher Invite Code)
                     </label>
                     <input
@@ -633,20 +633,20 @@ function LoginFormContent() {
                       value={inviteCode}
                       onChange={(e) => setInviteCode(e.target.value)}
                       placeholder="เช่น TEACHER2026 (เว้นว่างได้หากรอแอดมินอนุมัติ)"
-                      className="w-full rounded-lg border border-[#d8d1c5] bg-white px-3 py-2 text-xs font-mono text-[#1e1e1c] focus:border-[#2a4d3e] focus:outline-hidden"
+                      className="w-full rounded-lg border border-[#3d395a] bg-[#141220] px-3 py-2 text-xs font-mono text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
                     />
-                    <p className="mt-1.5 text-[11px] text-[#6e6a63]">
+                    <p className="mt-1.5 text-[11px] text-[#9a93ad]">
                       * หากรหัสเชิญถูกต้อง บัญชีครูจะได้สถานะ{" "}
-                      <strong className="text-[#166534]">approved</strong> ทันที
+                      <strong className="text-[#2fbf71]">approved</strong> ทันที
                       หากเว้นว่างจะได้สถานะ{" "}
-                      <strong className="text-[#9a3412]">pending</strong> รอการอนุมัติ
+                      <strong className="text-[#f6c945]">pending</strong> รอการอนุมัติ
                     </p>
                   </div>
 
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full rounded-xl bg-[#2a4d3e] py-3 text-sm font-bold text-white shadow-xs hover:bg-[#1f3b2f] disabled:opacity-60 transition-colors cursor-pointer"
+                    className="w-full rounded-xl bg-[#2fbf71] py-3 text-sm font-extrabold text-[#0b0b14] shadow-md hover:bg-[#34d37d] disabled:opacity-60 transition-colors cursor-pointer"
                   >
                     {isSubmitting ? "กำลังสมัคร..." : "สมัครบัญชีครูผู้สอน"}
                   </button>
@@ -655,10 +655,10 @@ function LoginFormContent() {
             </div>
           )}
 
-          <div className="mt-6 border-t border-[#e5dfd3] pt-4 text-center">
+          <div className="mt-6 border-t border-[#2f2d45] pt-4 text-center">
             <Link
               href="/"
-              className="text-xs font-semibold text-[#6e6a63] hover:text-[#1e1e1c]"
+              className="text-xs font-semibold text-[#9a93ad] hover:text-[#f4efe6]"
             >
               ← กลับไปหน้าแรก (ใช้งานแบบไม่ต้องล็อกอิน)
             </Link>
@@ -673,7 +673,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#faf8f4] p-8 text-center text-sm text-[#6e6a63]">
+        <div className="min-h-screen bg-[#0d0b14] p-8 text-center text-sm text-[#9a93ad]">
           กำลังโหลดหน้าเข้าสู่ระบบ...
         </div>
       }

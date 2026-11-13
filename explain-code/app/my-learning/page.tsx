@@ -40,7 +40,7 @@ export default function MyLearningPage() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-[#faf8f4] p-8 text-center text-sm text-[#6e6a63]">
+      <div className="min-h-screen bg-[#0d0b14] p-8 text-center text-sm text-[#9a93ad]">
         กำลังตรวจสอบสิทธิ์การใช้งาน...
       </div>
     );
@@ -60,34 +60,34 @@ export default function MyLearningPage() {
   const myCourses = courses.filter((c) => activeCourseIds.has(c.id));
 
   return (
-    <div className="min-h-screen bg-[#faf8f4] text-[#1e1e1c]">
+    <div className="min-h-screen bg-[#0d0b14] text-[#f4efe6]">
       <SiteHeader />
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#e8f0ec] px-3 py-1 text-xs font-bold text-[#2a4d3e]">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#3d395a] bg-[#1c1b2b] px-3 py-1 text-xs font-bold text-[#f6c945]">
               <Icon name="award" className="h-3.5 w-3.5" />
               แดชบอร์ดการเรียนรู้ของ {session.displayName || session.username}
             </span>
-            <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#1e1e1c]">
+            <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#f4efe6]">
               การเรียนของฉัน (My Learning)
             </h1>
-            <p className="mt-1 text-sm text-[#524f49]">
+            <p className="mt-1 text-sm text-[#9a93ad]">
               ติดตามความคืบหน้าของแต่ละคอร์ส ประวัติบทเรียนที่เรียนจบ และกดเรียนต่อจากจุดที่ค้างไว้ได้ทันที
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
             <Link
               href="/courses"
-              className="rounded-xl bg-[#2a4d3e] px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-[#1f3b2f]"
+              className="rounded-xl bg-[#2fbf71] px-4 py-2.5 text-xs font-extrabold text-[#0b0b14] shadow-md hover:bg-[#34d37d] transition-colors whitespace-nowrap"
             >
               + สำรวจคอร์สเรียนเพิ่ม
             </Link>
             <Link
               href="/my-history"
-              className="rounded-xl border border-[#d8d1c5] bg-white px-4 py-2.5 text-xs font-bold text-[#1e1e1c] hover:bg-[#f2efe8]"
+              className="rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-4 py-2.5 text-xs font-bold text-[#f4efe6] hover:border-[#f6c945] hover:bg-[#252238] transition-colors whitespace-nowrap"
             >
               ประวัติการอธิบายโค้ด
             </Link>
@@ -95,19 +95,19 @@ export default function MyLearningPage() {
         </div>
 
         {myCourses.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[#d8d1c5] bg-white p-12 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e8f0ec] text-[#2a4d3e]">
+          <div className="rounded-2xl border border-dashed border-[#3d395a] bg-[#141220] p-12 text-center shadow-lg">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-[#3d395a] bg-[#1c1b2b] text-[#f6c945]">
               <Icon name="book" className="h-6 w-6" />
             </div>
-            <h2 className="mt-4 text-base font-bold text-[#1e1e1c]">
+            <h2 className="mt-4 text-base font-bold text-[#f4efe6]">
               คุณยังไม่ได้เข้าร่วมคอร์สเรียนใดๆ
             </h2>
-            <p className="mt-1 text-xs text-[#6e6a63]">
+            <p className="mt-1 text-xs text-[#9a93ad]">
               เลือกคอร์สที่สนใจจากคลังคอร์สเปิด หรือกรอกรหัสห้องเรียนจากครูผู้สอนเพื่อเริ่มต้น
             </p>
             <Link
               href="/courses"
-              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#2a4d3e] px-5 py-2.5 text-xs font-bold text-white hover:bg-[#1f3b2f]"
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#2fbf71] px-5 py-2.5 text-xs font-extrabold text-[#0b0b14] hover:bg-[#34d37d] whitespace-nowrap"
             >
               ดูคอร์สเรียนที่เปิดสอน →
             </Link>
@@ -144,22 +144,22 @@ export default function MyLearningPage() {
               return (
                 <div
                   key={course.id}
-                  className="rounded-2xl border border-[#e5dfd3] bg-white p-6 shadow-xs"
+                  className="rounded-2xl border border-[#2f2d45] bg-[#141220] p-6 shadow-lg"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="max-w-2xl">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="rounded-md bg-[#e8f0ec] px-2.5 py-0.5 text-[11px] font-bold text-[#2a4d3e]">
+                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <span className="rounded-md border border-[#3d395a] bg-[#1c1b2b] px-2.5 py-0.5 text-[11px] font-bold text-[#f6c945]">
                           รหัส: {course.join_code}
                         </span>
-                        <span className="text-xs text-[#6e6a63]">
+                        <span className="text-xs text-[#9a93ad]">
                           ผู้สอน: {course.teacher_name}
                         </span>
                       </div>
-                      <h2 className="text-lg font-bold text-[#1e1e1c]">
+                      <h2 className="text-lg font-bold text-[#f4efe6]">
                         {course.title}
                       </h2>
-                      <p className="mt-1 text-xs text-[#524f49]">
+                      <p className="mt-1 text-xs text-[#c4bdd6]">
                         {course.description}
                       </p>
                     </div>
@@ -167,19 +167,21 @@ export default function MyLearningPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
                         href={`/dungeon/${course.id}`}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-[#9b5de5] bg-[#322c4a] px-4 py-3 text-xs font-bold text-[#ffe27a] hover:bg-[#433c61] transition-colors"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-[#9b5de5] bg-[#5a2d91] px-4 py-3 text-xs font-bold text-[#ffe27a] hover:bg-[#6d3fc0] transition-colors whitespace-nowrap"
                       >
-                        <Icon name="gamepad" className="h-4 w-4" />
+                        <Icon name="gamepad" className="h-4 w-4 shrink-0" />
                         <span>เล่นโหมดดันเจี้ยน</span>
                       </Link>
 
                       {resumeLesson && (
                         <Link
                           href={`/courses/${course.id}/lessons/${resumeLesson.id}`}
-                          className="inline-flex items-center gap-2 rounded-xl bg-[#2a4d3e] px-5 py-3 text-xs font-bold text-white shadow-xs hover:bg-[#1f3b2f]"
+                          className="inline-flex max-w-full items-center gap-2 rounded-xl bg-[#2fbf71] px-5 py-3 text-xs font-extrabold text-[#0b0b14] shadow-md hover:bg-[#34d37d] transition-colors"
                         >
-                          <Icon name="play" className="h-4 w-4" />
-                          <span>เรียนต่อจากที่ค้างไว้: {resumeLesson.title}</span>
+                          <Icon name="play" className="h-4 w-4 shrink-0" />
+                          <span className="truncate">
+                            เรียนต่อจากที่ค้างไว้: {resumeLesson.title}
+                          </span>
                         </Link>
                       )}
                     </div>
@@ -188,23 +190,23 @@ export default function MyLearningPage() {
                   {/* Progress Bar */}
                   <div className="mt-5">
                     <div className="flex items-center justify-between text-xs font-bold mb-1.5">
-                      <span>
+                      <span className="text-[#e8e1cf]">
                         ความคืบหน้า: เรียนจบแล้ว {completedSet.size} จาก{" "}
                         {cLessons.length} บทเรียน
                       </span>
-                      <span className="text-[#2a4d3e]">{pct}%</span>
+                      <span className="text-[#2fbf71]">{pct}%</span>
                     </div>
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#e5dfd3]">
+                    <div className="h-2.5 w-full overflow-hidden rounded-full border border-[#2f2d45] bg-[#1c1b2b]">
                       <div
-                        className="h-full rounded-full bg-[#2a4d3e] transition-all"
+                        className="h-full rounded-full bg-[#2fbf71] transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
                   </div>
 
                   {/* Lesson History Table */}
-                  <div className="mt-5 border-t border-[#ece7dc] pt-4">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#6e6a63] mb-2.5">
+                  <div className="mt-5 border-t border-[#2f2d45] pt-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#9a93ad] mb-2.5">
                       ประวัติการเข้าเรียนรายบท
                     </h3>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -216,13 +218,13 @@ export default function MyLearningPage() {
                           <Link
                             key={lesson.id}
                             href={`/courses/${course.id}/lessons/${lesson.id}`}
-                            className="flex items-center justify-between rounded-xl border border-[#ece7dc] bg-[#faf8f4] px-3.5 py-2.5 text-xs hover:border-[#2a4d3e]"
+                            className="flex items-center justify-between rounded-xl border border-[#2f2d45] bg-[#1c1b2b] px-3.5 py-2.5 text-xs hover:border-[#9b5de5] transition-colors"
                           >
                             <div className="truncate pr-2">
-                              <p className="font-bold text-[#1e1e1c] truncate">
+                              <p className="font-bold text-[#f4efe6] truncate">
                                 {lesson.title}
                               </p>
-                              <p className="text-[10px] text-[#6e6a63]">
+                              <p className="text-[10px] text-[#9a93ad]">
                                 {prog?.completed_at
                                   ? `จบเมื่อ ${new Date(
                                       prog.completed_at
@@ -235,12 +237,12 @@ export default function MyLearningPage() {
                               </p>
                             </div>
                             <span
-                              className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                              className={`shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-bold ${
                                 prog?.is_completed
-                                  ? "bg-[#dcfce7] text-[#166534]"
+                                  ? "border-[#2fbf71]/40 bg-[#102a1e] text-[#86efac]"
                                   : prog
-                                  ? "bg-[#fef9c3] text-[#854d0e]"
-                                  : "bg-[#e5dfd3] text-[#524f49]"
+                                  ? "border-[#f6c945]/40 bg-[#281d08] text-[#ffe27a]"
+                                  : "border-[#3d395a] bg-[#252238] text-[#9a93ad]"
                               }`}
                             >
                               {prog?.is_completed
