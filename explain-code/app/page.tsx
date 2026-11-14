@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { SiteHeader } from "./components/SiteHeader";
 import { useUiLanguage } from "./components/LanguageProvider";
 import {
@@ -1173,7 +1174,13 @@ export default function ExplainCodeApp() {
         {/* แถบบนสไตล์ Dark Dungeon */}
         <header className="bg-[#141220] border-b border-[#2f2d45] text-[#f4efe6] px-6 py-4 flex items-center justify-between transition">
           <div className="flex items-center gap-2.5 text-[20px] font-extrabold tracking-tight text-[#ffe27a]">
-            <Icon name="code" size={24} className="text-[#f6c945]" />
+            <Image
+              src="/logo.png"
+              alt="โค้ดนี้ฉันอธิบายได้"
+              width={32}
+              height={32}
+              className="h-8 w-8 rounded-lg object-contain border border-[#f6c945]/50 bg-[#0d0b14] shrink-0"
+            />
             <span>
               โค้ดนี้ฉันอธิบายได้ {isTeacherRole ? "· ครูผู้สอน" : "· นักเรียน"}
             </span>
@@ -1656,7 +1663,13 @@ export default function ExplainCodeApp() {
               onClick={() => setStudentTab("quest")}
               className="text-[20px] font-extrabold tracking-tight text-[#ffe27a] flex items-center gap-2 cursor-pointer"
             >
-              <Icon name="code" size={24} className="text-[#f6c945]" />
+              <Image
+                src="/logo.png"
+                alt="โค้ดนี้ฉันอธิบายได้"
+                width={32}
+                height={32}
+                className="h-8 w-8 rounded-lg object-contain border border-[#f6c945]/50 bg-[#0d0b14] shrink-0"
+              />
               <span>โค้ดนี้ฉันอธิบายได้</span>
             </button>
             <span className="px-2.5 py-0.5 rounded-full bg-[#25193b] border border-[#9b5de5]/60 text-[#e9d5ff] text-[12px] font-extrabold">

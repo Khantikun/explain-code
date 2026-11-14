@@ -430,9 +430,11 @@ export function DungeonRunScreen({
       >
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#5a2d91] to-[#9b5de5] border border-[#9b5de5]/60 flex items-center justify-center shadow-lg">
-              <Icon name="sword" size={18} className="text-[#ffe27a]" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="ExplainCode Logo"
+              className="w-9 h-9 rounded-xl object-contain bg-[#0d0b14] border border-[#f6c945]/60 shadow-lg shrink-0"
+            />
             <div>
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#f6c945] block">
                 ดันเจี้ยนการเรียนรู้ · Custom Code

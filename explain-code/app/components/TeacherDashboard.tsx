@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import {
   ClassroomRecord,
   StudentRecord,
@@ -246,6 +247,13 @@ export function TeacherDashboard({
       <header className="bg-white border-b-2 border-[#cfe0dc] sticky top-0 z-30 no-print">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
+            <Image
+              src="/logo.png"
+              alt="โค้ดนี้ฉันอธิบายได้"
+              width={32}
+              height={32}
+              className="h-8 w-8 rounded-lg object-contain border border-[#0f766e]/40 bg-[#0d0b14] shrink-0"
+            />
             <span className="text-[20px] font-extrabold text-[#0b4f49]">
               โค้ดนี้ฉันอธิบายได้ · ครู
             </span>

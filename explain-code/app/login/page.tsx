@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { SiteHeader, setClientSession } from "../components/SiteHeader";
 import { Icon } from "../components/Icons";
 import {
@@ -346,6 +347,15 @@ function LoginFormContent() {
       <main className="mx-auto max-w-xl px-4 py-10 sm:px-6">
         <div className="rounded-2xl border border-[#2f2d45] bg-[#141220] p-6 sm:p-8 shadow-xl">
           <div className="mb-6 text-center">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl overflow-hidden border border-[#f6c945]/60 bg-[#0d0b14] shadow-md">
+              <Image
+                src="/logo.png"
+                alt="โค้ดนี้ฉันอธิบายได้"
+                width={56}
+                height={56}
+                className="h-full w-full object-contain"
+              />
+            </div>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[#3d395a] bg-[#1c1b2b] px-3 py-1 text-xs font-bold text-[#f6c945]">
               <Icon name="shield" className="h-3.5 w-3.5" />
               ระบบยืนยันตัวตนอัตโนมัติ (PDPA &amp; Supabase Auth)
