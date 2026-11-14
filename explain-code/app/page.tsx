@@ -1175,8 +1175,16 @@ export default function ExplainCodeApp() {
     return (
       <div className="min-h-screen bg-[#0d0b14] text-[#f4efe6] flex flex-col">
         {/* แถบบนสไตล์ Dark Dungeon */}
-        <header className="bg-[#141220] border-b border-[#2f2d45] text-[#f4efe6] px-6 py-4 flex items-center justify-between transition">
-          <div className="flex items-center gap-2.5 text-[20px] font-extrabold tracking-tight text-[#ffe27a]">
+        <header className="bg-[#141220] border-b border-[#2f2d45] text-[#f4efe6] px-6 py-4 flex flex-wrap items-center justify-between gap-3 transition">
+          <div className="flex items-center gap-3 text-[20px] font-extrabold tracking-tight text-[#ffe27a]">
+            <button
+              type="button"
+              onClick={() => setAppMode("landing")}
+              className="inline-flex items-center gap-1.5 rounded-xl border-2 border-[#f6c945]/70 bg-[#1c1b2b] px-3.5 py-1.5 text-[13px] font-extrabold text-[#ffe27a] hover:border-[#f6c945] hover:bg-[#281d08] transition cursor-pointer"
+            >
+              <Icon name="home" size={16} className="text-[#f6c945]" />
+              <span>← กลับไปหน้าแรก</span>
+            </button>
             <Image
               src="/logo.png"
               alt="โค้ดนี้ฉันอธิบายได้"

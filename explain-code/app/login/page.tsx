@@ -388,6 +388,16 @@ function LoginFormContent() {
       <SiteHeader />
 
       <main className="mx-auto max-w-xl px-4 py-8 sm:py-10 sm:px-6">
+        <div className="mb-4 flex items-center justify-between">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 rounded-xl border-2 border-[#f6c945]/70 bg-[#1c1b2b] px-4 py-2 text-xs sm:text-sm font-extrabold text-[#ffe27a] shadow-sm hover:border-[#f6c945] hover:bg-[#281d08] transition-colors"
+          >
+            <Icon name="home" className="h-4 w-4 text-[#f6c945]" />
+            <span>← กลับไปหน้าแรก</span>
+          </Link>
+        </div>
+
         <div className="rounded-2xl border border-[#2f2d45] bg-[#141220] p-6 sm:p-8 shadow-xl">
           <div className="mb-6 text-center">
             <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl overflow-hidden border border-[#f6c945]/60 bg-[#0d0b14] shadow-md">
@@ -785,12 +795,13 @@ function LoginFormContent() {
             </div>
           )}
 
-          <div className="mt-6 border-t border-[#2f2d45] pt-4 text-center">
+          <div className="mt-6 border-t border-[#2f2d45] pt-5">
             <Link
               href="/"
-              className="text-xs font-semibold text-[#9a93ad] hover:text-[#f4efe6]"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-[#f6c945]/75 bg-[#1c1b2b] px-4 py-3 text-sm font-extrabold text-[#ffe27a] shadow-md hover:border-[#f6c945] hover:bg-[#281d08] transition-all"
             >
-              ← กลับไปหน้าแรก (ทดลองเล่นดันเจี้ยนหรืออธิบายโค้ดได้โดยไม่ต้องล็อกอิน)
+              <Icon name="home" className="h-4 w-4 text-[#f6c945]" />
+              <span>← กลับไปหน้าแรก (ใช้งานได้โดยไม่ต้องล็อกอิน)</span>
             </Link>
           </div>
         </div>
