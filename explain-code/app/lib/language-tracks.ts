@@ -6,7 +6,8 @@ export type LearningLanguage =
   | "sql"
   | "typescript"
   | "cpp"
-  | "java";
+  | "java"
+  | "html";
 
 export interface LanguageTrackMeta {
   id: LearningLanguage;
@@ -238,6 +239,41 @@ export const LANGUAGE_TRACKS: LanguageTrackMeta[] = [
     defaultPlaygroundCode: `public class Main {\n    public static void main(String[] args) {\n        int price = 120;\n        int qty = 3;\n        int tax = 20;\n        int total = (price * qty) + tax;\n        System.out.println(total);\n    }\n}`,
     playgroundDescription:
       "ทดลองรันโค้ด Java พื้นฐาน (ตัวแปร, String.equals, Class & Method, System.out.println) เพื่อตรวจผลลัพธ์จริง",
+  },
+  {
+    id: "html",
+    name: "HTML / CSS",
+    nameEn: "HTML / CSS",
+    shortBadge: "HTML · UI & Layout",
+    categoryLabel: "ประเภทที่ 7 · โครงสร้างเว็บและการจัดเลย์เอาต์ UI",
+    categoryLabelEn: "Track 7 · Web Structure & UI Layout",
+    tagline:
+      "รากฐานหน้าเว็บ ฝึกแกะ Semantic HTML, CSS Box Model, Flexbox และ Specificity",
+    taglineEn:
+      "Web UI foundations — master Semantic HTML, Box Model, Flexbox, and CSS Specificity",
+    description:
+      "ฝึกอ่านโครงสร้างแท็ก HTML, การคำนวณขนาด Box Model, การจัดวางด้วย Flexbox และการตรวจหาบั๊ก CSS Selector / Specificity ที่ AI มักเขียนทับกันจนหน้าเว็บเพี้ยน",
+    descriptionEn:
+      "Practice reading HTML tag trees, Box Model sizing, Flexbox alignment, and catching CSS Specificity conflicts common in AI-generated UI.",
+    accentColor: "#e11d48",
+    bgTint: "#ffe4e6",
+    borderColor: "#e11d48",
+    dungeonRealmName: "ป้อมปราการเว็บ HTML/CSS",
+    dungeonRealmNameEn: "Citadel of HTML & CSS",
+    highlights: [
+      "โครงสร้างแท็ก Semantic HTML (<header>, <main>, <article>)",
+      "การคำนวณขนาด CSS Box Model (width + padding + border) และ Flexbox",
+      "ลำดับความสำคัญ CSS Specificity (#id > .class > tag) และการแก้บั๊กเลย์เอาต์",
+    ],
+    highlightsEn: [
+      "Semantic HTML structure (<header>, <main>, <article>)",
+      "CSS Box Model sizing (width + padding + border) and Flexbox",
+      "CSS Specificity hierarchy (#id > .class > tag) and layout debugging",
+    ],
+    sampleCodePreview: `<div class="card">\n  <h2>Hero</h2>\n  <p class="hp">HP: 100</p>\n</div>`,
+    defaultPlaygroundCode: `<style>\n  .card { width: 200px; padding: 16px; border: 2px solid #fff; }\n</style>\n<div class="card">\n  <h2>Dungeon Card</h2>\n  <p>Ready to battle</p>\n</div>`,
+    playgroundDescription:
+      "วางโค้ด HTML / CSS เพื่อจำลองการแยกแท็กโครงสร้าง ข้อความที่แสดงผล และกฎสไตล์หลัก",
   },
 ];
 
@@ -1861,12 +1897,342 @@ public class Main {
   },
 ];
 
+// ============================================================================
+// เควสต์ PRIMM เฉพาะสำหรับภาษา HTML / CSS
+// ============================================================================
+export const HTML_TOPICS: TopicQuest[] = [
+  {
+    id: 601,
+    title: "HTML/CSS ด่านที่ 1 · โครงสร้างแท็ก Semantic HTML",
+    shortName: "HTML 1 · Semantic Tags",
+    subtitle: "แกะโครงสร้างหน้าเว็บที่สะอาดและเข้าถึงง่ายด้วยแท็ก <header>, <main> และ <article>",
+    code: `<main>
+  <article class="quest">
+    <h1>Dungeon Gate</h1>
+    <p>Level 1</p>
+  </article>
+</main>`,
+    predictPrompt:
+      "เมื่อเบราว์เซอร์เรนเดอร์โค้ด HTML นี้ ข้อความที่ปรากฏบนหน้าเว็บคือข้อใด?",
+    predictOptions: [
+      "Dungeon Gate | Level 1",
+      "main article Dungeon Gate",
+      "quest Level 1",
+      "<p>Level 1</p>",
+    ],
+    predictExplanation:
+      "เบราว์เซอร์จะไม่แสดงชื่อแท็กหรือ class แต่จะแสดงข้อความภายในแท็ก <h1> และ <p> คือ Dungeon Gate และ Level 1",
+    steps: [
+      {
+        stepNumber: 1,
+        line: 1,
+        codeLine: `<main>`,
+        variables: { container: "main" },
+        outputSoFar: [],
+        explanation: "แท็ก <main> ระบุเนื้อหาหลักของหน้าเว็บ (ควรมีเพียง 1 จุดต่อหน้า)",
+      },
+      {
+        stepNumber: 2,
+        line: 2,
+        codeLine: `  <article class="quest">`,
+        variables: { element: "article.quest" },
+        outputSoFar: [],
+        explanation: "<article> ใช้ครอบเนื้อหาที่สมบูรณ์ในตัวเอง เช่น การ์ดเควสต์หรือบทความ",
+      },
+      {
+        stepNumber: 3,
+        line: 3,
+        codeLine: `    <h1>Dungeon Gate</h1>`,
+        variables: { heading: "Dungeon Gate" },
+        outputSoFar: ["Dungeon Gate"],
+        explanation: "<h1> คือหัวข้อหลักระดับสูงสุด แสดงข้อความ 'Dungeon Gate'",
+      },
+      {
+        stepNumber: 4,
+        line: 4,
+        codeLine: `    <p>Level 1</p>`,
+        variables: { paragraph: "Level 1" },
+        outputSoFar: ["Dungeon Gate", "Level 1"],
+        explanation: "<p> ใช้แสดงย่อหน้าข้อความ 'Level 1' ใต้หัวข้อ",
+      },
+    ],
+    questions: [
+      {
+        id: "html-601-q1",
+        cellId: "T1",
+        targetLine: 1,
+        question: "แท็กใดที่เหมาะสมที่สุดในการระบุพื้นที่เนื้อหาหลักของหน้าเว็บ?",
+        options: [
+          { id: "a", text: "<div>" },
+          { id: "b", text: "<main>" },
+          { id: "c", text: "<span>" },
+          { id: "d", text: "<b>" },
+        ],
+        correctOptionId: "b",
+        hint: "มองหาแท็กที่สื่อความหมายตรงตัวว่าเป็นส่วนหลัก (main) ของหน้าเว็บ",
+        explanation: "<main> เป็น Semantic tag ที่บอกทั้งเบราว์เซอร์และ Screen Reader ว่าเป็นเนื้อหาหลักของหน้า",
+      },
+      {
+        id: "html-601-q2",
+        cellId: "E2",
+        targetLine: 3,
+        question: "เมื่อเบราว์เซอร์เรนเดอร์โค้ดนี้ ข้อความที่ปรากฏบนหน้าเว็บคือข้อใด?",
+        options: [
+          { id: "a", text: "main article Dungeon Gate" },
+          { id: "b", text: "Dungeon Gate | Level 1" },
+          { id: "c", text: "quest Level 1" },
+          { id: "d", text: "<p>Level 1</p>" },
+        ],
+        correctOptionId: "b",
+        hint: "เบราว์เซอร์จะแสดงเฉพาะข้อความที่อยู่ภายในแท็ก ไม่แสดงชื่อแท็กหรือ class",
+        explanation: "เบราว์เซอร์จะไม่แสดงชื่อแท็กหรือ class แต่จะแสดงข้อความข้างในคือ Dungeon Gate และ Level 1",
+      },
+      {
+        id: "html-601-q3",
+        cellId: "F2",
+        targetLine: 2,
+        question: "เหตุใดจึงควรใช้ <article> และ <h1> แทนการใช้ <div> ทั้งหมด?",
+        options: [
+          { id: "a", text: "ทำให้ไม่ต้องเขียน CSS เลย" },
+          { id: "b", text: "ช่วยด้าน SEO และการเข้าถึง (Accessibility) ของโครงสร้างเว็บ" },
+          { id: "c", text: "ทำให้โค้ดรัน JavaScript เร็วขึ้น 10 เท่า" },
+          { id: "d", text: "เบราว์เซอร์บังคับว่าห้ามใช้ <div>" },
+        ],
+        correctOptionId: "b",
+        hint: "นึกถึงประโยชน์ของการบอกความหมายของโครงสร้างเว็บให้ Search Engine และ Screen Reader",
+        explanation: "Semantic HTML ช่วยให้ Search Engine และเครื่องมือช่วยอ่านหน้าจอเข้าใจความหมายของแต่ละส่วนได้ถูกต้อง",
+      },
+    ],
+    modifyChallenge: {
+      instruction: "ลองเปลี่ยนหัวข้อ <h1> จาก Dungeon Gate เป็น 'Crystal Hall' แล้วสังเกตผลลัพธ์",
+      suggestedCode: `<main>
+  <article class="quest">
+    <h1>Crystal Hall</h1>
+    <p>Level 1</p>
+  </article>
+</main>`,
+      changeDescription: "เปลี่ยนข้อความภายในแท็ก <h1> เป็น Crystal Hall",
+      options: ["Crystal Hall | Level 1", "Dungeon Gate | Level 1", "quest | Level 1"],
+      explanation: "การแก้ไขเนื้อหาภายใน <h1> จะเปลี่ยนข้อความหัวข้อที่แสดงผลโดยยังคงโครงสร้างเดิม",
+    },
+    badgeReward: {
+      id: "badge-html-semantic",
+      name: "สถาปนิกแท็ก Semantic",
+      description: "เข้าใจโครงสร้างและหน้าที่ของ Semantic HTML Tags",
+    },
+  },
+  {
+    id: 602,
+    title: "HTML/CSS ด่านที่ 2 · CSS Box Model และ Flexbox",
+    shortName: "HTML 2 · Box & Flex",
+    subtitle: "คำนวณขนาดจริงของกล่อง UI ด้วย Box Model และการจัดเรียงด้วย Flexbox",
+    code: `<style>
+  .box { width: 100px; padding: 10px; border: 2px solid #000; }
+</style>
+<div class="box">Shield 124px</div>`,
+    predictPrompt:
+      "ภายใต้ค่าเริ่มต้น (content-box) ความกว้างรวมทั้งหมดของกล่อง .box บนหน้าจอคือเท่าใด?",
+    predictOptions: ["124px", "100px", "112px", "120px"],
+    predictExplanation:
+      "100 + padding ซ้ายขวา (10+10) + border ซ้ายขวา (2+2) = 124px",
+    steps: [
+      {
+        stepNumber: 1,
+        line: 2,
+        codeLine: `  .box { width: 100px; padding: 10px; border: 2px solid #000; }`,
+        variables: { width: "100px", paddingLR: "20px", borderLR: "4px" },
+        outputSoFar: [],
+        explanation: "ค่าเริ่มต้นของ box-sizing คือ content-box: ความกว้างรวม = width(100) + padding ซ้ายขวา(10+10) + border ซ้ายขวา(2+2)",
+      },
+      {
+        stepNumber: 2,
+        line: 4,
+        codeLine: `<div class="box">Shield 124px</div>`,
+        variables: { totalWidth: "124px", text: "Shield 124px" },
+        outputSoFar: ["Shield 124px"],
+        explanation: "กล่อง .box จะมีความกว้างรวมจริง 100 + 20 + 4 = 124px",
+      },
+    ],
+    questions: [
+      {
+        id: "html-602-q1",
+        cellId: "T2",
+        targetLine: 2,
+        question: "หากต้องการให้ width: 100px รวม padding และ border เข้าไว้ด้วยกันเลย ต้องเพิ่ม CSS ใด?",
+        options: [
+          { id: "a", text: "box-sizing: border-box;" },
+          { id: "b", text: "display: inline;" },
+          { id: "c", text: "margin: auto;" },
+          { id: "d", text: "position: relative;" },
+        ],
+        correctOptionId: "a",
+        hint: "ใช้ property ที่ควบคุมวิธีคำนวณขนาดกล่อง (box-sizing)",
+        explanation: "box-sizing: border-box ทำให้ width ที่กำหนดเป็นความกว้างสุทธิรวม padding และ border แล้ว",
+      },
+      {
+        id: "html-602-q2",
+        cellId: "E1",
+        targetLine: 2,
+        question: "ภายใต้ค่าเริ่มต้น (content-box) ความกว้างรวมทั้งหมดของ .box คือเท่าใด?",
+        options: [
+          { id: "a", text: "100px" },
+          { id: "b", text: "112px" },
+          { id: "c", text: "120px" },
+          { id: "d", text: "124px" },
+        ],
+        correctOptionId: "d",
+        hint: "อย่าลืมบวก padding และ border ทั้งฝั่งซ้ายและฝั่งขวา (คูณ 2)",
+        explanation: "100 + (10 * 2) + (2 * 2) = 124px เพราะ padding และ border มีทั้งด้านซ้ายและด้านขวา",
+      },
+      {
+        id: "html-602-q3",
+        cellId: "F3",
+        targetLine: 3,
+        question: "ใน Flexbox หากต้องการจัดลูกๆ ให้อยู่กึ่งกลางแนวนอน ควรใช้ Property ใดบน Container?",
+        options: [
+          { id: "a", text: "justify-content: center;" },
+          { id: "b", text: "font-align: center;" },
+          { id: "c", text: "float: middle;" },
+          { id: "d", text: "box-center: true;" },
+        ],
+        correctOptionId: "a",
+        hint: "property ของ Flexbox ที่ใช้จัดตำแหน่งตามแกนหลัก (main axis)",
+        explanation: "justify-content: center จัดตำแหน่งไอเท็มตามแกนหลัก (ค่าเริ่มต้นคือแนวนอน)",
+      },
+    ],
+    modifyChallenge: {
+      instruction: "ลองเปลี่ยนข้อความใน <div class=\"box\"> เป็น 'Shield 100px' เพื่อจำลองโหมด border-box",
+      suggestedCode: `<style>
+  .box { box-sizing: border-box; width: 100px; padding: 10px; border: 2px solid #000; }
+</style>
+<div class="box">Shield 100px</div>`,
+      changeDescription: "เพิ่ม box-sizing: border-box และอัปเดตข้อความเป็น Shield 100px",
+      options: ["Shield 100px", "Shield 124px", "100px"],
+      explanation: "เมื่อใช้ border-box ความกว้างรวมของกล่องจะคงที่ที่ 100px ไม่ล้นเลย์เอาต์",
+    },
+    badgeReward: {
+      id: "badge-html-box",
+      name: "จอมเวท Box Model",
+      description: "คำนวณขนาด CSS Box Model และจัดวาง Flexbox ได้แม่นยำ",
+    },
+  },
+  {
+    id: 603,
+    title: "HTML/CSS ด่านบอส · CSS Specificity & บั๊กเลย์เอาต์จาก AI",
+    shortName: "HTML 3 · Specificity Boss",
+    isBoss: true,
+    subtitle: "ปราบบอสป้อมปราการเว็บ! จับบั๊ก CSS Specificity ที่ AI เขียนทับจนปุ่มเปลี่ยนสีไม่ได้",
+    aiScenario:
+      "AI สร้าง CSS ให้ปุ่ม: `#action-btn { color: red; }` แล้วเขียน `.btn-safe { color: green; }` ไว้ข้างล่าง แต่ปุ่มยังคงเป็นสีแดง!",
+    code: `<style>
+  #action-btn { color: red; }
+  .btn-safe { color: green; }
+</style>
+<button id="action-btn" class="btn-safe">Save Game</button>`,
+    predictPrompt:
+      "จากกฎ CSS ด้านบน สีตัวอักษรของปุ่ม 'Save Game' ที่แสดงบนหน้าเว็บจริงคือสีใด?",
+    predictOptions: ["red", "green", "black", "transparent"],
+    predictExplanation:
+      "#action-btn เป็น ID Selector ที่มี Specificity (1,0,0) ซึ่งสูงกว่า .btn-safe (0,1,0) ดังนั้นปุ่มจึงเป็นสี red",
+    steps: [
+      {
+        stepNumber: 1,
+        line: 2,
+        codeLine: `  #action-btn { color: red; }`,
+        variables: { specificity: "(1, 0, 0)", color: "red" },
+        outputSoFar: [],
+        explanation: "ID Selector (#action-btn) มีน้ำหนัก Specificity สูงมากคือ (1, 0, 0)",
+      },
+      {
+        stepNumber: 2,
+        line: 3,
+        codeLine: `  .btn-safe { color: green; }`,
+        variables: { specificity: "(0, 1, 0)", winner: "#action-btn (red)" },
+        outputSoFar: [],
+        explanation: "Class Selector (.btn-safe) มีน้ำหนักแค่ (0, 1, 0) แม้จะเขียนทีหลังก็แพ้ ID Selector!",
+      },
+      {
+        stepNumber: 3,
+        line: 5,
+        codeLine: `<button id="action-btn" class="btn-safe">Save Game</button>`,
+        variables: { renderedColor: "red", text: "Save Game" },
+        outputSoFar: ["Save Game"],
+        explanation: "ข้อความบนปุ่ม 'Save Game' จึงแสดงผลเป็นสีแดง (red) แทนที่จะเป็นสีเขียว",
+      },
+    ],
+    questions: [
+      {
+        id: "html-603-q1",
+        cellId: "T3",
+        targetLine: 3,
+        question: "เหตุใด .btn-safe { color: green; } ที่อยู่บรรทัดล่างกว่าจึงไม่สามารถทับ #action-btn ได้?",
+        options: [
+          { id: "a", text: "เพราะ Class Selector ใช้กับปุ่ม <button> ไม่ได้" },
+          { id: "b", text: "เพราะ ID Selector (#) มีค่า Specificity สูงกว่า Class Selector (.)" },
+          { id: "c", text: "เพราะสี green ต้องเขียนเป็นตัวพิมพ์ใหญ่" },
+          { id: "d", text: "เพราะขาดเครื่องหมาย ; หลัง button" },
+        ],
+        correctOptionId: "b",
+        hint: "เปรียบเทียบน้ำหนักความเฉพาะเจาะจง (Specificity) ระหว่าง #id กับ .class",
+        explanation: "ใน CSS ลำดับ Specificity คือ Inline style > ID (#) > Class (.) > Tag ดังนั้น #action-btn จึงชนะเสมอ",
+      },
+      {
+        id: "html-603-q2",
+        cellId: "E3",
+        targetLine: 2,
+        question: "จากโค้ดด้านบน สีตัวอักษรของปุ่ม 'Save Game' ที่แสดงบนหน้าเว็บจริงคือสีใด?",
+        options: [
+          { id: "a", text: "green" },
+          { id: "b", text: "red" },
+          { id: "c", text: "black" },
+          { id: "d", text: "transparent" },
+        ],
+        correctOptionId: "b",
+        hint: "ดูว่า selector ไหนชนะตามกฎ Specificity (#action-btn หรือ .btn-safe)",
+        explanation: "#action-btn มีน้ำหนัก (1,0,0) ชนะ .btn-safe (0,1,0) สีจึงเป็น red",
+      },
+      {
+        id: "html-603-q3",
+        cellId: "F4",
+        targetLine: 2,
+        question: "วิธีแก้โค้ด AI นี้ให้ดูแลรักษาง่ายและเป็น Best Practice ที่สุดคือข้อใด?",
+        options: [
+          { id: "a", text: "เปลี่ยนไปใช้ Class Selector ทั้งคู่ เช่น .btn-danger และ .btn-safe แทนการใช้ #id" },
+          { id: "b", text: "ใส่ !important ที่ทุกบรรทัดในไฟล์ CSS" },
+          { id: "c", text: "ลบแท็ก <button> ออกแล้วใช้ <p> แทน" },
+          { id: "d", text: "เขียน <style> ซ้ำ 3 รอบ" },
+        ],
+        correctOptionId: "a",
+        hint: "การทำให้ selector มีระดับความเฉพาะเจาะจงเท่ากันจะช่วยลดปัญหาทับซ้อน",
+        explanation: "การหลีกเลี่ยง #id ใน CSS และใช้ Class ที่มี Specificity เท่ากันจะทำให้การ override ตามลำดับบรรทัดคาดเดาได้ง่าย",
+      },
+    ],
+    modifyChallenge: {
+      instruction: "ลองแก้บั๊กปุ่ม Save Game ให้มีข้อความ 'Save Game (Green)' เพื่อยืนยันการแก้ Selector",
+      suggestedCode: `<style>
+  .btn-danger { color: red; }
+  .btn-safe { color: green; }
+</style>
+<button class="btn-danger btn-safe">Save Game (Green)</button>`,
+      changeDescription: "เปลี่ยนจาก #id เป็น .class เพื่อให้ .btn-safe override ได้ตามลำดับ",
+      options: ["Save Game (Green)", "Save Game", "red"],
+      explanation: "เมื่อทั้งคู่เป็น Class Selector ที่มีน้ำหนัก (0,1,0) เท่ากัน กฎที่อยู่ด้านล่าง (.btn-safe) จะชนะทันที",
+    },
+    badgeReward: {
+      id: "badge-html-boss",
+      name: "ผู้พิชิตป้อมปราการ HTML/CSS",
+      description: "เชี่ยวชาญ Semantic HTML, Box Model, Flexbox และ CSS Specificity",
+    },
+  },
+];
+
 export function getTopicsByLanguage(lang: LearningLanguage): TopicQuest[] {
   if (lang === "python") return PYTHON_TOPICS;
   if (lang === "sql") return SQL_TOPICS;
   if (lang === "typescript") return TYPESCRIPT_TOPICS;
   if (lang === "cpp") return CPP_TOPICS;
   if (lang === "java") return JAVA_TOPICS;
+  if (lang === "html") return HTML_TOPICS;
   return TOPICS;
 }
 
@@ -1901,6 +2267,10 @@ export function runCodeByLanguage(
 
   if (lang === "java") {
     return runJavaSimulated(code);
+  }
+
+  if (lang === "html") {
+    return runHtmlCssSimulated(code);
   }
 
   return runSqlSimulated(code);
@@ -2367,6 +2737,42 @@ class __JavaString {
       finalOutput: "",
       success: false,
       error: err instanceof Error ? err.message : "ไม่สามารถรันโค้ด Java นี้ได้",
+    };
+  }
+}
+
+function runHtmlCssSimulated(code: string): {
+  outputs: string[];
+  finalOutput: string;
+  success: boolean;
+  error?: string;
+} {
+  try {
+    const withoutStylesOrScripts = code
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ");
+
+    const textMatches = Array.from(
+      withoutStylesOrScripts.matchAll(/>([^<]+)</g),
+      (m) => m[1].replace(/\s+/g, " ").trim()
+    ).filter(Boolean);
+
+    const outputs =
+      textMatches.length > 0
+        ? [textMatches.join(" | ")]
+        : [withoutStylesOrScripts.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()].filter(Boolean);
+
+    return {
+      outputs,
+      finalOutput: outputs[0] ?? "",
+      success: true,
+    };
+  } catch (err) {
+    return {
+      outputs: [],
+      finalOutput: "",
+      success: false,
+      error: err instanceof Error ? err.message : "ไม่สามารถแสดงผลโค้ด HTML/CSS นี้ได้",
     };
   }
 }

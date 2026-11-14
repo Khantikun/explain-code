@@ -96,6 +96,7 @@ const SUPPORTED_LANGUAGES: LearningLanguage[] = [
   "typescript",
   "cpp",
   "java",
+  "html",
 ];
 
 function isValidLearningLanguage(val: string | null): val is LearningLanguage {
@@ -120,6 +121,8 @@ function getJoinCodePlaceholder(lang: LearningLanguage): string {
       return "CPP2026";
     case "java":
       return "JAVA2026";
+    case "html":
+      return "HTML2026";
     default:
       return "JS2026";
   }
@@ -195,13 +198,24 @@ function isCourseForLanguage(
       lessonLangs.includes("java")
     );
   }
+  if (lang === "html") {
+    return (
+      course.id.includes("html") ||
+      titleUpper.includes("HTML") ||
+      titleUpper.includes("CSS") ||
+      codeUpper.startsWith("HTML") ||
+      lessonLangs.includes("html") ||
+      lessonLangs.includes("css")
+    );
+  }
 
   const isOtherTrack =
     isCourseForLanguage(course, courseLessons, "python") ||
     isCourseForLanguage(course, courseLessons, "sql") ||
     isCourseForLanguage(course, courseLessons, "typescript") ||
     isCourseForLanguage(course, courseLessons, "cpp") ||
-    isCourseForLanguage(course, courseLessons, "java");
+    isCourseForLanguage(course, courseLessons, "java") ||
+    isCourseForLanguage(course, courseLessons, "html");
   return !isOtherTrack || lessonLangs.includes("javascript");
 }
 
@@ -222,8 +236,9 @@ function CoursesContent() {
     useState<AvatarKey>(DEFAULT_AVATAR);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
-  // Student & quest state (empty until logged in; guests never load or save progress)
+  // Student & quest state (empty until logged in; guests keep in-memory session progress only)
   const [students, setStudents] = useState<StudentRecord[]>([]);
+  const [guestProgress, setGuestProgress] = useState<StudentRecord>(GUEST_STUDENT);
   const [currentStudentId, setCurrentStudentId] = useState<string>("stu-1");
   const [selectedTopicId, setSelectedTopicId] = useState<number>(1);
   const [unlockAllDemo, setUnlockAllDemo] = useState<boolean>(false);
@@ -547,7 +562,7 @@ function CoursesContent() {
         cellScores: { ...GUEST_CELL_SCORES },
         history: [],
       }
-    : GUEST_STUDENT;
+    : guestProgress;
 
   const currentAvatar = getAvatar(selectedAvatarKey);
   const currentLanguage: LearningLanguage = selectedLanguage || "javascript";
@@ -583,10 +598,16 @@ function CoursesContent() {
   const isTopicUnlocked = (topicId: number, idx: number): boolean => {
     if (unlockAllDemo) return true;
     if (idx === 0) return true;
-    if (topicId === 7) {
-      return currentStudent.completedTopics.length >= 4;
-    }
     const prevTopic = currentLanguageTopics[idx - 1];
+    if (topicId === 7) {
+      const completedInTrack = currentLanguageTopics
+        .slice(0, idx)
+        .filter((tp) => currentStudent.completedTopics.includes(tp.id)).length;
+      return (
+        completedInTrack >= 4 ||
+        (prevTopic ? currentStudent.completedTopics.includes(prevTopic.id) : false)
+      );
+    }
     return prevTopic
       ? currentStudent.completedTopics.includes(prevTopic.id)
       : true;
@@ -664,20 +685,41 @@ function CoursesContent() {
       updatedStudents.push(optimisticStudent);
     }
 
+    const currentIdx = currentLanguageTopics.findIndex(
+      (tp) => tp.id === result.topicId
+    );
+    const nextTopic =
+      currentIdx >= 0 && currentIdx + 1 < currentLanguageTopics.length
+        ? currentLanguageTopics[currentIdx + 1]
+        : null;
+
     if (!session) {
+      setGuestProgress(optimisticStudent);
       setGuestNotice(
         t(
-          "คุณผ่านด่านนี้ในโหมดทดลอง (Guest) — ความคืบหน้าจะไม่ถูกบันทึก เข้าสู่ระบบเพื่อเก็บ XP และปลดล็อกด่านถัดไป",
-          "Cleared in Guest mode — progress is not saved. Log in to save XP and unlock the next floor."
+          "คุณผ่านด่านนี้ในโหมดทดลอง (Guest) — ปลดล็อกด่านถัดไปชั่วคราวแล้ว (เข้าสู่ระบบเพื่อบันทึกถาวร)",
+          "Cleared in Guest mode — next floor temporarily unlocked (log in to save permanently)."
         )
       );
-      setPlayAttemptNonce((n) => n + 1);
-      setActiveTab("quest");
+      if (nextTopic) {
+        setSelectedTopicId(nextTopic.id);
+        setPlayAttemptNonce((n) => n + 1);
+        setActiveTab("practice");
+      } else {
+        setPlayAttemptNonce((n) => n + 1);
+        setActiveTab("quest");
+      }
       return;
     }
 
     saveStudentsToStorage(updatedStudents);
-    setActiveTab("learn");
+    if (nextTopic) {
+      setSelectedTopicId(nextTopic.id);
+      setPlayAttemptNonce((n) => n + 1);
+      setActiveTab("practice");
+    } else {
+      setActiveTab("quest");
+    }
 
     void (async () => {
       try {
@@ -1409,7 +1451,10 @@ function CoursesContent() {
                     <span>{t("เลือกตัวละครของคุณก่อนลุยชั้นนี้", "Choose Your Hero Before Entering Floor")}</span>
                   </h3>
                   <span className="text-xs text-[#9a93ad]">
-                    {t("คลิกที่การ์ดเพื่อเลือกตัวละคร", "Click a hero card to select")}
+                    {t(
+                      "คลิกเพื่อเลือก · ดับเบิ้ลคลิกที่การ์ดเพื่อลุยทันที",
+                      "Click to select · Double-click card to enter immediately"
+                    )}
                   </span>
                 </div>
                 <p className="text-xs text-[#9a93ad] leading-relaxed">
@@ -1421,70 +1466,156 @@ function CoursesContent() {
               </div>
 
               {/* 4 Hero Selection Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 {AVATARS.map((av) => {
                   const isSelected = av.key === selectedAvatarKey;
                   return (
-                    <button
+                    <div
                       key={av.key}
-                      type="button"
+                      role="button"
+                      tabIndex={0}
                       onClick={() => {
                         setSelectedAvatarKey(av.key);
                         try {
                           localStorage.setItem(STORAGE_AVATAR_KEY, av.key);
                         } catch {}
                       }}
-                      className={`retro-card p-4 sm:p-5 rounded-2xl text-left cursor-pointer flex flex-col justify-between gap-4 transition-all relative ${
+                      onDoubleClick={() => handleConfirmHeroAndPlay(av.key)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          if (isSelected) {
+                            handleConfirmHeroAndPlay(av.key);
+                          } else {
+                            setSelectedAvatarKey(av.key);
+                            try {
+                              localStorage.setItem(STORAGE_AVATAR_KEY, av.key);
+                            } catch {}
+                          }
+                        }
+                      }}
+                      className={`retro-card p-4 sm:p-5 rounded-2xl text-left cursor-pointer flex flex-col justify-between gap-3.5 transition-all relative select-none ${
                         isSelected
                           ? "border-[#f6c945] bg-gradient-to-b from-[#2a1746] to-[#1c1b2b] shadow-[0_0_20px_rgba(246,201,69,0.3)] ring-2 ring-[#f6c945]"
                           : "border-[#2f2d45] bg-[#141220] hover:bg-[#1c1b2b] hover:border-[#3d395a]"
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`p-2.5 rounded-xl border flex items-center justify-center shrink-0 ${
-                            isSelected
-                              ? "bg-[#0d0b14] border-[#f6c945]"
-                              : "bg-[#0d0b14] border-[#2f2d45]"
-                          }`}
-                        >
-                          <PixelSpriteView
-                            sprite={av.sprite}
-                            size={44}
-                            animateBounce={isSelected}
-                          />
+                      <div className="space-y-3">
+                        {/* Header: Sprite + Name + Role */}
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`p-2 rounded-xl border flex items-center justify-center shrink-0 ${
+                              isSelected
+                                ? "bg-[#0d0b14] border-[#f6c945]"
+                                : "bg-[#0d0b14] border-[#2f2d45]"
+                            }`}
+                          >
+                            <PixelSpriteView
+                              sprite={av.sprite}
+                              size={42}
+                              animateBounce={isSelected}
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="font-extrabold text-[#f4efe6] text-sm truncate">
+                              {t(av.name, av.nameEn)}
+                            </h4>
+                            <span className="text-[11px] font-bold text-[#ffe27a] block truncate mt-0.5">
+                              {t(av.role, av.roleEn)}
+                            </span>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <h4 className="font-extrabold text-[#f4efe6] text-sm truncate">
-                            {av.name}
-                          </h4>
-                          <span className="pixel-font text-[10px] text-[#ffe27a] uppercase block mt-0.5">
-                            CLASS: {av.key}
-                          </span>
+
+                        {/* Stats Row */}
+                        <div className="grid grid-cols-3 gap-1.5 text-center">
+                          <div className="rounded-lg bg-[#0d0b14] border border-[#2f2d45] px-1.5 py-1.5">
+                            <span className="text-[10px] text-[#9a93ad] block">HP</span>
+                            <span className="pixel-font text-xs font-black text-[#ff4d6d]">
+                              ❤️ {av.stats.maxHp}
+                            </span>
+                          </div>
+                          <div className="rounded-lg bg-[#0d0b14] border border-[#2f2d45] px-1.5 py-1.5">
+                            <span className="text-[10px] text-[#9a93ad] block">MP</span>
+                            <span className="pixel-font text-xs font-black text-[#38bdf8]">
+                              💧 {av.stats.initialMp}/{av.stats.maxMp}
+                            </span>
+                          </div>
+                          <div className="rounded-lg bg-[#0d0b14] border border-[#2f2d45] px-1.5 py-1.5">
+                            <span className="text-[10px] text-[#9a93ad] block">Regen</span>
+                            <span className="pixel-font text-xs font-black text-[#2fbf71]">
+                              +{av.stats.mpRegenOnCorrect} MP
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Passive Trait */}
+                        <div className="rounded-xl bg-[#0d0b14]/90 border border-[#f6c945]/25 px-2.5 py-2 space-y-0.5">
+                          <div className="text-[10px] font-extrabold text-[#f6c945] flex items-center gap-1">
+                            <span>✦ {t(av.stats.passiveName, av.stats.passiveNameEn)}</span>
+                          </div>
+                          <p className="text-[10px] text-[#c4bdd6] leading-snug">
+                            {t(av.stats.passiveDesc, av.stats.passiveDescEn)}
+                          </p>
+                        </div>
+
+                        {/* 3 Unique Skills & Mana Costs */}
+                        <div className="space-y-1.5">
+                          <div className="text-[10px] font-extrabold text-[#9a93ad] uppercase">
+                            {t("สกิลประจำตัว (ใช้ MP):", "Signature Skills:")}
+                          </div>
+                          {av.skills.map((skill) => (
+                            <div
+                              key={skill.id}
+                              className="rounded-lg bg-[#0d0b14]/70 border border-[#2f2d45] px-2 py-1.5 flex items-start justify-between gap-2"
+                            >
+                              <div className="min-w-0">
+                                <div className="text-[11px] font-bold text-[#f4efe6] truncate">
+                                  {t(skill.name, skill.nameEn)}
+                                </div>
+                                <div className="text-[10px] text-[#9a93ad] leading-tight">
+                                  {t(skill.description, skill.descriptionEn)}
+                                </div>
+                              </div>
+                              <span
+                                className="pixel-font text-[9px] px-1.5 py-0.5 rounded border shrink-0 mt-0.5"
+                                style={{
+                                  backgroundColor: `${skill.accentColor}22`,
+                                  color: skill.accentColor,
+                                  borderColor: `${skill.accentColor}66`,
+                                }}
+                              >
+                                {skill.mpCost} MP
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       </div>
 
-                      <p className="text-xs text-[#9a93ad] leading-relaxed line-clamp-3">
-                        {av.description}
-                      </p>
-
-                      <div className="pt-3 border-t border-[#2f2d45] flex items-center justify-between text-xs">
+                      {/* Selection Footer */}
+                      <div className="pt-2.5 border-t border-[#2f2d45] flex items-center justify-between gap-2 text-xs">
                         <span
                           className={`text-[11px] font-bold ${
                             isSelected ? "text-[#f6c945]" : "text-[#9a93ad]"
                           }`}
                         >
                           {isSelected
-                            ? t("✓ เลือกตัวนี้แล้ว", "✓ Selected")
-                            : t("กดเพื่อเลือก", "Click to select")}
+                            ? t("✓ เลือกแล้ว (ดับเบิ้ลคลิกเพื่อลุย)", "✓ Selected (2x click to play)")
+                            : t("คลิกเพื่อเลือก · ดับเบิ้ลคลิกเพื่อลุย", "Click to select · 2x click to play")}
                         </span>
                         {isSelected && (
-                          <span className="pixel-font text-[9px] bg-[#f6c945] text-[#120f1c] px-2 py-0.5 rounded font-black">
-                            READY
-                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleConfirmHeroAndPlay(av.key);
+                            }}
+                            className="pixel-font text-[9px] bg-[#f6c945] hover:bg-[#ffe27a] text-[#120f1c] px-2.5 py-1 rounded font-black cursor-pointer shrink-0 transition-colors"
+                          >
+                            {t("ลุยเลย →", "PLAY →")}
+                          </button>
                         )}
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

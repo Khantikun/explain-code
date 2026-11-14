@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { MonsterDef } from "../../lib/dungeon/monsters";
 import { DungeonQuestion, DungeonTraceStep } from "../../lib/dungeon/questions";
-import { HEART_SPRITE } from "../../lib/dungeon/sprites";
+import { AvatarKey, getAvatar, HEART_SPRITE, HeroSkillDef } from "../../lib/dungeon/sprites";
 import { runCodeByLanguage } from "../../lib/language-tracks";
 import { PixelSpriteView } from "./PixelSpriteView";
 import { dungeonSound } from "../../lib/dungeon/sound";
@@ -26,6 +26,8 @@ interface BattleOverlayProps {
   monsterHp: number;
   maxMonsterHp: number;
   playerHearts: number;
+  maxPlayerHearts?: number;
+  avatarKey?: AvatarKey;
   courseId?: string;
   lessonId?: string;
   initialFocus?: number;
@@ -33,6 +35,7 @@ interface BattleOverlayProps {
   localValidation?: boolean;
   onCorrectAnswer: (xpAwarded?: number, coinsAwarded?: number, lessonCompleted?: boolean) => void;
   onWrongAnswer: () => void;
+  onHealPlayer?: () => void;
   onBattleComplete?: (summary: {
     totalXp: number;
     totalCoins: number;
@@ -45,22 +48,22 @@ function buildFallbackHint(q: DungeonQuestion, isEn: boolean): string {
   const cell = (q.blockModelCell || "").toUpperCase();
   if (cell.startsWith("T")) {
     return isEn
-      ? `Block Model (${cell} · Text/Syntax): Focus closely on keywords, operators, and block boundaries in the snippet.`
-      : `คำใบ้ Block Model (${cell} · โครงสร้างโค้ด): สังเกตคีย์เวิร์ด เครื่องหมาย และขอบเขตบล็อกในโค้ดให้ละเอียด`;
+      ? "Focus closely on keywords, operators, variables, and block boundaries in the snippet."
+      : "ลองสังเกตคีย์เวิร์ด เครื่องหมาย ตัวแปร และขอบเขตบล็อกในโค้ดให้ละเอียด";
   }
   if (cell.startsWith("E")) {
     return isEn
-      ? `Block Model (${cell} · Execution): Trace each variable's value line by line as the code executes.`
-      : `คำใบ้ Block Model (${cell} · การทำงานจริง): ลองไล่ค่าตัวแปรและลำดับการทำงานทีละบรรทัดจากบนลงล่าง`;
+      ? "Trace each variable's value line by line from top to bottom as the code executes."
+      : "ลองไล่ค่าตัวแปรและลำดับการทำงานทีละบรรทัดจากบนลงล่าง";
   }
   if (cell.startsWith("F")) {
     return isEn
-      ? `Block Model (${cell} · Function/Purpose): Ask yourself what problem this block or line is trying to solve.`
-      : `คำใบ้ Block Model (${cell} · เป้าหมายโค้ด): พิจารณาว่าโค้ดส่วนนี้ถูกเขียนขึ้นมาเพื่อทำหน้าที่หรือแก้ปัญหาอะไร`;
+      ? "Ask yourself what problem or goal this block of code is trying to solve."
+      : "ลองพิจารณาว่าโค้ดส่วนนี้ถูกเขียนขึ้นมาเพื่อทำหน้าที่หรือแก้ปัญหาอะไร";
   }
   return isEn
-    ? "Eliminated 1 wrong option — compare the remaining choices carefully against the code!"
-    : "ตัดตัวเลือกที่ผิดออกให้แล้ว 1 ข้อ ลองเทียบตัวเลือกที่เหลือกับโค้ดดูอีกครั้ง!";
+    ? "Compare the remaining choices carefully against the code!"
+    : "ลองเปรียบเทียบตัวเลือกที่เหลือกับโค้ดดูอีกครั้ง!";
 }
 
 function deriveTraceSteps(q: DungeonQuestion, isEn: boolean): DungeonTraceStep[] {
@@ -121,6 +124,8 @@ export function BattleOverlay({
   monsterHp,
   maxMonsterHp,
   playerHearts,
+  maxPlayerHearts,
+  avatarKey,
   courseId,
   lessonId,
   initialFocus,
@@ -128,11 +133,17 @@ export function BattleOverlay({
   localValidation = false,
   onCorrectAnswer,
   onWrongAnswer,
+  onHealPlayer,
   onBattleComplete,
   onClose,
 }: BattleOverlayProps) {
   const { uiLang, t } = useUiLanguage();
   const isEn = uiLang === "en";
+
+  const heroDef = useMemo(() => getAvatar(avatarKey), [avatarKey]);
+  const heroStats = heroDef.stats;
+  const heroSkills = heroDef.skills;
+  const effectiveMaxHearts = maxPlayerHearts ?? heroStats.maxHp;
 
   const phaseQuestions = useMemo<DungeonQuestion[]>(() => {
     if (questions && questions.length > 0) return questions;
@@ -160,11 +171,16 @@ export function BattleOverlay({
   const [accumulatedCoins, setAccumulatedCoins] = useState<number>(0);
   const [hasReportedCompletion, setHasReportedCompletion] = useState<boolean>(false);
 
-  // Focus / Mana (MP) & 3 Tiered Relics state (max 6 MP, start at 3 MP)
-  const computedMaxFocus = maxFocus ?? 6;
+  // Focus / Mana (MP) & Hero-specific Skills + Shield state
+  const computedMaxFocus = maxFocus ?? heroStats.maxMp;
   const [focus, setFocus] = useState<number>(() =>
-    Math.min(computedMaxFocus, initialFocus ?? 3)
+    Math.min(computedMaxFocus, initialFocus ?? heroStats.initialMp)
   );
+  const [shieldCharges, setShieldCharges] = useState<number>(
+    heroStats.startingShield
+  );
+  const [usedSkillIds, setUsedSkillIds] = useState<string[]>([]);
+  const [skillCooldowns, setSkillCooldowns] = useState<Record<string, number>>({});
   const [eliminatedChoices, setEliminatedChoices] = useState<number[]>([]);
   const [revealedHint, setRevealedHint] = useState<boolean>(false);
   const [revealedTrace, setRevealedTrace] = useState<boolean>(false);
@@ -179,6 +195,7 @@ export function BattleOverlay({
     setServerExplanation("");
     setFlashDamage(null);
     setPhaseTries(0);
+    setUsedSkillIds([]);
     setEliminatedChoices([]);
     setRevealedHint(false);
     setRevealedTrace(false);
@@ -217,56 +234,28 @@ export function BattleOverlay({
     setSelectedChoice(index);
   };
 
-  // Tier 1 (1 MP): Rubber Duck Hint — Cut 1 wrong choice + short hint
-  const handleUseRubberDuck = () => {
-    if (!activeQuestion || isSubmitted || isSubmitting || revealedHint) return;
-    if (focus < 1) {
-      setRelicNotice(t("MP ไม่พอ (ต้องการ 1 MP)", "Not enough MP (needs 1 MP)"));
-      return;
-    }
-    const wrongIndices = displayChoices
-      .map((_, idx) => idx)
-      .filter((idx) => idx !== activeQuestion.correctIndex && !eliminatedChoices.includes(idx));
-
-    if (wrongIndices.length > 0) {
-      const removed = wrongIndices[0];
-      setEliminatedChoices((prev) => [...prev, removed]);
-      if (selectedChoice === removed) {
-        setSelectedChoice(null);
+  const eliminateWrongChoices = useCallback(
+    (count: number) => {
+      if (!activeQuestion) return;
+      const wrongIndices = displayChoices
+        .map((_, idx) => idx)
+        .filter(
+          (idx) =>
+            idx !== activeQuestion.correctIndex && !eliminatedChoices.includes(idx)
+        );
+      const toEliminate = wrongIndices.slice(0, count);
+      if (toEliminate.length > 0) {
+        setEliminatedChoices((prev) => [...prev, ...toEliminate]);
+        if (selectedChoice !== null && toEliminate.includes(selectedChoice)) {
+          setSelectedChoice(null);
+        }
       }
-    }
-    setRevealedHint(true);
-    setFocus((prev) => Math.max(0, prev - 1));
-    dungeonSound.playCoin();
-    setRelicNotice(
-      t("Rubber Duck Hint (-1 MP): ตัดตัวเลือกผิด 1 ข้อ + เผยคำใบ้แล้ว!", "Rubber Duck Hint (-1 MP): Cut 1 wrong choice & revealed hint!")
-    );
-  };
+    },
+    [activeQuestion, displayChoices, eliminatedChoices, selectedChoice]
+  );
 
-  // Tier 2 (2 MP): Trace Lens — Line-by-line variable trace
-  const handleUseTraceLens = () => {
-    if (!activeQuestion || isSubmitted || isSubmitting || revealedTrace) return;
-    if (focus < 2) {
-      setRelicNotice(t("MP ไม่พอ (ต้องการ 2 MP)", "Not enough MP (needs 2 MP)"));
-      return;
-    }
-    setRevealedTrace(true);
-    setTraceStepIdx(0);
-    setFocus((prev) => Math.max(0, prev - 2));
-    dungeonSound.playCoin();
-    setRelicNotice(
-      t("Trace Lens (-2 MP): เปิดตารางส่องตัวแปรทีละบรรทัดแล้ว!", "Trace Lens (-2 MP): Line-by-line variable trace unlocked!")
-    );
-  };
-
-  // Tier 3 (3 MP): Test Oracle + Crit — Simulate output + cut up to 2 wrong choices
-  const handleUseTestOracle = () => {
-    if (!activeQuestion || isSubmitted || isSubmitting || revealedOracleOutput !== null) return;
-    if (focus < 3) {
-      setRelicNotice(t("MP ไม่พอ (ต้องการ 3 MP)", "Not enough MP (needs 3 MP)"));
-      return;
-    }
-
+  const computeOracleOutput = useCallback((): string => {
+    if (!activeQuestion) return "OK";
     let outputText = activeQuestion.expectedOutput?.trim() || "";
     if (!outputText && activeQuestion.codeSnippet) {
       const sim = runCodeByLanguage(
@@ -280,23 +269,84 @@ export function BattleOverlay({
     if (!outputText) {
       outputText = displayChoices[activeQuestion.correctIndex] || "OK";
     }
+    return outputText;
+  }, [activeQuestion, displayChoices]);
 
-    const wrongIndices = displayChoices
-      .map((_, idx) => idx)
-      .filter((idx) => idx !== activeQuestion.correctIndex && !eliminatedChoices.includes(idx));
-    const toEliminate = wrongIndices.slice(0, 2);
-    if (toEliminate.length > 0) {
-      setEliminatedChoices((prev) => [...prev, ...toEliminate]);
-      if (selectedChoice !== null && toEliminate.includes(selectedChoice)) {
-        setSelectedChoice(null);
-      }
+  const handleUseHeroSkill = (skill: HeroSkillDef) => {
+    const cooldownLeft = skillCooldowns[skill.id] ?? 0;
+    if (
+      !activeQuestion ||
+      isSubmitted ||
+      isSubmitting ||
+      usedSkillIds.includes(skill.id) ||
+      cooldownLeft > 0
+    ) {
+      return;
+    }
+    if (focus < skill.mpCost) {
+      setRelicNotice(
+        t(
+          `MP ไม่พอ (ต้องการ ${skill.mpCost} MP)`,
+          `Not enough MP (needs ${skill.mpCost} MP)`
+        )
+      );
+      return;
     }
 
-    setRevealedOracleOutput(outputText);
-    setFocus((prev) => Math.max(0, prev - 3));
+    switch (skill.effect) {
+      case "hint_cut1":
+        eliminateWrongChoices(1);
+        setRevealedHint(true);
+        break;
+      case "cut1":
+        eliminateWrongChoices(1);
+        break;
+      case "shield":
+        setShieldCharges((prev) => prev + 1);
+        break;
+      case "trace":
+        setRevealedTrace(true);
+        setTraceStepIdx(0);
+        break;
+      case "trace_cut1":
+        setRevealedTrace(true);
+        setTraceStepIdx(0);
+        eliminateWrongChoices(1);
+        break;
+      case "output":
+        setRevealedOracleOutput(computeOracleOutput());
+        break;
+      case "cut2_hint":
+        eliminateWrongChoices(2);
+        setRevealedHint(true);
+        break;
+      case "output_cut2":
+        eliminateWrongChoices(2);
+        setRevealedOracleOutput(computeOracleOutput());
+        break;
+      case "cut2_heal":
+        eliminateWrongChoices(2);
+        onHealPlayer?.();
+        break;
+      case "full_oracle":
+        eliminateWrongChoices(2);
+        setRevealedTrace(true);
+        setTraceStepIdx(0);
+        setRevealedOracleOutput(computeOracleOutput());
+        break;
+    }
+
+    setUsedSkillIds((prev) => [...prev, skill.id]);
+    setSkillCooldowns((prev) => ({
+      ...prev,
+      [skill.id]: skill.cooldownPhases,
+    }));
+    setFocus((prev) => Math.max(0, prev - skill.mpCost));
     dungeonSound.playCoin();
     setRelicNotice(
-      t("Test Oracle คริติคอล (-3 MP): เผยผลรัน + ตัดผิด 2 ข้อ!", "Test Oracle Crit (-3 MP): Revealed output + cut 2 wrong choices!")
+      `${isEn ? skill.nameEn : skill.name} (-${skill.mpCost} MP): ${
+        isEn ? skill.descriptionEn : skill.description
+      } (${t(`คูลดาวน์ ${skill.cooldownPhases} เฟส`, `CD ${skill.cooldownPhases} phase${skill.cooldownPhases > 1 ? "s" : ""}`)})`
     );
   };
 
@@ -351,10 +401,12 @@ export function BattleOverlay({
     if (correct) {
       setFlashDamage("monster");
       dungeonSound.playHit();
-      setFocus((prev) => Math.min(computedMaxFocus, prev + 1));
+      setFocus((prev) => Math.min(computedMaxFocus, prev + heroStats.mpRegenOnCorrect));
 
       const firstTry = phaseTries === 0;
-      const adjustedXp = firstTry ? xp : Math.max(10, Math.round(xp * 0.75));
+      const baseAdjustedXp = firstTry ? xp : Math.max(10, Math.round(xp * 0.75));
+      const adjustedXp = Math.round(baseAdjustedXp * heroStats.xpMultiplier);
+      const adjustedCoins = Math.round(coins * heroStats.coinMultiplier);
       const newResult: BattlePhaseResult = {
         questionId: activeQuestion.id,
         blockModelCell: activeQuestion.blockModelCell,
@@ -365,7 +417,7 @@ export function BattleOverlay({
 
       const nextResults = [...phaseResults, newResult];
       const nextTotalXp = accumulatedXp + adjustedXp;
-      const nextTotalCoins = accumulatedCoins + coins;
+      const nextTotalCoins = accumulatedCoins + adjustedCoins;
 
       setPhaseResults(nextResults);
       setAccumulatedXp(nextTotalXp);
@@ -382,10 +434,10 @@ export function BattleOverlay({
             phaseResults: nextResults,
           });
         } else {
-          onCorrectAnswer(xp, coins, isLessonDone);
+          onCorrectAnswer(adjustedXp, adjustedCoins, isLessonDone);
           onBattleComplete?.({
-            totalXp: xp,
-            totalCoins: coins,
+            totalXp: adjustedXp,
+            totalCoins: adjustedCoins,
             phaseResults: nextResults,
           });
         }
@@ -394,7 +446,17 @@ export function BattleOverlay({
       setFlashDamage("player");
       setPhaseTries((prev) => prev + 1);
       dungeonSound.playHurt();
-      onWrongAnswer();
+      if (shieldCharges > 0) {
+        setShieldCharges((prev) => Math.max(0, prev - 1));
+        setRelicNotice(
+          t(
+            "🛡️ โล่ป้องกันทำงาน! ดูดซับดาเมจสำเร็จ ไม่เสียหัวใจ",
+            "🛡️ Shield Blocked! Absorbed damage without losing a heart."
+          )
+        );
+      } else {
+        onWrongAnswer();
+      }
     }
   }, [
     activeQuestion,
@@ -413,26 +475,45 @@ export function BattleOverlay({
     phaseIndex,
     totalPhases,
     computedMaxFocus,
+    heroStats,
+    shieldCharges,
     hasReportedCompletion,
     onCorrectAnswer,
     onBattleComplete,
     onWrongAnswer,
+    t,
   ]);
 
   const handleNextPhase = useCallback(() => {
     if (phaseIndex < totalPhases - 1) {
+      setSkillCooldowns((prev) => {
+        const next: Record<string, number> = {};
+        for (const [skillId, cd] of Object.entries(prev)) {
+          if (usedSkillIds.includes(skillId)) {
+            next[skillId] = cd;
+          } else if (cd > 1) {
+            next[skillId] = cd - 1;
+          }
+        }
+        return next;
+      });
       setPhaseIndex((prev) => prev + 1);
       resetPhaseInteraction();
     }
-  }, [phaseIndex, totalPhases, resetPhaseInteraction]);
+  }, [phaseIndex, totalPhases, usedSkillIds, resetPhaseInteraction]);
 
   const handleRetryPhase = useCallback(() => {
+    if (selectedChoice !== null) {
+      setEliminatedChoices((prev) =>
+        prev.includes(selectedChoice) ? prev : [...prev, selectedChoice]
+      );
+    }
     setSelectedChoice(null);
     setIsSubmitted(false);
     setIsCorrect(null);
     setServerExplanation("");
     setFlashDamage(null);
-  }, []);
+  }, [selectedChoice]);
 
   // Keyboard shortcut listener for Escape, numbers 1-4, and Enter
   useEffect(() => {
@@ -561,15 +642,25 @@ export function BattleOverlay({
             </div>
           </div>
 
-          {/* Right Card: Player Vitals (Hearts + MP) */}
+          {/* Right Card: Player Vitals (Hearts + Shield + MP) */}
           <div className="sm:col-span-5 flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-[#120f1c] border border-[#38bdf8]/35">
             <div className="flex-1 min-w-0 space-y-1.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-extrabold text-[#9a93ad] uppercase">
-                  {t("ผู้เล่น", "PLAYER")}
-                </span>
-                <div className="flex items-center gap-1" title={t("พลังชีวิต", "Player Hearts")}>
-                  {Array.from({ length: 3 }).map((_, idx) => (
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="text-[10px] font-extrabold text-[#ffe27a] truncate">
+                    {isEn ? heroDef.nameEn : heroDef.name}
+                  </span>
+                  {shieldCharges > 0 && (
+                    <span
+                      className="pixel-font text-[9px] px-1.5 py-0.5 rounded bg-[#38bdf8]/20 text-[#38bdf8] border border-[#38bdf8]/50 shrink-0"
+                      title={t("โล่ป้องกันความเสียหาย", "Damage Shield Charges")}
+                    >
+                      🛡️×{shieldCharges}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0" title={t("พลังชีวิต", "Player Hearts")}>
+                  {Array.from({ length: effectiveMaxHearts }).map((_, idx) => (
                     <span
                       key={idx}
                       className={idx < playerHearts ? "opacity-100" : "opacity-25 grayscale"}
@@ -631,12 +722,17 @@ export function BattleOverlay({
           )}
         </div>
 
-        {/* Scaled Mana (MP) Relics / Skills Bar (1 MP -> 2 MP -> 3 MP) */}
+        {/* Hero-Specific Scaled Mana (MP) Skills Bar */}
         <div className="rounded-xl bg-[#120f1c] border border-[#4a4766] p-3 space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-[11px] font-extrabold text-[#38bdf8] flex items-center gap-1.5">
               <Icon name="sparkles" size={14} />
-              <span>{t("สกิลช่วยสู้ (ตอบถูก +1 MP)", "Battle Skills (Correct +1 MP)")}</span>
+              <span>
+                {t(
+                  `สกิลของ${heroDef.name} (ตอบถูก +${heroStats.mpRegenOnCorrect} MP)`,
+                  `${heroDef.nameEn} Skills (Correct +${heroStats.mpRegenOnCorrect} MP)`
+                )}
+              </span>
             </span>
             <span className="pixel-font text-[10px] text-[#ffe27a]">
               💧 {focus}/{computedMaxFocus} MP
@@ -644,97 +740,83 @@ export function BattleOverlay({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            {/* Tier 1 (1 MP): Rubber Duck Hint */}
-            <button
-              type="button"
-              disabled={isSubmitted || revealedHint || focus < 1}
-              onClick={handleUseRubberDuck}
-              className={`px-2.5 py-2 rounded-lg border text-left transition flex items-start gap-2 text-[11px] font-bold cursor-pointer ${
-                revealedHint
-                  ? "bg-[#5a2d91]/30 border-[#f6c945]/50 text-[#ffe27a]"
-                  : focus < 1 || isSubmitted
-                  ? "bg-[#1c1b2b] border-[#2f2d45] text-[#6b6580] cursor-not-allowed opacity-60"
-                  : "bg-[#252238] border-[#4a4766] hover:border-[#f6c945] text-[#f4efe6]"
-              }`}
-              title={t("Tier 1 · ตัดตัวเลือกผิด 1 ข้อ + คำใบ้ (1 MP)", "Tier 1 · Cut 1 wrong choice + hint (1 MP)")}
-            >
-              <Icon name="bulb" size={15} className="text-[#f6c945] shrink-0 mt-0.5" />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1">
-                  <span className="truncate font-extrabold">Rubber Duck</span>
-                  <span className="pixel-font text-[9px] px-1.5 py-0.5 rounded bg-[#f6c945]/20 text-[#ffe27a] border border-[#f6c945]/40 shrink-0">
-                    1 MP
-                  </span>
-                </div>
-                <div className="text-[10px] text-[#9a93ad] truncate mt-0.5">
-                  {revealedHint
-                    ? t("✓ เปิดใช้แล้ว", "✓ Active")
-                    : t("ตัดผิด 1 + คำใบ้", "Cut 1 + Hint")}
-                </div>
-              </div>
-            </button>
+            {heroSkills.map((skill) => {
+              const isUsed = usedSkillIds.includes(skill.id);
+              const cooldownRemaining = skillCooldowns[skill.id] ?? 0;
+              const isOnCooldown = !isUsed && cooldownRemaining > 0;
+              const notEnoughMp = focus < skill.mpCost;
+              const disabled = isSubmitted || isUsed || isOnCooldown || notEnoughMp;
 
-            {/* Tier 2 (2 MP): Trace Lens */}
-            <button
-              type="button"
-              disabled={isSubmitted || revealedTrace || focus < 2}
-              onClick={handleUseTraceLens}
-              className={`px-2.5 py-2 rounded-lg border text-left transition flex items-start gap-2 text-[11px] font-bold cursor-pointer ${
-                revealedTrace
-                  ? "bg-[#0c4a6e]/40 border-[#38bdf8]/60 text-[#38bdf8]"
-                  : focus < 2 || isSubmitted
-                  ? "bg-[#1c1b2b] border-[#2f2d45] text-[#6b6580] cursor-not-allowed opacity-60"
-                  : "bg-[#252238] border-[#4a4766] hover:border-[#38bdf8] text-[#f4efe6]"
-              }`}
-              title={t("Tier 2 · ส่องตารางค่าตัวแปรทีละบรรทัด (2 MP)", "Tier 2 · Step-by-step variable trace (2 MP)")}
-            >
-              <Icon name="eye" size={15} className="text-[#38bdf8] shrink-0 mt-0.5" />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1">
-                  <span className="truncate font-extrabold">Trace Lens</span>
-                  <span className="pixel-font text-[9px] px-1.5 py-0.5 rounded bg-[#38bdf8]/20 text-[#38bdf8] border border-[#38bdf8]/40 shrink-0">
-                    2 MP
+              return (
+                <button
+                  key={skill.id}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => handleUseHeroSkill(skill)}
+                  className={`px-2.5 py-2 rounded-lg border text-left transition flex items-start gap-2 text-[11px] font-bold ${
+                    isUsed
+                      ? "bg-[#5a2d91]/30 border-[#f6c945]/50 text-[#ffe27a] cursor-default"
+                      : isOnCooldown
+                      ? "bg-[#1a1626] border-[#f97316]/40 text-[#fdba74] cursor-not-allowed opacity-75"
+                      : notEnoughMp || isSubmitted
+                      ? "bg-[#1c1b2b] border-[#2f2d45] text-[#6b6580] cursor-not-allowed opacity-60"
+                      : "bg-[#252238] border-[#4a4766] hover:border-[#f6c945] text-[#f4efe6] cursor-pointer"
+                  }`}
+                  title={`Tier ${skill.tier} · ${isEn ? skill.descriptionEn : skill.description} (${skill.mpCost} MP · CD ${skill.cooldownPhases})`}
+                >
+                  <span
+                    className="shrink-0 mt-0.5"
+                    style={{
+                      color: isUsed
+                        ? "#ffe27a"
+                        : isOnCooldown
+                        ? "#f97316"
+                        : skill.accentColor,
+                    }}
+                  >
+                    <Icon name={skill.icon} size={15} />
                   </span>
-                </div>
-                <div className="text-[10px] text-[#9a93ad] truncate mt-0.5">
-                  {revealedTrace
-                    ? t("✓ เปิดใช้แล้ว", "✓ Active")
-                    : t("ส่องตัวแปรทีละบรรทัด", "Step variable trace")}
-                </div>
-              </div>
-            </button>
-
-            {/* Tier 3 (3 MP): Test Oracle + Crit */}
-            <button
-              type="button"
-              disabled={isSubmitted || revealedOracleOutput !== null || focus < 3}
-              onClick={handleUseTestOracle}
-              className={`px-2.5 py-2 rounded-lg border text-left transition flex items-start gap-2 text-[11px] font-bold cursor-pointer ${
-                revealedOracleOutput !== null
-                  ? "bg-[#1a7a4a]/30 border-[#2fbf71]/60 text-[#2fbf71]"
-                  : focus < 3 || isSubmitted
-                  ? "bg-[#1c1b2b] border-[#2f2d45] text-[#6b6580] cursor-not-allowed opacity-60"
-                  : "bg-[#252238] border-[#a855f7]/60 hover:border-[#f6c945] text-[#f4efe6]"
-              }`}
-              title={t("Tier 3 · รันดูผลลัพธ์จริง + ตัดผิด 2 ข้อ! (3 MP)", "Tier 3 · Run output + Cut 2 wrong! (3 MP)")}
-            >
-              <Icon name="play" size={15} className="text-[#2fbf71] shrink-0 mt-0.5" filled />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1">
-                  <span className="truncate font-extrabold">
-                    {t("Test Oracle + คริ", "Test Oracle + Crit")}
-                  </span>
-                  <span className="pixel-font text-[9px] px-1.5 py-0.5 rounded bg-[#a855f7]/30 text-[#e9d5ff] border border-[#a855f7]/60 shrink-0">
-                    3 MP
-                  </span>
-                </div>
-                <div className="text-[10px] text-[#9a93ad] truncate mt-0.5">
-                  {revealedOracleOutput !== null
-                    ? t("✓ เปิดใช้แล้ว", "✓ Active")
-                    : t("รันโค้ด + ตัดผิด 2!", "Run + Cut 2 wrong!")}
-                </div>
-              </div>
-            </button>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="truncate font-extrabold">
+                        {isEn ? skill.nameEn : skill.name}
+                      </span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {isOnCooldown ? (
+                          <span className="pixel-font text-[9px] px-1.5 py-0.5 rounded bg-[#f97316]/20 text-[#fdba74] border border-[#f97316]/50">
+                            ⏳ CD {cooldownRemaining}
+                          </span>
+                        ) : (
+                          <span
+                            className="pixel-font text-[9px] px-1.5 py-0.5 rounded border"
+                            style={{
+                              backgroundColor: `${skill.accentColor}22`,
+                              color: skill.accentColor,
+                              borderColor: `${skill.accentColor}66`,
+                            }}
+                          >
+                            {skill.mpCost} MP
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-[#9a93ad] truncate mt-0.5">
+                      {isUsed
+                        ? t(
+                            `✓ ใช้แล้ว (ติด CD ${skill.cooldownPhases} เฟส)`,
+                            `✓ Used (CD ${skill.cooldownPhases}p)`
+                          )
+                        : isOnCooldown
+                        ? t(
+                            `⏳ ติดคูลดาวน์อีก ${cooldownRemaining} เฟส`,
+                            `⏳ Cooldown: ${cooldownRemaining} phase(s)`
+                          )
+                        : `${isEn ? skill.descriptionEn : skill.description} · CD ${skill.cooldownPhases}`}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           {relicNotice && (
@@ -833,10 +915,12 @@ export function BattleOverlay({
             if (isEliminated && !isSubmitted) {
               btnClass = "bg-[#120f1c] border-[#2f2d45] text-[#6b6580] opacity-40 line-through cursor-not-allowed";
             } else if (isSubmitted) {
-              if (idx === activeQuestion.correctIndex) {
+              if (isCorrect && idx === activeQuestion.correctIndex) {
                 btnClass = "bg-[#1a7a4a] border-[#2fbf71] text-white font-black";
               } else if (isSelected && !isCorrect) {
                 btnClass = "bg-[#7d1d10] border-[#c0283a] text-white";
+              } else if (isEliminated) {
+                btnClass = "bg-[#120f1c] border-[#2f2d45] text-[#6b6580] opacity-40 line-through";
               } else {
                 btnClass = "bg-[#120f1c] border-[#2f2d45] text-[#9a93ad] opacity-60";
               }
@@ -880,16 +964,31 @@ export function BattleOverlay({
               </span>
               {isCorrect && (
                 <span className="px-2 py-0.5 rounded bg-[#0c4a6e]/70 border border-[#38bdf8]/60 text-[#38bdf8] pixel-font text-[10px] font-black">
-                  💧 +1 MP!
+                  💧 +{heroStats.mpRegenOnCorrect} MP!
                 </span>
               )}
               {isCorrect && isMonsterDefeated && (
                 <span className="pixel-font text-[#ffe27a]">VICTORY!</span>
               )}
             </div>
-            <p className="text-[#f4efe6] text-xs leading-relaxed">
-              <strong>{t("คำอธิบาย:", "Explanation:")}</strong> {displayExplanation}
-            </p>
+            {isCorrect ? (
+              <p className="text-[#f4efe6] text-xs leading-relaxed">
+                <strong>{t("คำอธิบาย:", "Explanation:")}</strong> {displayExplanation}
+              </p>
+            ) : (
+              <div className="space-y-1">
+                <p className="text-[#f4efe6] text-xs leading-relaxed">
+                  <strong>{t("คำอธิบายแนวคิด:", "Concept Guidance:")}</strong>{" "}
+                  {buildFallbackHint(activeQuestion, isEn)}
+                </p>
+                <p className="text-[11px] text-[#fca5a5]">
+                  {t(
+                    "💡 ลองวิเคราะห์โค้ดและตัวเลือกที่เหลืออีกครั้ง (ระบบตัดข้อที่ตอบผิดออกให้แล้ว)",
+                    "💡 Analyze the code and remaining choices again (your wrong pick has been eliminated)."
+                  )}
+                </p>
+              </div>
+            )}
           </div>
         )}
 

@@ -10,6 +10,7 @@ import {
   LANGUAGE_TRACKS,
   LearningLanguage,
   getTopicsByLanguage,
+  runCodeByLanguage,
 } from "../../lib/language-tracks";
 import { getQuestionsForTopic } from "../../lib/dungeon/questions";
 import {
@@ -28,7 +29,6 @@ import { GameCanvas } from "./GameCanvas";
 import { MobileDpad } from "./MobileDpad";
 import { BattleOverlay, BattlePhaseResult } from "./BattleOverlay";
 import { PixelSpriteView } from "./PixelSpriteView";
-import { PracticeArena } from "../PracticeArena";
 import { useUiLanguage } from "../LanguageProvider";
 import { getClientSession } from "../SiteHeader";
 import { Icon } from "../Icons";
@@ -84,7 +84,6 @@ export function TopicDungeonArena({
   onCompleteTopic,
   currentStudent,
   studentId,
-  defaultMode = "dungeon",
   embedded = false,
   avatarKey: propsAvatarKey,
   onChangeHero,
@@ -92,9 +91,18 @@ export function TopicDungeonArena({
   const { t } = useUiLanguage();
   const hasSession = Boolean(getClientSession());
 
-  const [mode, setMode] = useState<"dungeon" | "classic">(defaultMode);
   const activeLanguage = language;
   const activeTopic = topic;
+
+  // Integrated PRIMM features: Interactive Trace tab & Modify Bonus Challenge
+  const [scrollTab, setScrollTab] = useState<"code" | "trace">("code");
+  const [traceIdx, setTraceIdx] = useState<number>(0);
+  const [modifiedCode, setModifiedCode] = useState<string>(activeTopic.code);
+  const [modifyRunResult, setModifyRunResult] = useState<{
+    finalOutput: string;
+    matchedTarget: boolean;
+  } | null>(null);
+  const [modifyBonusClaimed, setModifyBonusClaimed] = useState<boolean>(false);
 
   const trackMeta = useMemo(
     () => LANGUAGE_TRACKS.find((tr) => tr.id === activeLanguage) || LANGUAGE_TRACKS[0],
@@ -183,8 +191,8 @@ export function TopicDungeonArena({
     )
   );
 
-  const [hearts, setHearts] = useState<number>(3);
-  const maxHearts = 3;
+  const maxHearts = avatar.stats.maxHp;
+  const [hearts, setHearts] = useState<number>(maxHearts);
   const [coins, setCoins] = useState<number>(0);
   const [xp, setXp] = useState<number>(0);
   const [screenShake, setScreenShake] = useState<number>(0);
@@ -198,16 +206,21 @@ export function TopicDungeonArena({
 
   const hasSubmittedCompletionRef = useRef<boolean>(false);
 
-  // Reset room and battle state whenever topic or language changes
+  // Reset room and battle state whenever topic, language, or hero changes
   useEffect(() => {
     hasSubmittedCompletionRef.current = false;
-    setHearts(3);
+    setHearts(avatar.stats.maxHp);
     setCoins(0);
     setXp(0);
     setIsInBattle(false);
     setIsGameOver(false);
     setBattleSummary(null);
     setScreenShake(0);
+    setScrollTab("code");
+    setTraceIdx(0);
+    setModifiedCode(activeTopic.code);
+    setModifyRunResult(null);
+    setModifyBonusClaimed(false);
     setRoom(
       generateDungeonRoom(
         roomSeed,
@@ -216,7 +229,38 @@ export function TopicDungeonArena({
         activeTopic.isBoss ? "boss" : "monster"
       )
     );
-  }, [roomSeed, resolvedFloorIndex, resolvedTotalFloors, activeTopic.isBoss]);
+  }, [
+    roomSeed,
+    resolvedFloorIndex,
+    resolvedTotalFloors,
+    activeTopic.isBoss,
+    activeTopic.code,
+    avatar.stats.maxHp,
+  ]);
+
+  const modifyTargetOutput = useMemo(() => {
+    if (!activeTopic.modifyChallenge?.suggestedCode) return "";
+    return runCodeByLanguage(
+      activeTopic.modifyChallenge.suggestedCode,
+      activeLanguage
+    ).finalOutput.trim();
+  }, [activeTopic.modifyChallenge?.suggestedCode, activeLanguage]);
+
+  const handleRunModifyBonus = () => {
+    if (!activeTopic.modifyChallenge) return;
+    const exec = runCodeByLanguage(modifiedCode, activeLanguage);
+    const out = exec.finalOutput.trim();
+    const matchedTarget =
+      exec.success &&
+      modifiedCode.trim() !== activeTopic.code.trim() &&
+      out === modifyTargetOutput;
+    setModifyRunResult({ finalOutput: out || "(no output)", matchedTarget });
+    if (matchedTarget && !modifyBonusClaimed) {
+      setModifyBonusClaimed(true);
+      setXp((prev) => prev + 25);
+      dungeonSound.playCoin();
+    }
+  };
 
   const currentMonster = useMemo(() => {
     if (activeTopic.isBoss) return getMonsterDef("boss");
@@ -290,7 +334,7 @@ export function TopicDungeonArena({
 
   const handleRetryFloor = useCallback(() => {
     hasSubmittedCompletionRef.current = false;
-    setHearts(3);
+    setHearts(avatar.stats.maxHp);
     setCoins(0);
     setXp(0);
     setIsGameOver(false);
@@ -304,7 +348,7 @@ export function TopicDungeonArena({
         activeTopic.isBoss ? "boss" : "monster"
       )
     );
-  }, [roomSeed, resolvedFloorIndex, resolvedTotalFloors, activeTopic.isBoss]);
+  }, [roomSeed, resolvedFloorIndex, resolvedTotalFloors, activeTopic.isBoss, avatar.stats.maxHp]);
 
   const handleCompleteFloor = useCallback(() => {
     if (hasSubmittedCompletionRef.current) return;
@@ -360,7 +404,8 @@ export function TopicDungeonArena({
     });
   }, [battleSummary, activeTopic, xp, onCompleteTopic]);
 
-  const maxFocusDisplay = 6;
+  const initialFocusDisplay = avatar.stats.initialMp;
+  const maxFocusDisplay = avatar.stats.maxMp;
 
   return (
     <div className="flex flex-col gap-5">
@@ -401,25 +446,8 @@ export function TopicDungeonArena({
             </div>
           </div>
 
-          {/* Right: Mode Toggle + Sound */}
+          {/* Right: Sound Toggle */}
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setMode((m) => (m === "dungeon" ? "classic" : "dungeon"))}
-              className={`retro-button px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer transition-colors ${
-                mode === "dungeon"
-                  ? "bg-[#f6c945] hover:bg-[#ffe27a] text-[#120f1c]"
-                  : "bg-[#2fbf71] hover:bg-[#34d37d] text-[#120f1c]"
-              }`}
-            >
-              <Icon name={mode === "dungeon" ? "book" : "gamepad"} size={15} />
-              <span>
-                {mode === "dungeon"
-                  ? t("โหมด PRIMM คลาสสิก", "Classic PRIMM")
-                  : t("โหมดดันเจี้ยน 2D", "2D Dungeon")}
-              </span>
-            </button>
-
             <button
               type="button"
               onClick={handleToggleSound}
@@ -514,11 +542,14 @@ export function TopicDungeonArena({
             {/* Focus MP */}
             <div
               className="flex items-center gap-1 bg-[#0d0b14] px-2.5 py-1 rounded-lg border border-[#2f2d45] text-[11px] pixel-font font-bold text-[#c084fc]"
-              title={t("มานา MP เริ่ม 3/6 (ตอบถูก +1 MP)", "Focus MP starts 3/6 (+1 MP per hit)")}
+              title={t(
+                `มานา MP เริ่ม ${initialFocusDisplay}/${maxFocusDisplay} (ตอบถูก +${avatar.stats.mpRegenOnCorrect} MP)`,
+                `Focus MP starts ${initialFocusDisplay}/${maxFocusDisplay} (+${avatar.stats.mpRegenOnCorrect} MP per hit)`
+              )}
             >
               <Icon name="sparkles" size={13} />
               <span>
-                3/{maxFocusDisplay} MP
+                {initialFocusDisplay}/{maxFocusDisplay} MP
               </span>
             </div>
 
@@ -535,19 +566,8 @@ export function TopicDungeonArena({
         </div>
       </div>
 
-      {/* Mode Switch: Classic PRIMM vs 2D RPG Dungeon Room */}
-      {mode === "classic" ? (
-        <PracticeArena
-          key={`classic-${activeLanguage}-${activeTopic.id}`}
-          topic={activeTopic}
-          language={activeLanguage}
-          currentStudent={currentStudent}
-          studentId={studentId}
-          onBackToMap={onBackToMap}
-          onCompleteTopic={onCompleteTopic}
-        />
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      {/* 2D RPG Dungeon Room */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* Left / Center: 2D Pixel RPG Dungeon Canvas + Controls */}
           <div className="lg:col-span-7 flex flex-col gap-3">
             <div className="relative">
@@ -680,9 +700,9 @@ export function TopicDungeonArena({
                 </div>
               </div>
 
-              {/* Code Scroll Preview */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
+              {/* Code Scroll Preview + Interactive Trace Stepper */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2 text-xs">
                   <span className="font-extrabold text-[#ffe27a] flex items-center gap-1.5">
                     <Icon name="code" size={14} />
                     <span>
@@ -692,14 +712,150 @@ export function TopicDungeonArena({
                       )}
                     </span>
                   </span>
-                  <span className="text-[10px] text-[#9a93ad]">
-                    {activeTopic.code.split("\n").length} {t("บรรทัด", "lines")}
-                  </span>
+                  {activeTopic.steps && activeTopic.steps.length > 0 && (
+                    <div className="flex items-center gap-1 bg-[#0d0b14] p-0.5 rounded-lg border border-[#2f2d45]">
+                      <button
+                        type="button"
+                        onClick={() => setScrollTab("code")}
+                        className={`px-2 py-1 rounded text-[10px] font-bold cursor-pointer transition ${
+                          scrollTab === "code"
+                            ? "bg-[#f6c945] text-[#120f1c]"
+                            : "text-[#9a93ad] hover:text-[#f4efe6]"
+                        }`}
+                      >
+                        {t("</> โค้ดเต็ม", "</> Code")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScrollTab("trace")}
+                        className={`px-2 py-1 rounded text-[10px] font-bold cursor-pointer transition ${
+                          scrollTab === "trace"
+                            ? "bg-[#38bdf8] text-[#0d0b14]"
+                            : "text-[#9a93ad] hover:text-[#f4efe6]"
+                        }`}
+                      >
+                        {t("👣 ไล่ทีละบรรทัด", "👣 Step Trace")}
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <pre className="p-3 rounded-xl bg-[#0d0b14] border border-[#2f2d45] text-[#ffe27a] text-xs font-mono overflow-x-auto leading-relaxed">
-                  <code>{activeTopic.code}</code>
-                </pre>
+
+                {scrollTab === "code" || !activeTopic.steps?.length ? (
+                  <pre className="p-3 rounded-xl bg-[#0d0b14] border border-[#2f2d45] text-[#ffe27a] text-xs font-mono overflow-x-auto leading-relaxed">
+                    <code>{activeTopic.code}</code>
+                  </pre>
+                ) : (
+                  (() => {
+                    const step = activeTopic.steps[traceIdx] || activeTopic.steps[0];
+                    return (
+                      <div className="p-3 rounded-xl bg-[#0d0b14] border border-[#38bdf8]/40 space-y-2.5 text-xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="pixel-font text-[10px] text-[#38bdf8] font-bold">
+                            STEP {traceIdx + 1}/{activeTopic.steps.length} · L{step.line}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              disabled={traceIdx <= 0}
+                              onClick={() => setTraceIdx((i) => Math.max(0, i - 1))}
+                              className="px-2 py-0.5 rounded bg-[#1c1b2b] border border-[#2f2d45] text-[10px] font-bold text-[#f4efe6] disabled:opacity-40 cursor-pointer"
+                            >
+                              ◀ {t("ย้อน", "Prev")}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={traceIdx >= activeTopic.steps.length - 1}
+                              onClick={() =>
+                                setTraceIdx((i) =>
+                                  Math.min(activeTopic.steps.length - 1, i + 1)
+                                )
+                              }
+                              className="px-2 py-0.5 rounded bg-[#38bdf8] text-[#0d0b14] text-[10px] font-black disabled:opacity-40 cursor-pointer"
+                            >
+                              {t("ถัดไป", "Next")} ▶
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="font-mono text-[11px] bg-[#141220] px-2.5 py-1.5 rounded border border-[#2f2d45] text-[#ffe27a]">
+                          {step.codeLine}
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5">
+                          {Object.entries(step.variables).length > 0 ? (
+                            Object.entries(step.variables).map(([k, v]) => (
+                              <span
+                                key={k}
+                                className="px-2 py-0.5 rounded bg-[#1c1b2b] border border-[#38bdf8]/40 font-mono text-[11px] text-[#e0f2fe]"
+                              >
+                                {k} = <strong className="text-[#38bdf8]">{v}</strong>
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-[11px] text-[#9a93ad]">
+                              {t("ยังไม่มีตัวแปรเปลี่ยนแปลง", "No variables updated")}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-[11px] text-[#c4bdd6] leading-relaxed">
+                          {step.explanation}
+                        </p>
+                      </div>
+                    );
+                  })()
+                )}
               </div>
+
+              {/* Optional Modify Bonus Challenge (Unlocked after Monster Defeated) */}
+              {room.isDoorUnlocked && activeTopic.modifyChallenge && (
+                <div className="p-3.5 rounded-xl bg-[#141220] border border-[#2fbf71]/50 space-y-2.5 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-extrabold text-[#2fbf71] flex items-center gap-1.5">
+                      <Icon name="sparkles" size={14} />
+                      <span>{t("ภารกิจโบนัสซ่อมโค้ด", "Bonus Modify Challenge")}</span>
+                    </span>
+                    <span className="pixel-font text-[9px] px-2 py-0.5 rounded bg-[#2fbf71]/20 text-[#86efac] border border-[#2fbf71]/40">
+                      {modifyBonusClaimed ? t("✓ รับ +25 XP แล้ว", "✓ +25 XP Claimed") : "+25 XP"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#c4bdd6] leading-relaxed">
+                    {activeTopic.modifyChallenge.instruction}{" "}
+                    {modifyTargetOutput && (
+                      <span className="text-[#ffe27a] font-bold">
+                        ({t("ผลลัพธ์เป้าหมาย:", "Target Output:")} {modifyTargetOutput})
+                      </span>
+                    )}
+                  </p>
+                  <textarea
+                    value={modifiedCode}
+                    onChange={(e) => setModifiedCode(e.target.value)}
+                    rows={4}
+                    spellCheck={false}
+                    className="w-full p-2.5 rounded-lg bg-[#0d0b14] border border-[#2f2d45] focus:border-[#2fbf71] text-[#ffe27a] text-xs font-mono outline-none resize-y"
+                  />
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={handleRunModifyBonus}
+                      className="retro-button px-3 py-1.5 rounded-lg bg-[#2fbf71] hover:bg-[#34d37d] text-[#0d0b14] text-[11px] font-black flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Icon name="play" size={12} filled />
+                      <span>{t("รันทดสอบ", "Run Test")}</span>
+                    </button>
+                    {modifyRunResult && (
+                      <span
+                        className={`text-[11px] font-mono font-bold ${
+                          modifyRunResult.matchedTarget ? "text-[#86efac]" : "text-[#fca5a5]"
+                        }`}
+                      >
+                        Output: {modifyRunResult.finalOutput}{" "}
+                        {modifyRunResult.matchedTarget ? "✓" : "✗"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Battle Phases Breakdown */}
               <div className="space-y-1.5">
@@ -738,7 +894,6 @@ export function TopicDungeonArena({
             </div>
           </div>
         </div>
-      )}
 
       {/* Multi-Phase Code Battle Overlay */}
       {isInBattle && (
@@ -749,11 +904,14 @@ export function TopicDungeonArena({
           monsterHp={room.entity?.isCompleted ? 0 : phaseQuestions.length}
           maxMonsterHp={phaseQuestions.length}
           playerHearts={hearts}
-          initialFocus={3}
+          maxPlayerHearts={maxHearts}
+          avatarKey={avatarKey}
+          initialFocus={initialFocusDisplay}
           maxFocus={maxFocusDisplay}
           localValidation={true}
           onCorrectAnswer={handleCorrectAnswer}
           onWrongAnswer={handleWrongAnswer}
+          onHealPlayer={() => setHearts((h) => Math.min(maxHearts, h + 1))}
           onBattleComplete={handleBattleComplete}
           onClose={() => setIsInBattle(false)}
         />

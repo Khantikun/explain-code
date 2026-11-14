@@ -35,6 +35,7 @@ export interface DungeonQuestion {
 }
 
 function inferLanguageFromTopicId(topicId: number): LearningLanguage {
+  if (topicId >= 600) return "html";
   if (topicId >= 500) return "java";
   if (topicId >= 400) return "cpp";
   if (topicId >= 300) return "typescript";
@@ -51,6 +52,7 @@ function inferLanguageFromCourseId(courseId?: string): LearningLanguage | undefi
   if (lower.includes("typescript") || lower.includes("-ts-")) return "typescript";
   if (lower.includes("cpp") || lower.includes("c++")) return "cpp";
   if (lower.includes("java")) return "java";
+  if (lower.includes("html") || lower.includes("css")) return "html";
   if (lower.includes("-js-") || lower.includes("async")) return "javascript";
 
   const matchedLesson = INITIAL_LESSONS.find((l) => l.course_id === courseId);
