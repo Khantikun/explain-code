@@ -54,6 +54,7 @@ import {
   setActiveCustomDungeon,
   deleteCustomDungeon,
 } from "../lib/custom-dungeon";
+import { saveUserDungeonProgress } from "../lib/dungeon-save";
 
 type LearningTab = "quest" | "hero-select" | "practice" | "custom" | "custom-dungeon" | "learn";
 
@@ -235,6 +236,7 @@ function CoursesContent() {
   const rawLangParam = searchParams.get("lang");
   const langParam = isValidLearningLanguage(rawLangParam) ? rawLangParam : null;
   const customDungeonParam = searchParams.get("customDungeon");
+  const topicIdParam = Number(searchParams.get("topicId") || "");
 
   const [selectedLanguage, setSelectedLanguage] =
     useState<LearningLanguage | null>(langParam);
@@ -254,9 +256,9 @@ function CoursesContent() {
   const [guestProgress, setGuestProgress] = useState<StudentRecord>(GUEST_STUDENT);
   const [currentStudentId, setCurrentStudentId] = useState<string>("stu-1");
   const [selectedTopicId, setSelectedTopicId] = useState<number>(1);
-  const [unlockAllDemo, setUnlockAllDemo] = useState<boolean>(false);
   const [playAttemptNonce, setPlayAttemptNonce] = useState<number>(0);
   const [guestNotice, setGuestNotice] = useState<string | null>(null);
+  const [saveGameNotice, setSaveGameNotice] = useState<string | null>(null);
 
   // Code runner sandbox state
   const [playgroundCode, setPlaygroundCode] = useState<string>(
@@ -302,12 +304,15 @@ function CoursesContent() {
         setPlaygroundOutput("");
       }
       if (langTopics.length > 0) {
-        setSelectedTopicId(langTopics[0].id);
+        const matchedTopic = Number.isFinite(topicIdParam)
+          ? langTopics.find((tp) => tp.id === topicIdParam)
+          : undefined;
+        setSelectedTopicId(matchedTopic ? matchedTopic.id : langTopics[0].id);
       }
     } else {
       setSelectedLanguage(null);
     }
-  }, [langParam, customDungeonParam]);
+  }, [langParam, customDungeonParam, topicIdParam]);
 
   const handleSelectLanguage = (lang: LearningLanguage) => {
     const track = LANGUAGE_TRACKS.find((tr) => tr.id === lang);
@@ -626,7 +631,6 @@ function CoursesContent() {
     .reverse();
 
   const isTopicUnlocked = (topicId: number, idx: number): boolean => {
-    if (unlockAllDemo) return true;
     if (idx === 0) return true;
     const prevTopic = currentLanguageTopics[idx - 1];
     if (topicId === 7) {
@@ -641,6 +645,69 @@ function CoursesContent() {
     return prevTopic
       ? currentStudent.completedTopics.includes(prevTopic.id)
       : true;
+  };
+
+  const persistDungeonSave = (
+    studentSnapshot: StudentRecord,
+    targetTopicId: number
+  ) => {
+    if (!session) return;
+    const targetIdx = Math.max(
+      0,
+      currentLanguageTopics.findIndex((tp) => tp.id === targetTopicId)
+    );
+    const targetTopic = currentLanguageTopics[targetIdx] || currentLanguageTopics[0];
+    const completedInTrack = currentLanguageTopics
+      .filter((tp) => studentSnapshot.completedTopics.includes(tp.id))
+      .map((tp) => tp.id);
+
+    saveUserDungeonProgress(session.userId, {
+      userId: session.userId,
+      language: currentLanguage,
+      currentTopicId: targetTopic.id,
+      currentTopicTitle: targetTopic.title,
+      currentFloorNumber: targetIdx + 1,
+      totalFloors: currentLanguageTopics.length,
+      completedTopicIds: completedInTrack,
+      xp: studentSnapshot.xp,
+      savedAt: new Date().toISOString(),
+      history: studentSnapshot.history.slice(0, 15),
+    });
+  };
+
+  const handleSaveDungeonGame = () => {
+    if (!session) return;
+    const updatedStudents = students.some((stu) => stu.id === currentStudent.id)
+      ? students.map((stu) =>
+          stu.id === currentStudent.id ? currentStudent : stu
+        )
+      : [...students, currentStudent];
+    saveStudentsToStorage(updatedStudents);
+
+    const nextPlayableTopic =
+      currentLanguageTopics.find(
+        (tp, idx) =>
+          isTopicUnlocked(tp.id, idx) &&
+          !currentStudent.completedTopics.includes(tp.id)
+      ) ||
+      activeTopic ||
+      currentLanguageTopics[0];
+
+    const targetId =
+      activeTab === "practice" && activeTopic
+        ? activeTopic.id
+        : nextPlayableTopic.id;
+
+    persistDungeonSave(currentStudent, targetId);
+    setSaveGameNotice(
+      t(
+        "✓ เซฟเกมเรียบร้อยแล้ว! ดูความคืบหน้าได้ที่เมนู 'การเรียนของฉัน'",
+        "✓ Game saved! Check your progress in 'My Learning'."
+      )
+    );
+    window.setTimeout(() => {
+      setSaveGameNotice(null);
+    }, 4000);
   };
 
   const handleCompleteTopic = (result: {
@@ -749,6 +816,10 @@ function CoursesContent() {
     }
 
     saveStudentsToStorage(updatedStudents);
+    persistDungeonSave(
+      optimisticStudent,
+      nextTopic ? nextTopic.id : result.topicId
+    );
     if (nextTopic) {
       setSelectedTopicId(nextTopic.id);
       setPlayAttemptNonce((n) => n + 1);
@@ -1080,19 +1151,23 @@ function CoursesContent() {
                   </h2>
 
                   <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => setUnlockAllDemo(!unlockAllDemo)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
-                        unlockAllDemo
-                          ? "bg-[#152922] border-[#2fbf71] text-[#86efac]"
-                          : "bg-[#1c1b2b] border-[#2f2d45] text-[#ffe27a] hover:border-[#f6c945]/50"
-                      }`}
-                    >
-                      {unlockAllDemo
-                        ? t("✓ ปลดล็อกทั้งหมดแล้ว", "✓ All Unlocked")
-                        : t("ปลดล็อกทั้งหมด (Demo)", "Unlock All (Demo)")}
-                    </button>
+                    {session ? (
+                      <button
+                        type="button"
+                        onClick={handleSaveDungeonGame}
+                        className="px-3.5 py-1.5 rounded-xl text-xs font-extrabold border border-[#2fbf71]/70 bg-[#102a1e] text-[#86efac] hover:bg-[#153827] transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>💾</span>
+                        <span>{t("เซฟเกม", "Save Game")}</span>
+                      </button>
+                    ) : (
+                      <span className="px-3 py-1.5 rounded-xl text-[11px] font-bold border border-[#2f2d45] bg-[#1c1b2b] text-[#9a93ad]">
+                        {t(
+                          "โหมดทดลอง (ไม่บันทึกประวัติ)",
+                          "Guest Mode (Not Saved)"
+                        )}
+                      </span>
+                    )}
 
                     <button
                       type="button"
@@ -1109,6 +1184,18 @@ function CoursesContent() {
                     </button>
                   </div>
                 </div>
+
+                {saveGameNotice && (
+                  <div className="rounded-xl border border-[#2fbf71]/70 bg-[#102a1e] px-4 py-2.5 text-xs font-bold text-[#86efac] flex items-center justify-between gap-2">
+                    <span>{saveGameNotice}</span>
+                    <Link
+                      href="/my-learning"
+                      className="underline font-extrabold text-[#ffe27a] hover:text-white whitespace-nowrap"
+                    >
+                      {t("ไปหน้าการเรียนของฉัน →", "Go to My Learning →")}
+                    </Link>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {currentLanguageTopics.map((topic, idx) => {
@@ -1735,20 +1822,60 @@ function CoursesContent() {
 
           {/* ==================== TAB 2: PLAY FLOOR ==================== */}
           {activeTab === "practice" && activeTopic && (
-            <TopicDungeonArena
-              key={`${currentLanguage}-${activeTopic.id}-${playAttemptNonce}`}
-              topic={activeTopic}
-              language={currentLanguage}
-              topicIndex={activeTopicIndex}
-              totalTopics={currentLanguageTopics.length}
-              currentStudent={currentStudent}
-              studentId={currentStudent?.id}
-              avatarKey={selectedAvatarKey}
-              onChangeHero={() => setActiveTab("hero-select")}
-              embedded
-              onBackToMap={() => setActiveTab("quest")}
-              onCompleteTopic={handleCompleteTopic}
-            />
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#2f2d45] bg-[#141220] px-4 py-2.5">
+                <span className="text-xs font-bold text-[#c4bdd6]">
+                  {t(
+                    `กำลังลุย: ${currentTrackMeta.name} · ${activeTopic.title}`,
+                    `Playing: ${currentTrackMeta.name} · ${activeTopic.title}`
+                  )}
+                </span>
+                {session ? (
+                  <button
+                    type="button"
+                    onClick={handleSaveDungeonGame}
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-extrabold border border-[#2fbf71]/70 bg-[#102a1e] text-[#86efac] hover:bg-[#153827] transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>💾</span>
+                    <span>{t("เซฟเกมไว้", "Save Game")}</span>
+                  </button>
+                ) : (
+                  <span className="text-[11px] font-bold text-[#9a93ad]">
+                    {t(
+                      "โหมดทดลอง (ไม่เก็บประวัติ) · เข้าสู่ระบบเพื่อเซฟเกม",
+                      "Guest Mode (Not Saved) · Log in to save"
+                    )}
+                  </span>
+                )}
+              </div>
+
+              {saveGameNotice && (
+                <div className="rounded-xl border border-[#2fbf71]/70 bg-[#102a1e] px-4 py-2.5 text-xs font-bold text-[#86efac] flex items-center justify-between gap-2">
+                  <span>{saveGameNotice}</span>
+                  <Link
+                    href="/my-learning"
+                    className="underline font-extrabold text-[#ffe27a] hover:text-white whitespace-nowrap"
+                  >
+                    {t("ไปหน้าการเรียนของฉัน →", "Go to My Learning →")}
+                  </Link>
+                </div>
+              )}
+
+              <TopicDungeonArena
+                key={`${currentLanguage}-${activeTopic.id}-${playAttemptNonce}`}
+                topic={activeTopic}
+                language={currentLanguage}
+                topicIndex={activeTopicIndex}
+                totalTopics={currentLanguageTopics.length}
+                currentStudent={currentStudent}
+                studentId={currentStudent?.id}
+                avatarKey={selectedAvatarKey}
+                onChangeHero={() => setActiveTab("hero-select")}
+                embedded
+                onBackToMap={() => setActiveTab("quest")}
+                onCompleteTopic={handleCompleteTopic}
+              />
+            </div>
           )}
 
           {/* ==================== TAB 2B: CUSTOM EXPLAINED CODE DUNGEON ==================== */}
