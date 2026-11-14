@@ -9,7 +9,7 @@ import { getServerUserSession } from "@/app/lib/supabase/server";
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 นาที
 const RATE_LIMIT_MAX_REQUESTS = 10; // สูงสุด 10 ครั้งต่อนาทีต่อ IP
 const GUEST_DAILY_LIMIT = 5; // ผู้ใช้ที่ไม่ล็อกอินใช้ฟรีได้ 5 ครั้ง/วัน
-const GUEST_QUOTA_COOKIE = "explain_code_guest_quota";
+const GUEST_QUOTA_COOKIE = "explain_code_guest_quota_v2";
 
 interface RateBucket {
   count: number;
