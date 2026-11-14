@@ -146,8 +146,8 @@ export default function ExplainCodePage() {
 
       <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
         {/* Header Section */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0 flex-1">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[#3d395a] bg-[#1c1b2b] px-3 py-1 text-xs font-bold text-[#f6c945]">
               <Icon name="sparkles" className="h-3.5 w-3.5" />
               {t(
@@ -169,13 +169,13 @@ export default function ExplainCodePage() {
           {session ? (
             <Link
               href="/my-history"
-              className="inline-flex items-center gap-2 rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-4 py-2.5 text-xs font-bold text-[#f6c945] shadow-md hover:border-[#f6c945] hover:bg-[#252238] transition-colors whitespace-nowrap"
+              className="inline-flex shrink-0 self-start md:self-auto items-center gap-2 rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-4 py-2.5 text-xs font-bold text-[#f6c945] shadow-md hover:border-[#f6c945] hover:bg-[#252238] transition-colors whitespace-nowrap"
             >
               <Icon name="clock" className="h-4 w-4" />
               <span>{t("ดูประวัติการอธิบายโค้ดของฉัน", "View My Explanation History")}</span>
             </Link>
           ) : (
-            <div className="rounded-xl border border-[#2f2d45] bg-[#141220] px-4 py-2.5 text-xs text-[#c4bdd6] shadow-md">
+            <div className="shrink-0 self-start md:self-auto rounded-xl border border-[#2f2d45] bg-[#141220] px-4 py-2.5 text-xs text-[#c4bdd6] shadow-md">
               <span className="font-bold text-[#f6c945]">
                 {t("โหมดผู้เยี่ยมชม (ใช้ฟรี 5 ครั้ง/วัน)", "Guest Mode (5 free uses/day)")}
               </span>
