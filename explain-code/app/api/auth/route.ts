@@ -700,7 +700,72 @@ export async function POST(req: NextRequest) {
               );
             }
 
-            const classroom = classRows && classRows.length > 0 ? classRows[0] : null;
+            let classroom = classRows && classRows.length > 0 ? classRows[0] : null;
+
+            // หากยังไม่มีห้องเรียนเริ่มต้นในฐานข้อมูล ให้สร้างครูและห้องเรียนเริ่มต้นอัตโนมัติ
+            if (!classroom && knownDefaultRoom) {
+              try {
+                let defaultTeacherId: string | null = null;
+                const { data: tRows } = await supabase
+                  .from("teachers")
+                  .select("id")
+                  .limit(1);
+                if (tRows && tRows.length > 0) {
+                  defaultTeacherId = tRows[0].id;
+                } else {
+                  defaultTeacherId = crypto.randomUUID();
+                  await supabase.from("profiles").upsert({
+                    id: defaultTeacherId,
+                    role: "teacher",
+                  });
+                  await supabase.from("teachers").upsert({
+                    id: defaultTeacherId,
+                    username: "ครูตัวอย่าง",
+                    display_name: "ครูตัวอย่าง (วิชาวิทยาการคำนวณ)",
+                    password_hash: sha256("12345678"),
+                  });
+                }
+
+                if (defaultTeacherId) {
+                  const { data: createdRoom } = await supabase
+                    .from("classrooms")
+                    .insert({
+                      room_code: cleanRoom,
+                      room_name:
+                        cleanRoom === "VIBE26"
+                          ? "ห้องเรียนกลาง Vibe Coding (เรียนด้วยตัวเอง)"
+                          : `ห้องเรียน ${cleanRoom}`,
+                      teacher_id: defaultTeacherId,
+                      pinned_note:
+                        "ยินดีต้อนรับสู่โหมดเรียนด้วยตัวเอง เริ่มฝึกจากด่านที่ 1 ได้เลย!",
+                    } as any)
+                    .select("*")
+                    .maybeSingle();
+
+                  if (createdRoom) {
+                    classroom = createdRoom;
+                  } else {
+                    const { data: createdRoomSimple } = await (supabase as any)
+                      .from("classrooms")
+                      .insert({
+                        room_code: cleanRoom,
+                        room_name:
+                          cleanRoom === "VIBE26"
+                            ? "ห้องเรียนกลาง Vibe Coding (เรียนด้วยตัวเอง)"
+                            : `ห้องเรียน ${cleanRoom}`,
+                        teacher_id: defaultTeacherId,
+                      })
+                      .select("*")
+                      .maybeSingle();
+                    if (createdRoomSimple) {
+                      classroom = createdRoomSimple;
+                    }
+                  }
+                }
+              } catch (e) {
+                console.warn("Auto-create default classroom notice:", e);
+              }
+            }
 
             // 2. ตรวจสอบว่าชื่อเล่นมีอยู่แล้วในตาราง students หรือไม่
             const { data: existingStudents, error: existErr } = await supabase
@@ -780,6 +845,24 @@ export async function POST(req: NextRequest) {
                 }
               } catch (e) {
                 console.warn("students insert attempt notice:", e);
+              }
+            }
+
+            if (!stuInserted) {
+              // ลองบันทึกแบบไม่บังคับ classroom_id (กรณีตารางอนุญาตให้ classroom_id เป็น NULL)
+              try {
+                const { error: insertNoRoomErr } = await (supabase as any)
+                  .from("students")
+                  .insert({
+                    id: studentId,
+                    nickname: nick,
+                    pin_hash: pinHash,
+                  });
+                if (!insertNoRoomErr) {
+                  stuInserted = true;
+                }
+              } catch {
+                // ignore
               }
             }
 
