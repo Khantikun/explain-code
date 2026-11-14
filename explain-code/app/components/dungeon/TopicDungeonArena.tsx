@@ -88,7 +88,6 @@ export function TopicDungeonArena({
   studentId,
   embedded = false,
   avatarKey: propsAvatarKey,
-  onChangeHero,
 }: TopicDungeonArenaProps) {
   const { t } = useUiLanguage();
   const hasSession = Boolean(getClientSession());
@@ -131,7 +130,6 @@ export function TopicDungeonArena({
   const [avatarKey, setAvatarKey] = useState<AvatarKey>(
     propsAvatarKey || DEFAULT_AVATAR
   );
-  const [showAvatarMenu, setShowAvatarMenu] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
 
   useEffect(() => {
@@ -156,16 +154,6 @@ export function TopicDungeonArena({
   }, [propsAvatarKey]);
 
   const avatar = useMemo(() => getAvatar(avatarKey), [avatarKey]);
-
-  const handleChangeAvatar = (nextKey: AvatarKey) => {
-    setAvatarKey(nextKey);
-    setShowAvatarMenu(false);
-    try {
-      localStorage.setItem("explain_code_dungeon_avatar", nextKey);
-    } catch {
-      // ignore
-    }
-  };
 
   const handleToggleSound = () => {
     const next = !soundEnabled;
@@ -562,58 +550,8 @@ export function TopicDungeonArena({
             )}
           </div>
 
-          {/* Avatar Selector Quick-Pill & Vitals */}
+          {/* Vitals */}
           <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Avatar Quick-Pill */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  if (onChangeHero) {
-                    onChangeHero();
-                  } else {
-                    setShowAvatarMenu((s) => !s);
-                  }
-                }}
-                className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-[#0d0b14] border border-[#2f2d45] hover:border-[#f6c945] text-xs cursor-pointer transition-colors"
-                title={t("เปลี่ยนตัวละครพิกเซล", "Switch Pixel Avatar")}
-              >
-                <PixelSpriteView sprite={avatar.sprite} size={22} />
-                <span className="font-bold text-[#f4efe6] text-[11px] hidden sm:inline">
-                  {avatar.name}
-                </span>
-                <Icon name="chevron-down" size={12} className="text-[#9a93ad]" />
-              </button>
-
-              {showAvatarMenu && (
-                <div className="absolute right-0 mt-1.5 w-56 rounded-xl bg-[#1c1b2b] border border-[#f6c945] shadow-xl p-2 z-40 space-y-1">
-                  <div className="text-[10px] font-extrabold text-[#ffe27a] px-2 py-1 uppercase pixel-font">
-                    {t("เลือกตัวละคร", "Select Hero")}
-                  </div>
-                  {AVATARS.map((av) => (
-                    <button
-                      key={av.key}
-                      type="button"
-                      onClick={() => handleChangeAvatar(av.key)}
-                      className={`w-full px-2 py-1.5 rounded-lg flex items-center gap-2.5 text-left text-xs cursor-pointer transition-colors ${
-                        av.key === avatarKey
-                          ? "bg-[#5a2d91] text-[#ffe27a]"
-                          : "hover:bg-[#252238] text-[#f4efe6]"
-                      }`}
-                    >
-                      <PixelSpriteView sprite={av.sprite} size={24} />
-                      <div className="min-w-0">
-                        <div className="font-bold truncate">{av.name}</div>
-                        <div className="text-[10px] text-[#9a93ad] truncate">
-                          {av.key.toUpperCase()}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
             {/* Hearts (HP) */}
             <div
               className="flex items-center gap-1 bg-[#0d0b14] px-2.5 py-1 rounded-lg border border-[#2f2d45]"
