@@ -321,10 +321,34 @@ export default function ExplainCodeApp() {
     const nick = loginNickname.trim();
     const pin = loginPin.trim();
 
-    if (!nick || pin.length !== 4) {
+    if (!nick && !pin) {
       setAuthMessage({
         type: "error",
-        text: "กรุณากรอกชื่อเล่นสมมติและรหัส PIN 4 หลักให้ครบถ้วน",
+        text: "กรุณากรอกชื่อเล่นสมมติและรหัส PIN 4 หลักก่อนเข้าเล่น (ห้ามเว้นว่าง)",
+      });
+      return;
+    }
+
+    if (!nick) {
+      setAuthMessage({
+        type: "error",
+        text: "กรุณากรอกชื่อเล่นสมมติของคุณ (ห้ามเว้นว่าง)",
+      });
+      return;
+    }
+
+    if (!pin) {
+      setAuthMessage({
+        type: "error",
+        text: "กรุณากรอกรหัส PIN 4 หลัก (ห้ามเว้นว่าง)",
+      });
+      return;
+    }
+
+    if (pin.length !== 4) {
+      setAuthMessage({
+        type: "error",
+        text: "รหัส PIN นักเรียนต้องเป็นตัวเลข 4 หลักให้ครบถ้วน",
       });
       return;
     }
@@ -421,10 +445,34 @@ export default function ExplainCodeApp() {
     const rawCode = signupRoomCode.trim().toUpperCase();
     const code = rawCode || "VIBE26";
 
-    if (!nick || pin.length !== 4) {
+    if (!nick && !pin) {
       setAuthMessage({
         type: "error",
-        text: "กรุณากรอกชื่อเล่นสมมติ และรหัส PIN 4 หลักให้ครบถ้วน",
+        text: "กรุณาตั้งชื่อเล่นสมมติและรหัส PIN 4 หลักก่อนกดสมัคร (ห้ามเว้นว่าง)",
+      });
+      return;
+    }
+
+    if (!nick) {
+      setAuthMessage({
+        type: "error",
+        text: "กรุณาตั้งชื่อเล่นสมมติของคุณ (ห้ามเว้นว่าง)",
+      });
+      return;
+    }
+
+    if (!pin) {
+      setAuthMessage({
+        type: "error",
+        text: "กรุณาตั้งรหัส PIN 4 หลัก (ห้ามเว้นว่าง)",
+      });
+      return;
+    }
+
+    if (pin.length !== 4) {
+      setAuthMessage({
+        type: "error",
+        text: "รหัส PIN นักเรียนต้องเป็นตัวเลข 4 หลักให้ครบถ้วน",
       });
       return;
     }
@@ -521,8 +569,18 @@ export default function ExplainCodeApp() {
     const uname = teacherUsername.trim();
     const pwd = teacherPassword.trim();
 
-    if (!uname || !pwd) {
-      setTeacherAuthError("กรุณากรอกชื่อผู้ใช้และรหัสผ่านสำหรับครู");
+    if (!uname && !pwd) {
+      setTeacherAuthError("กรุณากรอกชื่อผู้ใช้และรหัสผ่านสำหรับครูก่อนเข้าสู่ระบบ (ห้ามเว้นว่าง)");
+      return;
+    }
+
+    if (!uname) {
+      setTeacherAuthError("กรุณากรอกชื่อผู้ใช้ (ครู) ก่อนเข้าสู่ระบบ (ห้ามเว้นว่าง)");
+      return;
+    }
+
+    if (!pwd) {
+      setTeacherAuthError("กรุณากรอกรหัสผ่านสำหรับครู (ห้ามเว้นว่าง)");
       return;
     }
 
@@ -586,8 +644,23 @@ export default function ExplainCodeApp() {
     const uname = teacherUsername.trim();
     const pwd = teacherPassword.trim();
 
-    if (!uname || pwd.length < 4) {
-      setTeacherAuthError("กรุณาตั้งชื่อผู้ใช้และรหัสผ่านอย่างน้อย 4 ตัวอักษร");
+    if (!uname && !pwd) {
+      setTeacherAuthError("กรุณาตั้งชื่อผู้ใช้และรหัสผ่านก่อนกดสมัครบัญชีครู (ห้ามเว้นว่าง)");
+      return;
+    }
+
+    if (!uname) {
+      setTeacherAuthError("กรุณาตั้งชื่อผู้ใช้ (ครู) (ห้ามเว้นว่าง)");
+      return;
+    }
+
+    if (!pwd) {
+      setTeacherAuthError("กรุณาตั้งรหัสผ่านสำหรับครู (ห้ามเว้นว่าง)");
+      return;
+    }
+
+    if (pwd.length < 4) {
+      setTeacherAuthError("รหัสผ่านสำหรับครูต้องมีความยาวอย่างน้อย 4 ตัวอักษร");
       return;
     }
 
@@ -1309,19 +1382,39 @@ export default function ExplainCodeApp() {
 
                 {authMessage && (
                   <div
-                    className={`p-3.5 rounded-xl text-[13px] font-bold border ${
+                    role="alert"
+                    className={`flex items-start gap-3 p-4 rounded-xl text-[13px] font-bold border-2 shadow-md ${
                       authMessage.type === "error"
                         ? "bg-[#2d141c] text-[#fca5a5] border-[#c0283a]"
-                        : "bg-[#102a1e] text-[#86efac] border-[#2fbf71]/50"
+                        : "bg-[#102a1e] text-[#86efac] border-[#2fbf71]"
                     }`}
                   >
-                    {authMessage.text}
+                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/30 text-sm">
+                      {authMessage.type === "error" ? "⚠️" : "✅"}
+                    </span>
+                    <div className="flex-1 leading-relaxed">
+                      <p className="font-extrabold text-[14px] mb-0.5">
+                        {authMessage.type === "error"
+                          ? "แจ้งเตือนการกรอกข้อมูล"
+                          : "ดำเนินการสำเร็จ"}
+                      </p>
+                      <p>{authMessage.text}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAuthMessage(null)}
+                      aria-label="ปิดกล่องแจ้งเตือน"
+                      className="rounded-lg px-2 py-1 text-xs font-extrabold opacity-75 hover:bg-black/25 hover:opacity-100 cursor-pointer"
+                    >
+                      ✕
+                    </button>
                   </div>
                 )}
 
                 {studentAuthTab === "login" ? (
                   <form
                     onSubmit={runSubmit(handleStudentLogin, "student")}
+                    noValidate
                     className="flex flex-col gap-4"
                   >
                     <div className="flex flex-col gap-1.5">
@@ -1370,6 +1463,7 @@ export default function ExplainCodeApp() {
                 ) : (
                   <form
                     onSubmit={runSubmit(handleStudentSignupWithRoom, "student")}
+                    noValidate
                     className="flex flex-col gap-4"
                   >
                     <div className="flex flex-col gap-1.5">
@@ -1476,8 +1570,27 @@ export default function ExplainCodeApp() {
                 </div>
 
                 {teacherAuthError && (
-                  <div className="p-3 rounded-xl bg-[#2d141c] text-[#fca5a5] border border-[#c0283a] text-[13px] font-bold">
-                    {teacherAuthError}
+                  <div
+                    role="alert"
+                    className="flex items-start gap-3 p-4 rounded-xl bg-[#2d141c] text-[#fca5a5] border-2 border-[#c0283a] text-[13px] font-bold shadow-md"
+                  >
+                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/30 text-sm">
+                      ⚠️
+                    </span>
+                    <div className="flex-1 leading-relaxed">
+                      <p className="font-extrabold text-[14px] mb-0.5">
+                        แจ้งเตือนการกรอกข้อมูล
+                      </p>
+                      <p>{teacherAuthError}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setTeacherAuthError("")}
+                      aria-label="ปิดกล่องแจ้งเตือน"
+                      className="rounded-lg px-2 py-1 text-xs font-extrabold opacity-75 hover:bg-black/25 hover:opacity-100 cursor-pointer"
+                    >
+                      ✕
+                    </button>
                   </div>
                 )}
 
@@ -1487,6 +1600,7 @@ export default function ExplainCodeApp() {
                       ? runSubmit(handleTeacherLogin, "teacher")
                       : runSubmit(handleTeacherRegister, "teacher")
                   }
+                  noValidate
                   className="flex flex-col gap-4"
                 >
                   <div className="flex flex-col gap-1.5">

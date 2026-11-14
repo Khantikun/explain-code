@@ -53,10 +53,21 @@ function LoginFormContent() {
     type: "error" | "info";
     text: string;
   } | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setMessage(null);
+    setFieldErrors({});
   }, [mode, registerRole]);
+
+  const clearFieldError = (fieldKey: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[fieldKey]) return prev;
+      const next = { ...prev };
+      delete next[fieldKey];
+      return next;
+    });
+  };
 
   // ตรวจสอบชื่อเล่นตามหลัก PDPA แบบ Real-time
   const nicknamePdpaCheck = nickname.trim()
@@ -83,14 +94,27 @@ function LoginFormContent() {
    */
   const executeUnifiedLogin = async (idToUse: string, secretToUse: string) => {
     setMessage(null);
+    setFieldErrors({});
 
     const cleanId = idToUse.trim();
     const cleanSecret = secretToUse.trim();
 
-    if (!cleanId || !cleanSecret) {
+    const newErrors: Record<string, string> = {};
+    if (!cleanId) {
+      newErrors.loginIdentifier = "กรุณากรอกชื่อเล่นสมมติ (นักเรียน) หรือชื่อผู้ใช้ (ครู)";
+    }
+    if (!cleanSecret) {
+      newErrors.loginSecret = "กรุณากรอกรหัส PIN 4 หลัก หรือรหัสผ่าน";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
       setMessage({
         type: "error",
-        text: "กรุณากรอกชื่อผู้ใช้/ชื่อเล่นสมมติ และรหัสผ่าน/PIN",
+        text:
+          !cleanId && !cleanSecret
+            ? "กรุณากรอกชื่อผู้ใช้/ชื่อเล่นสมมติ และรหัสผ่าน/PIN ก่อนกดเข้าสู่ระบบ"
+            : newErrors.loginIdentifier || newErrors.loginSecret,
       });
       return;
     }
@@ -180,15 +204,30 @@ function LoginFormContent() {
   const handleStudentRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
+    setFieldErrors({});
 
     const cleanNick = nickname.trim();
     const cleanPin = pin.trim();
     const cleanRoom = roomCode.trim().toUpperCase() || "VIBE26";
 
-    if (!cleanNick || cleanPin.length !== 4) {
+    const newErrors: Record<string, string> = {};
+    if (!cleanNick) {
+      newErrors.nickname = "กรุณาตั้งชื่อเล่นสมมติของคุณ (ห้ามเว้นว่าง)";
+    }
+    if (!cleanPin) {
+      newErrors.pin = "กรุณาตั้งรหัส PIN ตัวเลข 4 หลัก (ห้ามเว้นว่าง)";
+    } else if (cleanPin.length !== 4) {
+      newErrors.pin = `รหัส PIN ต้องมีครบ 4 หลัก (ตอนนี้กรอกไป ${cleanPin.length} หลัก)`;
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
       setMessage({
         type: "error",
-        text: "กรุณากรอกชื่อเล่นสมมติ และรหัส PIN ตัวเลข 4 หลักให้ครบถ้วน",
+        text:
+          !cleanNick && !cleanPin
+            ? "กรุณากรอกชื่อเล่นสมมติ และตั้งรหัส PIN 4 หลักให้ครบถ้วนก่อนสมัครสมาชิก"
+            : newErrors.nickname || newErrors.pin,
       });
       return;
     }
@@ -280,15 +319,30 @@ function LoginFormContent() {
   const handleTeacherRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
+    setFieldErrors({});
 
     const cleanUser = username.trim();
     const cleanPwd = password.trim();
     const cleanDisplay = (displayName || cleanUser).trim();
 
-    if (!cleanUser || cleanPwd.length < 4) {
+    const newErrors: Record<string, string> = {};
+    if (!cleanUser) {
+      newErrors.username = "กรุณาตั้งชื่อผู้ใช้ครู (ห้ามเว้นว่าง)";
+    }
+    if (!cleanPwd) {
+      newErrors.password = "กรุณาตั้งรหัสผ่านสำหรับบัญชีครู (ห้ามเว้นว่าง)";
+    } else if (cleanPwd.length < 4) {
+      newErrors.password = "รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
       setMessage({
         type: "error",
-        text: "กรุณากรอกชื่อผู้ใช้และรหัสผ่านอย่างน้อย 4 ตัวอักษร",
+        text:
+          !cleanUser && !cleanPwd
+            ? "กรุณากรอกชื่อผู้ใช้ครู และตั้งรหัสผ่าน (อย่างน้อย 4 ตัวอักษร) ให้ครบถ้วน"
+            : newErrors.username || newErrors.password,
       });
       return;
     }
@@ -433,7 +487,11 @@ function LoginFormContent() {
           <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl border border-[#2f2d45] bg-[#0d0b14] p-1.5">
             <button
               type="button"
-              onClick={() => setMode("login")}
+              onClick={() => {
+                setMode("login");
+                setMessage(null);
+                setFieldErrors({});
+              }}
               className={`rounded-lg py-2.5 text-sm font-extrabold transition-all cursor-pointer ${
                 mode === "login"
                   ? "bg-[#25193b] text-[#ffe27a] border border-[#9b5de5]/70 shadow-xs"
@@ -444,7 +502,11 @@ function LoginFormContent() {
             </button>
             <button
               type="button"
-              onClick={() => setMode("register")}
+              onClick={() => {
+                setMode("register");
+                setMessage(null);
+                setFieldErrors({});
+              }}
               className={`rounded-lg py-2.5 text-sm font-extrabold transition-all cursor-pointer ${
                 mode === "register"
                   ? "bg-[#281d08] text-[#ffe27a] border border-[#f6c945]/70 shadow-xs"
@@ -457,20 +519,43 @@ function LoginFormContent() {
 
           {message && (
             <div
-              className={`mb-5 rounded-xl border p-3.5 text-xs font-bold ${
+              role="alert"
+              className={`mb-5 flex items-start gap-3 rounded-xl border-2 p-4 shadow-md ${
                 message.type === "error"
-                  ? "border-[#c0283a]/60 bg-[#2d141c] text-[#fca5a5]"
-                  : "border-[#2fbf71]/50 bg-[#102a1e] text-[#86efac]"
+                  ? "border-[#c0283a] bg-[#2d141c] text-[#fca5a5]"
+                  : "border-[#2fbf71] bg-[#102a1e] text-[#86efac]"
               }`}
             >
-              {message.text}
+              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/30 text-sm">
+                {message.type === "error" ? "⚠️" : "✅"}
+              </span>
+              <div className="flex-1 text-xs leading-relaxed">
+                <p className="font-extrabold text-sm mb-0.5">
+                  {message.type === "error"
+                    ? "แจ้งเตือนการกรอกข้อมูล"
+                    : "ดำเนินการสำเร็จ"}
+                </p>
+                <p className="font-bold opacity-95">{message.text}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMessage(null)}
+                aria-label="ปิดกล่องแจ้งเตือน"
+                className="rounded-lg px-2 py-1 text-xs font-extrabold opacity-75 hover:bg-black/25 hover:opacity-100 cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
           )}
 
           {/* ==================== โหมดเข้าสู่ระบบ ==================== */}
           {mode === "login" ? (
             <div className="space-y-5">
-              <form onSubmit={handleUnifiedLogin} className="space-y-4">
+              <form
+                onSubmit={handleUnifiedLogin}
+                noValidate
+                className="space-y-4"
+              >
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-bold text-[#c4bdd6]">
@@ -483,11 +568,23 @@ function LoginFormContent() {
                   <input
                     type="text"
                     value={loginIdentifier}
-                    onChange={(e) => setLoginIdentifier(e.target.value)}
+                    onChange={(e) => {
+                      setLoginIdentifier(e.target.value);
+                      clearFieldError("loginIdentifier");
+                    }}
                     placeholder="เช่น ต้นกล้า_สายโค้ด, แมวส้ม หรือ ครูสมชาย"
-                    required
-                    className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2.5 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:bg-[#252238] focus:outline-hidden"
+                    className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${
+                      fieldErrors.loginIdentifier
+                        ? "border-[#c0283a] bg-[#2d141c]/30 focus:border-[#c0283a]"
+                        : "border-[#3d395a] focus:border-[#f6c945]"
+                    }`}
                   />
+                  {fieldErrors.loginIdentifier && (
+                    <p className="mt-1.5 text-xs font-bold text-[#fca5a5] flex items-center gap-1.5">
+                      <span>⚠️</span>
+                      <span>{fieldErrors.loginIdentifier}</span>
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -500,10 +597,16 @@ function LoginFormContent() {
                     <input
                       type={showLoginSecret ? "text" : "password"}
                       value={loginSecret}
-                      onChange={(e) => setLoginSecret(e.target.value)}
+                      onChange={(e) => {
+                        setLoginSecret(e.target.value);
+                        clearFieldError("loginSecret");
+                      }}
                       placeholder="กรอกรหัส PIN 4 หลัก หรือรหัสผ่าน"
-                      required
-                      className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2.5 pr-16 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:bg-[#252238] focus:outline-hidden"
+                      className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 pr-16 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${
+                        fieldErrors.loginSecret
+                          ? "border-[#c0283a] bg-[#2d141c]/30 focus:border-[#c0283a]"
+                          : "border-[#3d395a] focus:border-[#f6c945]"
+                      }`}
                     />
                     <button
                       type="button"
@@ -513,6 +616,12 @@ function LoginFormContent() {
                       {showLoginSecret ? "ซ่อน" : "แสดง"}
                     </button>
                   </div>
+                  {fieldErrors.loginSecret && (
+                    <p className="mt-1.5 text-xs font-bold text-[#fca5a5] flex items-center gap-1.5">
+                      <span>⚠️</span>
+                      <span>{fieldErrors.loginSecret}</span>
+                    </p>
+                  )}
                 </div>
 
                 <button
@@ -535,7 +644,11 @@ function LoginFormContent() {
                 <div className="grid grid-cols-2 gap-2.5 rounded-xl border border-[#2f2d45] bg-[#1c1b2b] p-1.5">
                   <button
                     type="button"
-                    onClick={() => setRegisterRole("student")}
+                    onClick={() => {
+                      setRegisterRole("student");
+                      setMessage(null);
+                      setFieldErrors({});
+                    }}
                     className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-extrabold transition-all cursor-pointer ${
                       registerRole === "student"
                         ? "bg-[#9b5de5] text-[#f4efe6] shadow-md"
@@ -547,7 +660,11 @@ function LoginFormContent() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setRegisterRole("teacher")}
+                    onClick={() => {
+                      setRegisterRole("teacher");
+                      setMessage(null);
+                      setFieldErrors({});
+                    }}
                     className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-extrabold transition-all cursor-pointer ${
                       registerRole === "teacher"
                         ? "bg-[#9b5de5] text-[#f4efe6] shadow-md"
@@ -561,7 +678,11 @@ function LoginFormContent() {
               </div>
 
               {registerRole === "student" ? (
-                <form onSubmit={handleStudentRegister} className="space-y-4">
+                <form
+                  onSubmit={handleStudentRegister}
+                  noValidate
+                  className="space-y-4"
+                >
                   {/* 1. ชื่อเล่นสมมติ */}
                   <div>
                     <label className="block text-xs font-bold text-[#c4bdd6] mb-1.5">
@@ -570,17 +691,27 @@ function LoginFormContent() {
                     <input
                       type="text"
                       value={nickname}
-                      onChange={(e) => setNickname(e.target.value)}
+                      onChange={(e) => {
+                        setNickname(e.target.value);
+                        clearFieldError("nickname");
+                      }}
                       placeholder="เช่น แมวส้ม_สายโค้ด"
-                      required
                       className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${
-                        nicknamePdpaCheck
+                        fieldErrors.nickname
+                          ? "border-[#c0283a] bg-[#2d141c]/30 focus:border-[#c0283a]"
+                          : nicknamePdpaCheck
                           ? nicknamePdpaCheck.valid
                             ? "border-[#2fbf71]"
                             : "border-[#c0283a]"
                           : "border-[#3d395a] focus:border-[#f6c945]"
                       }`}
                     />
+                    {fieldErrors.nickname && (
+                      <p className="mt-1.5 text-xs font-bold text-[#fca5a5] flex items-center gap-1.5">
+                        <span>⚠️</span>
+                        <span>{fieldErrors.nickname}</span>
+                      </p>
+                    )}
                     {/* แถบตรวจสอบ PDPA แบบ Real-time */}
                     {nicknamePdpaCheck && (
                       <p
@@ -627,12 +758,16 @@ function LoginFormContent() {
                         inputMode="numeric"
                         maxLength={4}
                         value={pin}
-                        onChange={(e) =>
-                          setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
-                        }
+                        onChange={(e) => {
+                          setPin(e.target.value.replace(/\D/g, "").slice(0, 4));
+                          clearFieldError("pin");
+                        }}
                         placeholder="•••• (เช่น 1234)"
-                        required
-                        className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2.5 pr-16 text-sm font-bold tracking-widest text-[#f4efe6] placeholder:tracking-normal placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:bg-[#252238] focus:outline-hidden"
+                        className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 pr-16 text-sm font-bold tracking-widest text-[#f4efe6] placeholder:tracking-normal placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${
+                          fieldErrors.pin
+                            ? "border-[#c0283a] bg-[#2d141c]/30 focus:border-[#c0283a]"
+                            : "border-[#3d395a] focus:border-[#f6c945]"
+                        }`}
                       />
                       <button
                         type="button"
@@ -642,6 +777,12 @@ function LoginFormContent() {
                         {showStudentPin ? "ซ่อน" : "แสดง"}
                       </button>
                     </div>
+                    {fieldErrors.pin && (
+                      <p className="mt-1.5 text-xs font-bold text-[#fca5a5] flex items-center gap-1.5">
+                        <span>⚠️</span>
+                        <span>{fieldErrors.pin}</span>
+                      </p>
+                    )}
                   </div>
 
                   {/* 3. รหัสห้องเรียน (ไม่บังคับ) */}
@@ -687,7 +828,11 @@ function LoginFormContent() {
                   </button>
                 </form>
               ) : (
-                <form onSubmit={handleTeacherRegister} className="space-y-4">
+                <form
+                  onSubmit={handleTeacherRegister}
+                  noValidate
+                  className="space-y-4"
+                >
                   <div>
                     <label className="block text-xs font-bold text-[#c4bdd6] mb-1.5">
                       ตั้งชื่อผู้ใช้ครู (Username · ไม่ต้องใช้อีเมลส่วนตัว)
@@ -695,11 +840,23 @@ function LoginFormContent() {
                     <input
                       type="text"
                       value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      onChange={(e) => {
+                        setUsername(e.target.value);
+                        clearFieldError("username");
+                      }}
                       placeholder="เช่น ครูสมศรี_คอมพิวเตอร์"
-                      required
-                      className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2.5 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:bg-[#252238] focus:outline-hidden"
+                      className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${
+                        fieldErrors.username
+                          ? "border-[#c0283a] bg-[#2d141c]/30 focus:border-[#c0283a]"
+                          : "border-[#3d395a] focus:border-[#f6c945]"
+                      }`}
                     />
+                    {fieldErrors.username && (
+                      <p className="mt-1.5 text-xs font-bold text-[#fca5a5] flex items-center gap-1.5">
+                        <span>⚠️</span>
+                        <span>{fieldErrors.username}</span>
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -723,10 +880,16 @@ function LoginFormContent() {
                       <input
                         type={showRegisterPassword ? "text" : "password"}
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          clearFieldError("password");
+                        }}
                         placeholder="••••••••"
-                        required
-                        className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2.5 pr-16 text-sm font-bold text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:bg-[#252238] focus:outline-hidden"
+                        className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 pr-16 text-sm font-bold text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${
+                          fieldErrors.password
+                            ? "border-[#c0283a] bg-[#2d141c]/30 focus:border-[#c0283a]"
+                            : "border-[#3d395a] focus:border-[#f6c945]"
+                        }`}
                       />
                       <button
                         type="button"
@@ -738,6 +901,12 @@ function LoginFormContent() {
                         {showRegisterPassword ? "ซ่อน" : "แสดง"}
                       </button>
                     </div>
+                    {fieldErrors.password && (
+                      <p className="mt-1.5 text-xs font-bold text-[#fca5a5] flex items-center gap-1.5">
+                        <span>⚠️</span>
+                        <span>{fieldErrors.password}</span>
+                      </p>
+                    )}
                   </div>
 
                   <div className="rounded-xl border border-[#3d395a] bg-[#1c1b2b] p-3.5">
