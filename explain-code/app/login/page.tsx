@@ -177,12 +177,6 @@ function LoginFormContent() {
     await executeUnifiedLogin(loginIdentifier, loginSecret);
   };
 
-  const handleQuickDemoLogin = async (demoId: string, demoSecret: string) => {
-    setLoginIdentifier(demoId);
-    setLoginSecret(demoSecret);
-    await executeUnifiedLogin(demoId, demoSecret);
-  };
-
   const handleStudentRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
@@ -476,7 +470,7 @@ function LoginFormContent() {
                       ชื่อเล่นสมมติ (นักเรียน) หรือ ชื่อผู้ใช้ (ครู)
                     </label>
                     <span className="text-[11px] font-semibold text-[#86efac]">
-                      ✓ ไม่ต้องใช้อีเมล (PDPA)
+                      ✓ ไม่ต้องใช้อีเมล
                     </span>
                   </div>
                   <input
@@ -526,80 +520,6 @@ function LoginFormContent() {
                   <span>{isSubmitting ? "กำลังตรวจสอบสิทธิ์..." : "เข้าสู่ระบบ"}</span>
                 </button>
               </form>
-
-              {/* กล่องเข้าใช้งานด่วนในคลิกเดียวสำหรับกรรมการและผู้ทดสอบ */}
-              <div className="rounded-xl border border-[#2f2d45] bg-[#1c1b2b]/80 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-extrabold text-[#ffe27a] flex items-center gap-1.5">
-                    <Icon name="sparkles" className="h-3.5 w-3.5 text-[#f6c945]" />
-                    <span>เข้าสู่ระบบด่วนในคลิกเดียว (บัญชีสาธิต PDPA)</span>
-                  </span>
-                  <span className="text-[11px] text-[#9a93ad]">คลิกเพื่อเข้าทันที</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    disabled={isSubmitting}
-                    onClick={() =>
-                      void handleQuickDemoLogin("ต้นกล้า_สายโค้ด", "1234")
-                    }
-                    className="rounded-xl border border-[#3d395a] bg-[#141220] hover:border-[#f6c945] hover:bg-[#252238] p-2.5 text-left transition cursor-pointer flex items-center justify-between gap-2"
-                  >
-                    <div>
-                      <div className="text-xs font-extrabold text-[#f4efe6]">
-                        🧑‍🎓 ต้นกล้า_สายโค้ด
-                      </div>
-                      <div className="text-[11px] text-[#9a93ad]">
-                        นักเรียน · ห้อง VIBE26 (PIN: 1234)
-                      </div>
-                    </div>
-                    <span className="rounded-lg bg-[#281d08] border border-[#f6c945]/50 px-2 py-0.5 text-[10px] font-extrabold text-[#ffe27a]">
-                      เข้าเล่น →
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={isSubmitting}
-                    onClick={() => void handleQuickDemoLogin("แมวส้ม", "1234")}
-                    className="rounded-xl border border-[#3d395a] bg-[#141220] hover:border-[#f6c945] hover:bg-[#252238] p-2.5 text-left transition cursor-pointer flex items-center justify-between gap-2"
-                  >
-                    <div>
-                      <div className="text-xs font-extrabold text-[#f4efe6]">
-                        🐱 แมวส้ม
-                      </div>
-                      <div className="text-[11px] text-[#9a93ad]">
-                        นักเรียน · ห้อง ABC123 (PIN: 1234)
-                      </div>
-                    </div>
-                    <span className="rounded-lg bg-[#281d08] border border-[#f6c945]/50 px-2 py-0.5 text-[10px] font-extrabold text-[#ffe27a]">
-                      เข้าเล่น →
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={isSubmitting}
-                    onClick={() =>
-                      void handleQuickDemoLogin("ครูสมชาย", "12345678")
-                    }
-                    className="rounded-xl border border-[#3d395a] bg-[#141220] hover:border-[#9b5de5] hover:bg-[#25193b] p-2.5 text-left transition cursor-pointer flex items-center justify-between gap-2 sm:col-span-2"
-                  >
-                    <div>
-                      <div className="text-xs font-extrabold text-[#e9d5ff]">
-                        👨‍🏫 ครูสมชาย ใจดี (แดชบอร์ดครู &amp; จัดการคอร์ส LMS)
-                      </div>
-                      <div className="text-[11px] text-[#9a93ad]">
-                        ครูผู้สอน · ดูแผนที่ Block Model รายห้องและสร้างดันเจี้ยน (รหัส: 12345678)
-                      </div>
-                    </div>
-                    <span className="rounded-lg bg-[#25193b] border border-[#9b5de5]/60 px-2.5 py-1 text-[10px] font-extrabold text-[#ffe27a] shrink-0">
-                      เปิดแดชบอร์ดครู →
-                    </span>
-                  </button>
-                </div>
-              </div>
             </div>
           ) : (
             /* ==================== โหมดสมัครสมาชิกใหม่ ==================== */

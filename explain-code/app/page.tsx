@@ -1415,30 +1415,6 @@ export default function ExplainCodeApp() {
                     </button>
                   </form>
                 )}
-
-                {/* แถบเลือกบัญชีตัวอย่างคลิกเดียวเข้าเล่น */}
-                <div className="pt-2 border-t border-[#2f2d45] flex flex-wrap items-center justify-center gap-1.5 text-[12px] text-[#9a93ad]">
-                  <span className="font-bold">บัญชีนักเรียนตัวอย่าง (PIN 1234):</span>
-                  {students.slice(0, 4).map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => {
-                        setStudentAuthTab("login");
-                        setLoginNickname(s.nickname);
-                        setLoginPin("1234");
-                      }}
-                      className={`px-2.5 py-1 rounded-lg font-extrabold transition cursor-pointer ${
-                        loginNickname === s.nickname &&
-                        studentAuthTab === "login"
-                          ? "bg-[#5a2d91] text-[#ffe27a] border border-[#f6c945]/75"
-                          : "bg-[#1c1b2b] text-[#c4bdd6] border border-[#2f2d45] hover:border-[#f6c945]/60 hover:text-[#f4efe6]"
-                      }`}
-                    >
-                      {s.nickname}
-                    </button>
-                  ))}
-                </div>
               </>
             )}
 
