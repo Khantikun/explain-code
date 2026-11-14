@@ -1099,13 +1099,6 @@ export default function ExplainCodeApp() {
               </h3>
               <div className="flex flex-wrap gap-2">
                 <Link
-                  href="/ai-log"
-                  className="whitespace-nowrap rounded-xl border border-[#9b5de5]/60 bg-[#25193b] px-4 py-2 text-xs font-extrabold text-[#ffe27a] hover:border-[#f6c945] hover:bg-[#32224e] transition-colors inline-flex items-center gap-1.5"
-                >
-                  <Icon name="clipboard" className="h-3.5 w-3.5 text-[#f6c945]" />
-                  <span>{t("บันทึกการใช้ AI (AI Log)", "AI Usage Log")}</span>
-                </Link>
-                <Link
                   href="/login"
                   className="whitespace-nowrap rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-4 py-2 text-xs font-bold text-[#f4efe6] hover:border-[#f6c945]/60 hover:bg-[#252238] transition-colors"
                 >
@@ -1691,7 +1684,6 @@ export default function ExplainCodeApp() {
               { id: "practice" as StudentTab, label: "ฝึกอ่านโค้ด", icon: "play" as const },
               { id: "learn" as StudentTab, label: "Block Model", icon: "book" as const },
               { id: "profile" as StudentTab, label: "โปรไฟล์", icon: "user" as const },
-              { id: "ailog" as StudentTab, label: "บันทึก AI", icon: "clipboard" as const },
             ].map((tab) => {
               const active = studentTab === tab.id;
               return (
