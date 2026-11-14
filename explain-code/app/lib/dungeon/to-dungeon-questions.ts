@@ -170,7 +170,7 @@ function buildDeterministicDungeon(
   // Phase 1: Execution / Predict Output (E4)
   if (actualOutput) {
     const numericVal = Number(actualOutput);
-    const distractors = !Number.isNaN(numericVal)
+    const distractors = Number.isFinite(numericVal)
       ? [
           String(numericVal + 1),
           String(Math.max(0, numericVal - 1)),
@@ -489,7 +489,7 @@ ${numberedLines}`;
           ? q.choices.map((c) => String(c)).filter((c) => c.trim().length > 0)
           : [];
         const choices = rawChoices.length >= 2 ? rawChoices.slice(0, 4) : ["Option A", "Option B", "Option C", "Option D"];
-        const rawIdx = typeof q.correctIndex === "number" ? q.correctIndex : 0;
+        const rawIdx = typeof q.correctIndex === "number" && Number.isInteger(q.correctIndex) ? q.correctIndex : 0;
         const correctIndex = rawIdx >= 0 && rawIdx < choices.length ? rawIdx : 0;
         const difficulty =
           q.difficulty === "easy" || q.difficulty === "medium" || q.difficulty === "hard"

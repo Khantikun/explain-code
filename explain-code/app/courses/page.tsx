@@ -1764,7 +1764,15 @@ function CoursesContent() {
               avatarKey={selectedAvatarKey}
               onChangeHero={() => setActiveTab("hero-select")}
               embedded
-              onBackToMap={() => setActiveTab("quest")}
+              onBackToMap={() => {
+                setActiveTab("quest");
+                if (customDungeonParam) {
+                  router.replace(
+                    `/courses?lang=${encodeURIComponent(activeCustomDungeon.language)}`,
+                    { scroll: false }
+                  );
+                }
+              }}
               onCompleteTopic={(result) => {
                 const currentStudentSnapshot = currentStudent;
                 const nextCells = { ...currentStudentSnapshot.cellScores };
@@ -1801,6 +1809,12 @@ function CoursesContent() {
                   saveStudentsToStorage(updatedList);
                 }
                 setActiveTab("quest");
+                if (customDungeonParam) {
+                  router.replace(
+                    `/courses?lang=${encodeURIComponent(activeCustomDungeon.language)}`,
+                    { scroll: false }
+                  );
+                }
               }}
             />
           )}

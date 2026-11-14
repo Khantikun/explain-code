@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateCustomDungeonFromCode } from "@/app/lib/dungeon/to-dungeon-questions";
+import { ExplainCodeResult } from "@/app/lib/explain-code";
 
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 15;
@@ -55,13 +56,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
-    const code = String(body.code || "");
-    const language = String(body.language || "javascript");
+    let rawBody: unknown;
+    try {
+      rawBody = await req.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON request body." },
+        { status: 400 }
+      );
+    }
+
+    if (!rawBody || typeof rawBody !== "object" || Array.isArray(rawBody)) {
+      return NextResponse.json(
+        { error: "Request body must be a JSON object." },
+        { status: 400 }
+      );
+    }
+
+    const body = rawBody as Record<string, unknown>;
+    const code = typeof body.code === "string" ? body.code : String(body.code ?? "");
+    const language = typeof body.language === "string" ? body.language : "javascript";
     const uiLang: "th" | "en" = body.uiLang === "en" ? "en" : "th";
     const explanation =
-      body.explanation && typeof body.explanation === "object"
-        ? body.explanation
+      body.explanation && typeof body.explanation === "object" && !Array.isArray(body.explanation)
+        ? (body.explanation as Partial<ExplainCodeResult>)
         : null;
 
     if (!code.trim()) {
