@@ -37,6 +37,7 @@ function LoginFormContent() {
   // Student Register fields
   const [nickname, setNickname] = useState("");
   const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
   const [showStudentPin, setShowStudentPin] = useState(false);
   const [roomCode, setRoomCode] = useState("");
   const [pdpaAccepted, setPdpaAccepted] = useState(true);
@@ -44,6 +45,7 @@ function LoginFormContent() {
   // Teacher Register fields
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
 
@@ -207,6 +209,7 @@ function LoginFormContent() {
 
     const cleanNick = nickname.trim();
     const cleanPin = pin.trim();
+    const cleanConfirmPin = confirmPin.trim();
     const cleanRoom = roomCode.trim().toUpperCase() || "VIBE26";
 
     const newErrors: Record<string, string> = {};
@@ -218,6 +221,11 @@ function LoginFormContent() {
     } else if (cleanPin.length !== 4) {
       newErrors.pin = `รหัส PIN ต้องมีครบ 4 หลัก (ตอนนี้กรอกไป ${cleanPin.length} หลัก)`;
     }
+    if (!cleanConfirmPin) {
+      newErrors.confirmPin = "กรุณายืนยันรหัส PIN 4 หลักอีกครั้ง (ห้ามเว้นว่าง)";
+    } else if (cleanPin.length === 4 && cleanConfirmPin !== cleanPin) {
+      newErrors.confirmPin = "รหัส PIN ทั้งสองช่องไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง";
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setFieldErrors(newErrors);
@@ -226,7 +234,7 @@ function LoginFormContent() {
         text:
           !cleanNick && !cleanPin
             ? "กรุณากรอกชื่อเล่นสมมติ และตั้งรหัส PIN 4 หลักให้ครบถ้วนก่อนสมัครสมาชิก"
-            : newErrors.nickname || newErrors.pin,
+            : newErrors.nickname || newErrors.pin || newErrors.confirmPin,
       });
       return;
     }
@@ -322,6 +330,7 @@ function LoginFormContent() {
 
     const cleanUser = username.trim();
     const cleanPwd = password.trim();
+    const cleanConfirmPwd = confirmPassword.trim();
     const cleanDisplay = (displayName || cleanUser).trim();
 
     const newErrors: Record<string, string> = {};
@@ -333,6 +342,11 @@ function LoginFormContent() {
     } else if (cleanPwd.length < 4) {
       newErrors.password = "รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร";
     }
+    if (!cleanConfirmPwd) {
+      newErrors.confirmPassword = "กรุณายืนยันรหัสผ่านอีกครั้ง (ห้ามเว้นว่าง)";
+    } else if (cleanPwd.length >= 4 && cleanConfirmPwd !== cleanPwd) {
+      newErrors.confirmPassword = "รหัสผ่านทั้งสองช่องไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง";
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setFieldErrors(newErrors);
@@ -341,7 +355,7 @@ function LoginFormContent() {
         text:
           !cleanUser && !cleanPwd
             ? "กรุณากรอกชื่อผู้ใช้ครู และตั้งรหัสผ่าน (อย่างน้อย 4 ตัวอักษร) ให้ครบถ้วน"
-            : newErrors.username || newErrors.password,
+            : newErrors.username || newErrors.password || newErrors.confirmPassword,
       });
       return;
     }
@@ -498,11 +512,10 @@ function LoginFormContent() {
                 setMessage(null);
                 setFieldErrors({});
               }}
-              className={`rounded-lg py-2.5 text-sm font-extrabold transition-all cursor-pointer ${
-                mode === "login"
+              className={`rounded-lg py-2.5 text-sm font-extrabold transition-all cursor-pointer ${mode === "login"
                   ? "bg-[#25193b] text-[#ffe27a] border border-[#9b5de5]/70 shadow-xs"
                   : "text-[#9a93ad] hover:text-[#f4efe6]"
-              }`}
+                }`}
             >
               เข้าสู่ระบบ
             </button>
@@ -513,11 +526,10 @@ function LoginFormContent() {
                 setMessage(null);
                 setFieldErrors({});
               }}
-              className={`rounded-lg py-2.5 text-sm font-extrabold transition-all cursor-pointer ${
-                mode === "register"
+              className={`rounded-lg py-2.5 text-sm font-extrabold transition-all cursor-pointer ${mode === "register"
                   ? "bg-[#281d08] text-[#ffe27a] border border-[#f6c945]/70 shadow-xs"
                   : "text-[#9a93ad] hover:text-[#f4efe6]"
-              }`}
+                }`}
             >
               สมัครสมาชิกใหม่
             </button>
@@ -526,11 +538,10 @@ function LoginFormContent() {
           {message && (
             <div
               role="alert"
-              className={`mb-5 flex items-start gap-3 rounded-xl border-2 p-4 shadow-md ${
-                message.type === "error"
+              className={`mb-5 flex items-start gap-3 rounded-xl border-2 p-4 shadow-md ${message.type === "error"
                   ? "border-[#c0283a] bg-[#2d141c] text-[#fca5a5]"
                   : "border-[#2fbf71] bg-[#102a1e] text-[#86efac]"
-              }`}
+                }`}
             >
               <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black/30 text-sm">
                 {message.type === "error" ? "⚠️" : "✅"}
@@ -579,11 +590,10 @@ function LoginFormContent() {
                       clearFieldError("loginIdentifier");
                     }}
                     placeholder="เช่น ต้นกล้า_สายโค้ด, แมวส้ม หรือ ครูสมชาย"
-                    className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${
-                      fieldErrors.loginIdentifier
+                    className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${fieldErrors.loginIdentifier
                         ? "border-[#c0283a] bg-[#2d141c]/30 focus:border-[#c0283a]"
                         : "border-[#3d395a] focus:border-[#f6c945]"
-                    }`}
+                      }`}
                   />
                   {fieldErrors.loginIdentifier && (
                     <p className="mt-1.5 text-xs font-bold text-[#fca5a5] flex items-center gap-1.5">
@@ -602,11 +612,10 @@ function LoginFormContent() {
                       {[0, 1, 2, 3].map((idx) => (
                         <span
                           key={idx}
-                          className={`h-2.5 w-2.5 rounded-full transition-colors ${
-                            loginSecret.length > idx
+                          className={`h-2.5 w-2.5 rounded-full transition-colors ${loginSecret.length > idx
                               ? "bg-[#2fbf71]"
                               : "bg-[#3d395a]"
-                          }`}
+                            }`}
                         />
                       ))}
                       <span className="ml-1 text-[11px] font-bold text-[#9a93ad]">
@@ -623,11 +632,10 @@ function LoginFormContent() {
                         clearFieldError("loginSecret");
                       }}
                       placeholder="กรอกรหัส PIN 4 หลัก หรือรหัสผ่าน"
-                      className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 pr-16 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${
-                        fieldErrors.loginSecret
+                      className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 pr-16 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${fieldErrors.loginSecret
                           ? "border-[#c0283a] bg-[#2d141c]/30 focus:border-[#c0283a]"
                           : "border-[#3d395a] focus:border-[#f6c945]"
-                      }`}
+                        }`}
                     />
                     <button
                       type="button"
@@ -670,11 +678,10 @@ function LoginFormContent() {
                       setMessage(null);
                       setFieldErrors({});
                     }}
-                    className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-extrabold transition-all cursor-pointer ${
-                      registerRole === "student"
+                    className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-extrabold transition-all cursor-pointer ${registerRole === "student"
                         ? "bg-[#9b5de5] text-[#f4efe6] shadow-md"
                         : "text-[#9a93ad] hover:text-[#f4efe6]"
-                    }`}
+                      }`}
                   >
                     <Icon name="user" className="h-4 w-4" />
                     <span>นักเรียน (Student)</span>
@@ -686,11 +693,10 @@ function LoginFormContent() {
                       setMessage(null);
                       setFieldErrors({});
                     }}
-                    className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-extrabold transition-all cursor-pointer ${
-                      registerRole === "teacher"
+                    className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-extrabold transition-all cursor-pointer ${registerRole === "teacher"
                         ? "bg-[#9b5de5] text-[#f4efe6] shadow-md"
                         : "text-[#9a93ad] hover:text-[#f4efe6]"
-                    }`}
+                      }`}
                   >
                     <Icon name="users" className="h-4 w-4" />
                     <span>ครูผู้สอน (Teacher)</span>
@@ -717,15 +723,14 @@ function LoginFormContent() {
                         clearFieldError("nickname");
                       }}
                       placeholder="เช่น แมวส้ม_สายโค้ด"
-                      className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${
-                        fieldErrors.nickname
+                      className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${fieldErrors.nickname
                           ? "border-[#c0283a] bg-[#2d141c]/30 focus:border-[#c0283a]"
                           : nicknamePdpaCheck
-                          ? nicknamePdpaCheck.valid
-                            ? "border-[#2fbf71]"
-                            : "border-[#c0283a]"
-                          : "border-[#3d395a] focus:border-[#f6c945]"
-                      }`}
+                            ? nicknamePdpaCheck.valid
+                              ? "border-[#2fbf71]"
+                              : "border-[#c0283a]"
+                            : "border-[#3d395a] focus:border-[#f6c945]"
+                        }`}
                     />
                     {fieldErrors.nickname && (
                       <p className="mt-1.5 text-xs font-bold text-[#fca5a5] flex items-center gap-1.5">
@@ -736,11 +741,10 @@ function LoginFormContent() {
                     {/* แถบตรวจสอบ PDPA แบบ Real-time */}
                     {nicknamePdpaCheck && (
                       <p
-                        className={`mt-1.5 text-xs font-bold flex items-center gap-1.5 ${
-                          nicknamePdpaCheck.valid
+                        className={`mt-1.5 text-xs font-bold flex items-center gap-1.5 ${nicknamePdpaCheck.valid
                             ? "text-[#86efac]"
                             : "text-[#fca5a5]"
-                        }`}
+                          }`}
                       >
                         <span>
                           {nicknamePdpaCheck.valid
@@ -761,11 +765,10 @@ function LoginFormContent() {
                         {[0, 1, 2, 3].map((idx) => (
                           <span
                             key={idx}
-                            className={`h-2.5 w-2.5 rounded-full transition-colors ${
-                              pin.length > idx
+                            className={`h-2.5 w-2.5 rounded-full transition-colors ${pin.length > idx
                                 ? "bg-[#2fbf71]"
                                 : "bg-[#3d395a]"
-                            }`}
+                              }`}
                           />
                         ))}
                         <span className="ml-1 text-[11px] font-bold text-[#9a93ad]">
@@ -784,11 +787,10 @@ function LoginFormContent() {
                           clearFieldError("pin");
                         }}
                         placeholder="•••• (เช่น 1234)"
-                        className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 pr-16 text-sm font-bold tracking-widest text-[#f4efe6] placeholder:tracking-normal placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${
-                          fieldErrors.pin
+                        className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 pr-16 text-sm font-bold tracking-widest text-[#f4efe6] placeholder:tracking-normal placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${fieldErrors.pin
                             ? "border-[#c0283a] bg-[#2d141c]/30 focus:border-[#c0283a]"
                             : "border-[#3d395a] focus:border-[#f6c945]"
-                        }`}
+                          }`}
                       />
                       <button
                         type="button"
@@ -806,11 +808,80 @@ function LoginFormContent() {
                     )}
                   </div>
 
-                  {/* 3. รหัสห้องเรียน (ไม่บังคับ) */}
+                  {/* 3. ยืนยันรหัส PIN 4 หลัก */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-bold text-[#c4bdd6]">
-                        3. รหัสห้องเรียนจากครู (ไม่บังคับ)
+                        3. ยืนยันรหัส PIN 4 หลักอีกครั้ง
+                      </label>
+                      {confirmPin.length > 0 && pin.length === 4 ? (
+                        confirmPin === pin ? (
+                          <span className="text-[11px] font-bold text-[#86efac]">
+                            ✓ รหัส PIN ตรงกัน
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-bold text-[#fca5a5]">
+                            ✕ รหัส PIN ยังไม่ตรงกัน
+                          </span>
+                        )
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          {[0, 1, 2, 3].map((idx) => (
+                            <span
+                              key={idx}
+                              className={`h-2.5 w-2.5 rounded-full transition-colors ${
+                                confirmPin.length > idx
+                                  ? "bg-[#2fbf71]"
+                                  : "bg-[#3d395a]"
+                              }`}
+                            />
+                          ))}
+                          <span className="ml-1 text-[11px] font-bold text-[#9a93ad]">
+                            {confirmPin.length}/4 หลัก
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showStudentPin ? "text" : "password"}
+                        inputMode="numeric"
+                        maxLength={4}
+                        value={confirmPin}
+                        onChange={(e) => {
+                          setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4));
+                          clearFieldError("confirmPin");
+                        }}
+                        placeholder="กรอกรหัส PIN 4 หลักอีกครั้ง"
+                        className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 pr-16 text-sm font-bold tracking-widest text-[#f4efe6] placeholder:tracking-normal placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${
+                          fieldErrors.confirmPin
+                            ? "border-[#c0283a] bg-[#2d141c]/30 focus:border-[#c0283a]"
+                            : confirmPin.length === 4 && confirmPin === pin
+                            ? "border-[#2fbf71]"
+                            : "border-[#3d395a] focus:border-[#f6c945]"
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowStudentPin(!showStudentPin)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md bg-[#252238] px-2 py-1 text-xs font-bold text-[#ffe27a] hover:bg-[#322c4a] cursor-pointer"
+                      >
+                        {showStudentPin ? "ซ่อน" : "แสดง"}
+                      </button>
+                    </div>
+                    {fieldErrors.confirmPin && (
+                      <p className="mt-1.5 text-xs font-bold text-[#fca5a5] flex items-center gap-1.5">
+                        <span>⚠️</span>
+                        <span>{fieldErrors.confirmPin}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 4. รหัสห้องเรียน (ไม่บังคับ) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-[#c4bdd6]">
+                        4. รหัสห้องเรียนจากครู (ไม่บังคับ)
                       </label>
                       <span className="text-[11px] font-semibold text-[#9a93ad]">
                         เว้นว่างได้หากเรียนด้วยตัวเอง
@@ -836,7 +907,7 @@ function LoginFormContent() {
                       className="h-3.5 w-3.5 shrink-0 accent-[#2fbf71] rounded cursor-pointer"
                     />
                     <span>
-                      รับทราบหลัก <strong className="text-[#c4bdd6]">PDPA</strong> · ระบบเก็บเฉพาะชื่อเล่นสมมติและรหัส PIN (ไม่เก็บข้อมูลส่วนตัวจริง)
+                      <strong className="text-[#c4bdd6]">รับทราบ</strong> · ระบบเก็บเฉพาะชื่อเล่นสมมติและรหัส PIN (ไม่เก็บข้อมูลส่วนตัวจริง)
                     </span>
                   </label>
 
@@ -866,11 +937,10 @@ function LoginFormContent() {
                         clearFieldError("username");
                       }}
                       placeholder="เช่น ครูสมศรี_คอมพิวเตอร์"
-                      className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${
-                        fieldErrors.username
+                      className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${fieldErrors.username
                           ? "border-[#c0283a] bg-[#2d141c]/30 focus:border-[#c0283a]"
                           : "border-[#3d395a] focus:border-[#f6c945]"
-                      }`}
+                        }`}
                     />
                     {fieldErrors.username && (
                       <p className="mt-1.5 text-xs font-bold text-[#fca5a5] flex items-center gap-1.5">
@@ -902,11 +972,10 @@ function LoginFormContent() {
                         {[0, 1, 2, 3].map((idx) => (
                           <span
                             key={idx}
-                            className={`h-2.5 w-2.5 rounded-full transition-colors ${
-                              password.length > idx
+                            className={`h-2.5 w-2.5 rounded-full transition-colors ${password.length > idx
                                 ? "bg-[#2fbf71]"
                                 : "bg-[#3d395a]"
-                            }`}
+                              }`}
                           />
                         ))}
                         <span className="ml-1 text-[11px] font-bold text-[#9a93ad]">
@@ -923,11 +992,10 @@ function LoginFormContent() {
                           clearFieldError("password");
                         }}
                         placeholder="••••••••"
-                        className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 pr-16 text-sm font-bold text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${
-                          fieldErrors.password
+                        className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 pr-16 text-sm font-bold text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${fieldErrors.password
                             ? "border-[#c0283a] bg-[#2d141c]/30 focus:border-[#c0283a]"
                             : "border-[#3d395a] focus:border-[#f6c945]"
-                        }`}
+                          }`}
                       />
                       <button
                         type="button"
@@ -947,6 +1015,58 @@ function LoginFormContent() {
                     )}
                   </div>
 
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-[#c4bdd6]">
+                        ยืนยันรหัสผ่านอีกครั้ง
+                      </label>
+                      {confirmPassword.length > 0 && password.length >= 4 && (
+                        confirmPassword === password ? (
+                          <span className="text-[11px] font-bold text-[#86efac]">
+                            ✓ รหัสผ่านตรงกัน
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-bold text-[#fca5a5]">
+                            ✕ รหัสผ่านยังไม่ตรงกัน
+                          </span>
+                        )
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input
+                        type={showRegisterPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => {
+                          setConfirmPassword(e.target.value);
+                          clearFieldError("confirmPassword");
+                        }}
+                        placeholder="กรอกรหัสผ่านอีกครั้ง"
+                        className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 pr-16 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${
+                          fieldErrors.confirmPassword
+                            ? "border-[#c0283a] bg-[#2d141c]/30 focus:border-[#c0283a]"
+                            : confirmPassword.length >= 4 && confirmPassword === password
+                            ? "border-[#2fbf71]"
+                            : "border-[#3d395a] focus:border-[#f6c945]"
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowRegisterPassword(!showRegisterPassword)
+                        }
+                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md bg-[#252238] px-2 py-1 text-xs font-bold text-[#ffe27a] hover:bg-[#322c4a] cursor-pointer"
+                      >
+                        {showRegisterPassword ? "ซ่อน" : "แสดง"}
+                      </button>
+                    </div>
+                    {fieldErrors.confirmPassword && (
+                      <p className="mt-1.5 text-xs font-bold text-[#fca5a5] flex items-center gap-1.5">
+                        <span>⚠️</span>
+                        <span>{fieldErrors.confirmPassword}</span>
+                      </p>
+                    )}
+                  </div>
+
                   {/* รับทราบหลักการ PDPA แบบมินิมอล */}
                   <label className="flex items-center gap-2 px-1 py-0.5 text-xs text-[#9a93ad] hover:text-[#c4bdd6] transition-colors cursor-pointer select-none">
                     <input
@@ -956,7 +1076,7 @@ function LoginFormContent() {
                       className="h-3.5 w-3.5 shrink-0 accent-[#2fbf71] rounded cursor-pointer"
                     />
                     <span>
-                      รับทราบหลัก <strong className="text-[#c4bdd6]">PDPA</strong> · ระบบเก็บเฉพาะชื่อผู้ใช้และรหัสผ่านที่เข้ารหัสแล้ว (ไม่เก็บข้อมูลส่วนตัวจริง)
+                      <strong className="text-[#c4bdd6]">รับทราบ</strong> · ระบบเก็บเฉพาะชื่อเล่นสมมติและรหัส PIN (ไม่เก็บข้อมูลส่วนตัวจริง)
                     </span>
                   </label>
 
