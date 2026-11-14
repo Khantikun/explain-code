@@ -949,23 +949,6 @@ export function TopicDungeonArena({
                 </div>
               )}
 
-              {/* Battle Phases Breakdown */}
-              <div className="space-y-1.5">
-                <div className="text-[11px] font-extrabold text-[#9a93ad] uppercase">
-                  {t("ลำดับเฟสการต่อสู้ (Multi-Phase):", "Battle Phases:")}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {phaseQuestions.map((pq, idx) => (
-                    <span
-                      key={pq.id}
-                      className="text-[10px] font-bold px-2 py-1 rounded-lg bg-[#0d0b14] border border-[#2f2d45] text-[#f4efe6]"
-                    >
-                      {idx + 1}. {pq.blockModelCell || "Quest"}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
               {/* Badge Reward Preview */}
               <div className="p-3 rounded-xl bg-[#0d0b14] border border-[#f6c945]/40 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
