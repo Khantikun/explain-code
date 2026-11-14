@@ -23,6 +23,7 @@ interface GameCanvasProps {
   isPaused: boolean;
   isInBattle: boolean;
   onEncounterEntity: () => void;
+  onEncounterChest?: () => void;
   onEnterNextFloor: () => void;
   onAutoPause: () => void;
   screenShake: number; // 0 to 1 intensity
@@ -38,6 +39,7 @@ export function GameCanvas({
   isPaused,
   isInBattle,
   onEncounterEntity,
+  onEncounterChest,
   onEnterNextFloor,
   onAutoPause,
   screenShake,
@@ -103,6 +105,17 @@ export function GameCanvas({
         return;
       }
 
+      // Optional Code Chest collision
+      if (
+        room.chest &&
+        !room.chest.isOpened &&
+        targetX === room.chest.x &&
+        targetY === room.chest.y
+      ) {
+        onEncounterChest?.();
+        return;
+      }
+
       // Entity (Monster / Chest / Puzzle / Boss) collision
       if (
         room.entity &&
@@ -118,7 +131,7 @@ export function GameCanvas({
       playerPosRef.current = { x: targetX, y: targetY };
       dungeonSound.playStep();
     },
-    [isPaused, isInBattle, room, onEncounterEntity, onEnterNextFloor]
+    [isPaused, isInBattle, room, onEncounterEntity, onEncounterChest, onEnterNextFloor]
   );
 
   // Keyboard navigation (layout-independent e.code + Thai/English e.key fallback)
@@ -192,8 +205,17 @@ export function GameCanvas({
         key === " " ||
         key === "Enter"
       ) {
-        // Interact with entity if directly facing or standing adjacent
+        // Interact with chest or entity if directly facing or standing adjacent
         e.preventDefault();
+        if (room.chest && !room.chest.isOpened) {
+          const chestDist =
+            Math.abs(playerPosRef.current.x - room.chest.x) +
+            Math.abs(playerPosRef.current.y - room.chest.y);
+          if (chestDist <= 1) {
+            onEncounterChest?.();
+            return;
+          }
+        }
         if (room.entity && !room.entity.isCompleted) {
           const dist =
             Math.abs(playerPosRef.current.x - room.entity.x) +
@@ -207,7 +229,7 @@ export function GameCanvas({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [tryMove, isPaused, isInBattle, room.entity, onEncounterEntity]);
+  }, [tryMove, isPaused, isInBattle, room.entity, room.chest, onEncounterEntity, onEncounterChest]);
 
   // Tab hidden auto-pause (avoid locking movement when clicking buttons / losing canvas focus)
   useEffect(() => {
@@ -361,6 +383,18 @@ export function GameCanvas({
         const ty = t.y * TILE_SIZE;
         drawSprite(ctx, TORCH_SPRITE, tx, ty);
       });
+
+      // 4.5. Draw Optional Code Chest
+      if (room.chest) {
+        const cx = room.chest.x * TILE_SIZE;
+        const cy = room.chest.y * TILE_SIZE;
+        if (!room.chest.isOpened) {
+          const chestBob = Math.sin(elapsed * 4) * 0.8;
+          drawSprite(ctx, CHEST_CLOSED_SPRITE, cx, cy + chestBob);
+        } else {
+          drawSprite(ctx, CHEST_OPEN_SPRITE, cx, cy);
+        }
+      }
 
       // 5. Draw Entity (Monster / Chest / Boss)
       if (room.entity && !room.entity.isCompleted) {

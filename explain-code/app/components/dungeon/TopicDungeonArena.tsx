@@ -12,7 +12,7 @@ import {
   getTopicsByLanguage,
   runCodeByLanguage,
 } from "../../lib/language-tracks";
-import { getQuestionsForTopic } from "../../lib/dungeon/questions";
+import { getQuestionsForTopic, getChestQuestion } from "../../lib/dungeon/questions";
 import {
   AVATARS,
   AvatarKey,
@@ -28,6 +28,7 @@ import { dungeonSound } from "../../lib/dungeon/sound";
 import { GameCanvas } from "./GameCanvas";
 import { MobileDpad } from "./MobileDpad";
 import { BattleOverlay, BattlePhaseResult } from "./BattleOverlay";
+import { CodeChestModal } from "./CodeChestModal";
 import { PixelSpriteView } from "./PixelSpriteView";
 import { useUiLanguage } from "../LanguageProvider";
 import { getClientSession } from "../SiteHeader";
@@ -197,6 +198,8 @@ export function TopicDungeonArena({
   const [xp, setXp] = useState<number>(0);
   const [screenShake, setScreenShake] = useState<number>(0);
   const [isInBattle, setIsInBattle] = useState<boolean>(false);
+  const [isChestOpen, setIsChestOpen] = useState<boolean>(false);
+  const [chestBonusXp, setChestBonusXp] = useState<number>(0);
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [battleSummary, setBattleSummary] = useState<{
     totalXp: number;
@@ -215,6 +218,8 @@ export function TopicDungeonArena({
     setCoins(0);
     setXp(0);
     setIsInBattle(false);
+    setIsChestOpen(false);
+    setChestBonusXp(0);
     setIsGameOver(false);
     setBattleSummary(null);
     setScreenShake(0);
@@ -275,11 +280,34 @@ export function TopicDungeonArena({
     [activeTopic, activeLanguage]
   );
 
+  const chestQuestion = useMemo(
+    () => getChestQuestion(activeTopic.id, activeLanguage, phaseQuestions[0]?.id),
+    [activeTopic.id, activeLanguage, phaseQuestions]
+  );
+
   const handleEncounterEntity = useCallback(() => {
     if (!room.entity?.isCompleted && !isGameOver) {
       setIsInBattle(true);
     }
   }, [room.entity?.isCompleted, isGameOver]);
+
+  const handleEncounterChest = useCallback(() => {
+    if (room.chest && !room.chest.isOpened && !isGameOver) {
+      setIsChestOpen(true);
+    }
+  }, [room.chest, isGameOver]);
+
+  const handleChestSolved = useCallback(
+    (reward: { xpAwarded: number; coinsAwarded: number }) => {
+      setChestBonusXp((prev) => prev + reward.xpAwarded);
+      setXp((prev) => prev + reward.xpAwarded);
+      setCoins((prev) => prev + reward.coinsAwarded);
+      setRoom((prev) =>
+        prev.chest ? { ...prev, chest: { ...prev.chest, isOpened: true } } : prev
+      );
+    },
+    []
+  );
 
   const handleBattleComplete = useCallback(
     (summary: {
@@ -292,8 +320,13 @@ export function TopicDungeonArena({
       setBattleSummary(summary);
       const sideQuestXp =
         (summary.noHitClear ? 15 : 0) + (summary.noSkillPurist ? 15 : 0);
-      setXp(summary.totalXp + sideQuestXp + (modifyBonusClaimed ? 25 : 0));
-      setCoins(summary.totalCoins);
+      setXp(
+        summary.totalXp +
+          sideQuestXp +
+          (modifyBonusClaimed ? 25 : 0) +
+          chestBonusXp
+      );
+      setCoins((prev) => prev + summary.totalCoins);
       dungeonSound.playDoorOpen();
 
       setRoom((prev) => ({
@@ -302,7 +335,7 @@ export function TopicDungeonArena({
         isDoorUnlocked: true,
       }));
     },
-    [modifyBonusClaimed]
+    [modifyBonusClaimed, chestBonusXp]
   );
 
   const handleCorrectAnswer = useCallback(
@@ -345,6 +378,8 @@ export function TopicDungeonArena({
     setXp(0);
     setIsGameOver(false);
     setIsInBattle(false);
+    setIsChestOpen(false);
+    setChestBonusXp(0);
     setBattleSummary(null);
     setModifyBonusClaimed(false);
     setModifyRunResult(null);
@@ -405,7 +440,8 @@ export function TopicDungeonArena({
     const sideQuestXp =
       (battleSummary?.noHitClear ? 15 : 0) +
       (battleSummary?.noSkillPurist ? 15 : 0) +
-      (modifyBonusClaimed ? 25 : 0);
+      (modifyBonusClaimed ? 25 : 0) +
+      chestBonusXp;
     const totalEarnedXp = Math.max(
       30,
       battleSummary ? battleSummary.totalXp + sideQuestXp : xp
@@ -419,7 +455,7 @@ export function TopicDungeonArena({
       scorePercent,
       answers,
     });
-  }, [battleSummary, modifyBonusClaimed, activeTopic, xp, onCompleteTopic]);
+  }, [battleSummary, modifyBonusClaimed, chestBonusXp, activeTopic, xp, onCompleteTopic]);
 
   const initialFocusDisplay = avatar.stats.initialMp;
   const maxFocusDisplay = avatar.stats.maxMp;
@@ -592,8 +628,9 @@ export function TopicDungeonArena({
                 room={room}
                 avatar={avatar}
                 isPaused={isGameOver}
-                isInBattle={isInBattle}
+                isInBattle={isInBattle || isChestOpen}
                 onEncounterEntity={handleEncounterEntity}
+                onEncounterChest={handleEncounterChest}
                 onEnterNextFloor={handleCompleteFloor}
                 onAutoPause={() => {}}
                 screenShake={screenShake}
@@ -716,7 +753,7 @@ export function TopicDungeonArena({
             {/* Touch D-Pad (shown on mobile & tablet below lg) */}
             <div className="lg:hidden">
               <MobileDpad
-                disabled={isInBattle || isGameOver}
+                disabled={isInBattle || isChestOpen || isGameOver}
                 onMove={(dx, dy) => {
                   const dirKey =
                     dx < 0
@@ -983,6 +1020,17 @@ export function TopicDungeonArena({
             </div>
           </div>
         </div>
+
+      {/* Code Chest Event Modal */}
+      {isChestOpen && (
+        <CodeChestModal
+          question={chestQuestion}
+          xpReward={20}
+          coinReward={15}
+          onSolved={handleChestSolved}
+          onClose={() => setIsChestOpen(false)}
+        />
+      )}
 
       {/* Multi-Phase Code Battle Overlay */}
       {isInBattle && (

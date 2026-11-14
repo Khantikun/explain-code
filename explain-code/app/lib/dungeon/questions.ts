@@ -654,3 +654,55 @@ export function getQuestionForFloor(
   );
   return nonBoss[floorIndex % nonBoss.length] || SAMPLE_DUNGEON_QUESTIONS[0];
 }
+
+/**
+ * Picks a short Predict/Trace question (1 question) for a Code Chest event.
+ */
+export function getChestQuestion(
+  seedIndex: number,
+  lang?: LearningLanguage,
+  excludeQuestionId?: string
+): DungeonQuestion {
+  const resolvedLang = lang ?? "javascript";
+  const langTopics = getTopicsByLanguage(resolvedLang);
+
+  // Build short predict questions from language track topics
+  const topicPredictPool: DungeonQuestion[] = langTopics.map((topic) => {
+    const predictRun = runCodeByLanguage(topic.code, resolvedLang);
+    const predictExpected = predictRun.success ? predictRun.finalOutput.trim() : "";
+    const correctIdx = resolveOptionIndex(topic.predictOptions, predictExpected);
+    return {
+      id: `chest-${resolvedLang}-${topic.id}`,
+      language: resolvedLang,
+      question: topic.predictPrompt,
+      questionEn: `[Predict Output] ${topic.predictPrompt}`,
+      codeSnippet: topic.code,
+      choices: topic.predictOptions,
+      correctIndex: correctIdx,
+      explanation: topic.predictExplanation,
+      difficulty: "easy",
+      blockModelCell: "E4",
+      hint: topic.steps[0]?.explanation || "ไล่ค่าตัวแปรทีละบรรทัดจนถึงคำสั่งแสดงผล",
+      hintEn: "Trace each variable line by line to predict the output.",
+      expectedOutput: predictExpected || undefined,
+      phaseLabel: "Code Chest · Predict",
+    };
+  });
+
+  const samplePool = SAMPLE_DUNGEON_QUESTIONS.filter(
+    (q) =>
+      q.language === resolvedLang &&
+      q.difficulty !== "hard" &&
+      q.id !== excludeQuestionId
+  );
+
+  const pool =
+    topicPredictPool.filter((q) => q.id !== excludeQuestionId).length > 0
+      ? topicPredictPool.filter((q) => q.id !== excludeQuestionId)
+      : samplePool.length > 0
+      ? samplePool
+      : SAMPLE_DUNGEON_QUESTIONS;
+
+  const idx = Math.abs(seedIndex) % pool.length;
+  return pool[idx] || SAMPLE_DUNGEON_QUESTIONS[0];
+}

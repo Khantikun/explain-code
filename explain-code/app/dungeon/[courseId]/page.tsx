@@ -6,11 +6,12 @@ import { AVATARS, getAvatar, DEFAULT_AVATAR, AvatarKey } from "../../lib/dungeon
 import { hashString, dungeonNameForCourse } from "../../lib/dungeon/seed";
 import { generateDungeonRoom, DungeonRoom } from "../../lib/dungeon/mapgen";
 import { getMonsterDef, MonsterDef } from "../../lib/dungeon/monsters";
-import { getQuestionForFloor, DungeonQuestion } from "../../lib/dungeon/questions";
+import { getQuestionForFloor, getChestQuestion, DungeonQuestion } from "../../lib/dungeon/questions";
 import { LANGUAGE_TRACKS, LearningLanguage } from "../../lib/language-tracks";
 import { GameCanvas } from "../../components/dungeon/GameCanvas";
 import { DungeonHud } from "../../components/dungeon/DungeonHud";
 import { BattleOverlay } from "../../components/dungeon/BattleOverlay";
+import { CodeChestModal } from "../../components/dungeon/CodeChestModal";
 import { MobileDpad } from "../../components/dungeon/MobileDpad";
 import { PauseModal, GameOverModal, VictoryModal } from "../../components/dungeon/GameModals";
 import { dungeonSound } from "../../lib/dungeon/sound";
@@ -110,6 +111,7 @@ function DungeonPlayContent() {
   // Modals & Overlay state
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [isInBattle, setIsInBattle] = useState<boolean>(false);
+  const [chestModalMode, setChestModalMode] = useState<"room-entity" | "side-chest" | null>(null);
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [isVictory, setIsVictory] = useState<boolean>(false);
 
@@ -204,6 +206,11 @@ function DungeonPlayContent() {
     [floorIndex, isBossFloor, courseLang, course?.id, courseId]
   );
 
+  const chestQuestion: DungeonQuestion = useMemo(
+    () => getChestQuestion(floorIndex + courseSeed, courseLang, currentQuestion.id),
+    [floorIndex, courseSeed, courseLang, currentQuestion.id]
+  );
+
   const currentLessonTitle =
     courseLessons[floorIndex]?.title ||
     t(`ชั้นที่ ${floorIndex + 1}`, `Floor ${floorIndex + 1}`);
@@ -216,9 +223,19 @@ function DungeonPlayContent() {
 
   const handleEncounterEntity = useCallback(() => {
     if (!room.entity?.isCompleted) {
-      setIsInBattle(true);
+      if (room.roomType === "chest") {
+        setChestModalMode("room-entity");
+      } else {
+        setIsInBattle(true);
+      }
     }
-  }, [room.entity]);
+  }, [room.entity, room.roomType]);
+
+  const handleEncounterChest = useCallback(() => {
+    if (room.chest && !room.chest.isOpened) {
+      setChestModalMode("side-chest");
+    }
+  }, [room.chest]);
 
   const handleCorrectAnswer = useCallback(
     (xpAwarded?: number, coinsAwarded?: number) => {
@@ -324,9 +341,25 @@ function DungeonPlayContent() {
     setIsGameOver(false);
     setIsVictory(false);
     setIsInBattle(false);
+    setChestModalMode(null);
     setIsPaused(false);
     setRoom(generateDungeonRoom(courseSeed, 0, totalFloors));
   }, [courseSeed, totalFloors]);
+
+  const handleChestSolved = useCallback(
+    (reward: { xpAwarded: number; coinsAwarded: number }) => {
+      if (chestModalMode === "room-entity") {
+        handleCorrectAnswer(reward.xpAwarded, reward.coinsAwarded);
+      } else if (chestModalMode === "side-chest") {
+        setXp((prev) => prev + reward.xpAwarded);
+        setCoins((prev) => prev + reward.coinsAwarded);
+        setRoom((prev) =>
+          prev.chest ? { ...prev, chest: { ...prev.chest, isOpened: true } } : prev
+        );
+      }
+    },
+    [chestModalMode, handleCorrectAnswer]
+  );
 
   if (loading) {
     return (
@@ -363,8 +396,9 @@ function DungeonPlayContent() {
           room={room}
           avatar={avatar}
           isPaused={isPaused}
-          isInBattle={isInBattle}
+          isInBattle={isInBattle || chestModalMode !== null}
           onEncounterEntity={handleEncounterEntity}
+          onEncounterChest={handleEncounterChest}
           onEnterNextFloor={handleEnterNextFloor}
           onAutoPause={() => setIsPaused(true)}
           screenShake={screenShake}
@@ -374,7 +408,7 @@ function DungeonPlayContent() {
       {/* Mobile On-Screen D-Pad */}
       <div className="w-full sm:hidden">
         <MobileDpad
-          disabled={isPaused || isInBattle || isGameOver || isVictory}
+          disabled={isPaused || isInBattle || chestModalMode !== null || isGameOver || isVictory}
           onMove={(dx, dy) => {
             const dirKey =
               dx < 0
@@ -399,6 +433,17 @@ function DungeonPlayContent() {
           }}
         />
       </div>
+
+      {/* Code Chest Event Modal */}
+      {chestModalMode !== null && (
+        <CodeChestModal
+          question={chestQuestion}
+          xpReward={25}
+          coinReward={20}
+          onSolved={handleChestSolved}
+          onClose={() => setChestModalMode(null)}
+        />
+      )}
 
       {/* Battle Overlay */}
       {isInBattle && (
