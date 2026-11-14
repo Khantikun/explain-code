@@ -1237,6 +1237,13 @@ export const INITIAL_TEACHERS: TeacherRecord[] = [
     displayName: "ครูตัวอย่าง (วิชาวิทยาการคำนวณ)",
     role: "teacher",
   },
+  {
+    id: "tch-2",
+    username: "ครูสมชาย",
+    passwordHash: "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f", // "12345678"
+    displayName: "ครูสมชาย ใจดี (วิทยาการคำนวณ)",
+    role: "teacher",
+  },
 ];
 
 export interface StudentRecord {
@@ -1270,6 +1277,14 @@ export interface ClassroomRecord {
 
 export const INITIAL_CLASSROOMS: ClassroomRecord[] = [
   {
+    roomCode: "VIBE26",
+    roomName: "ห้องเรียนเปิด Vibe Coding 2026 (สาธิตการแข่งขัน)",
+    teacherUsername: "ครูสมชาย",
+    pinnedReviewTopicId: 7,
+    pinnedReviewNote: "ยินดีต้อนรับสู่ห้องเรียนเปิด! เริ่มฝึกแกะรอยโค้ดและปราบบอสจับบั๊ก AI ได้ทันที",
+    createdAt: "14 พ.ย. 2569",
+  },
+  {
     roomCode: "ABC123",
     roomName: "ม.4/1 วิทยาการคำนวณ (กลุ่ม A)",
     teacherUsername: "ครูตัวอย่าง",
@@ -1288,6 +1303,46 @@ export const INITIAL_CLASSROOMS: ClassroomRecord[] = [
 ];
 
 export const INITIAL_STUDENTS: StudentRecord[] = [
+  {
+    id: "stu-0",
+    nickname: "ต้นกล้า_สายโค้ด",
+    pinHash: "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4", // "1234"
+    roomCode: "VIBE26",
+    xp: 320,
+    streak: 5,
+    completedTopics: [1, 2, 3, 4, 5],
+    cellScores: {
+      T1: 94,
+      E1: 90,
+      F1: 88,
+      T2: 86,
+      E2: 82,
+      F2: 84,
+      T3: 78,
+      E3: 72,
+      F3: 75,
+      T4: 80,
+      E4: 88,
+      F4: 70,
+    },
+    badges: ["badge-var", "badge-ifelse", "badge-for", "badge-while", "badge-fn"],
+    history: [
+      {
+        topicId: 5,
+        topicTitle: "เรื่องที่ 5 · ฟังก์ชัน",
+        scorePercent: 90,
+        xpEarned: 65,
+        timestamp: "วันนี้ · 10:45",
+      },
+      {
+        topicId: 4,
+        topicTitle: "เรื่องที่ 4 · วนซ้ำ while",
+        scorePercent: 85,
+        xpEarned: 65,
+        timestamp: "เมื่อวานนี้",
+      },
+    ],
+  },
   {
     id: "stu-1",
     nickname: "แมวส้ม",
@@ -1680,4 +1735,94 @@ export function getMasteryStatus(score: number): {
     inkHex: "#7d1d10",
     className: "bg-[#f8d9d4] text-[#7d1d10] border-[#fca5a5]",
   };
+}
+
+// ============================================================================
+// ระบบคุ้มครองข้อมูลส่วนบุคคล (Active PDPA Guard — พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562)
+// ============================================================================
+
+export const PDPA_SAFE_NICKNAMES: string[] = [
+  "แมวส้ม_สายโค้ด",
+  "เพนกวิน_ไร้บั๊ก",
+  "จิ้งจอก_อัลกอริทึม",
+  "แพนด้า_ดีบั๊ก",
+  "มังกรน้อย_ไฟธอน",
+  "นกฮูก_ลอจิก",
+  "กระต่าย_ไฮสปีด",
+  "ฉลามฟ้า_ควอนตัม",
+  "หมีขาว_ไซเบอร์",
+  "โลมา_พิกเซล",
+];
+
+export function generateRandomPdpaNickname(currentValue?: string): string {
+  const candidates = PDPA_SAFE_NICKNAMES.filter((name) => name !== currentValue);
+  const randomBase =
+    candidates[Math.floor(Math.random() * candidates.length)] || "แมวส้ม_สายโค้ด";
+  const randomNum = Math.floor(10 + Math.random() * 90);
+  return `${randomBase}${randomNum}`;
+}
+
+export interface PdpaValidationResult {
+  valid: boolean;
+  reason?: string;
+}
+
+/**
+ * ตรวจสอบว่าชื่อเล่นสมมติหรือชื่อผู้ใช้มีข้อมูลส่วนบุคคลที่ระบุตัวตนได้จริง (PII) หรือไม่
+ * ตามกติกาการแข่งขัน Vibe Coding 2026 หน้า 4 ข้อ 2.3 (PDPA พ.ศ. 2562)
+ */
+export function validatePdpaIdentifier(raw: string): PdpaValidationResult {
+  const clean = (raw || "").trim();
+  if (!clean) {
+    return { valid: false, reason: "กรุณากรอกชื่อเล่นสมมติ" };
+  }
+
+  if (clean.length < 2 || clean.length > 32) {
+    return {
+      valid: false,
+      reason: "ชื่อเล่นสมมติควรมีความยาว 2–32 ตัวอักษร",
+    };
+  }
+
+  // 1. ห้ามใช้อีเมล
+  if (/@/.test(clean) || /\.(com|net|ac\.th|co\.th|org)\b/i.test(clean)) {
+    return {
+      valid: false,
+      reason:
+        "ตามหลัก PDPA พ.ศ. 2562 ห้ามใช้อีเมลเป็นชื่อเล่น กรุณาใช้ฉายาหรือชื่อสมมติแทน",
+    };
+  }
+
+  // 2. ห้ามใช้คำนำหน้าชื่อจริง (นาย, นาง, นางสาว, น.ส., ด.ช., ด.ญ., เด็กชาย, เด็กหญิง)
+  if (
+    /^(นาย|นางสาว|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.|เด็กชาย|เด็กหญิง|mr\.|mrs\.|ms\.|miss\s)/i.test(
+      clean
+    )
+  ) {
+    return {
+      valid: false,
+      reason:
+        "ตรวจพบคำนำหน้าชื่อจริง! ตามหลัก PDPA พ.ศ. 2562 กรุณาใช้ชื่อเล่นสมมติแทนชื่อ-นามสกุลจริง",
+    };
+  }
+
+  // 3. ห้ามใส่เบอร์โทรศัพท์ (ตัวเลขติดกัน 9-10 หลักที่ขึ้นต้นด้วย 0) หรือเลขบัตรประชาชน 13 หลัก
+  const digitsOnly = clean.replace(/[\s-]/g, "");
+  if (/^0\d{8,9}$/.test(digitsOnly) || /\b0[689]\d{8}\b/.test(digitsOnly)) {
+    return {
+      valid: false,
+      reason:
+        "ตรวจพบตัวเลขลักษณะเบอร์โทรศัพท์! ตามหลัก PDPA พ.ศ. 2562 ห้ามกรอกเบอร์โทรศัพท์",
+    };
+  }
+
+  if (/\b\d{13}\b/.test(digitsOnly)) {
+    return {
+      valid: false,
+      reason:
+        "ตรวจพบตัวเลข 13 หลัก! ตามหลัก PDPA พ.ศ. 2562 ห้ามกรอกเลขประจำตัวประชาชนหรือรหัสนักเรียนยาว",
+    };
+  }
+
+  return { valid: true };
 }

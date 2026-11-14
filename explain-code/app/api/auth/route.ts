@@ -9,10 +9,12 @@ import {
 import { APP_SESSION_COOKIE, AppUserSession } from "@/app/lib/supabase/server";
 import {
   BlockCellId,
+  INITIAL_CLASSROOMS,
   INITIAL_STUDENTS,
   INITIAL_TEACHERS,
   StudentRecord,
   TOPICS,
+  validatePdpaIdentifier,
 } from "@/app/lib/curriculum";
 
 function sha256(input: string): string {
@@ -425,12 +427,17 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 3) Fallback ตรวจสอบกับข้อมูลบัญชีเริ่มต้น (Demo Accounts)
-      const matchedTeacher = INITIAL_TEACHERS.find(
-        (t) => t.username.toLowerCase() === identifier.toLowerCase()
+      // 3) Fallback ตรวจสอบกับข้อมูลบัญชีในเครื่อง (Local Registered Accounts) และบัญชีเริ่มต้น (Demo Accounts)
+      const clientTeachers = Array.isArray(body.localTeachers) ? body.localTeachers : [];
+      const allTeachers = [...clientTeachers, ...INITIAL_TEACHERS];
+      const matchedTeacher = allTeachers.find(
+        (t: any) =>
+          typeof t?.username === "string" &&
+          t.username.toLowerCase() === identifier.toLowerCase()
       );
       if (matchedTeacher) {
         if (
+          matchedTeacher.passwordHash &&
           matchedTeacher.passwordHash !== secretHash &&
           secret !== "12345678"
         ) {
@@ -445,27 +452,36 @@ export async function POST(req: NextRequest) {
           role: "teacher",
           teacherStatus: "approved",
           teacher: {
-            id: matchedTeacher.id,
+            id: matchedTeacher.id || `tch-${matchedTeacher.username}`,
             username: matchedTeacher.username,
-            displayName: matchedTeacher.displayName,
+            displayName: matchedTeacher.displayName || matchedTeacher.username,
             role: "teacher",
             teacherStatus: "approved",
           },
         });
         return withSessionCookie(res, {
-          userId: matchedTeacher.id,
+          userId: matchedTeacher.id || `tch-${matchedTeacher.username}`,
           username: matchedTeacher.username,
-          displayName: matchedTeacher.displayName,
+          displayName: matchedTeacher.displayName || matchedTeacher.username,
           role: "teacher",
           teacherStatus: "approved",
         });
       }
 
-      const matchedStudent = INITIAL_STUDENTS.find(
-        (s) => s.nickname.toLowerCase() === identifier.toLowerCase()
+      const clientStudents = Array.isArray(body.localStudents) ? body.localStudents : [];
+      const allStudents = [...clientStudents, ...INITIAL_STUDENTS];
+      const matchedStudent = allStudents.find(
+        (s: any) =>
+          typeof s?.nickname === "string" &&
+          s.nickname.toLowerCase() === identifier.toLowerCase()
       );
       if (matchedStudent) {
-        if (matchedStudent.pinHash !== secretHash && secret !== "1234") {
+        if (
+          matchedStudent.pinHash &&
+          matchedStudent.pinHash !== secretHash &&
+          matchedStudent.pinHash !== pepperedSecretHash &&
+          secret !== "1234"
+        ) {
           return NextResponse.json(
             { error: "รหัส PIN ไม่ถูกต้อง (บัญชีนักเรียนตัวอย่างใช้ PIN: 1234)" },
             { status: 401 }
@@ -478,11 +494,11 @@ export async function POST(req: NextRequest) {
           student: matchedStudent,
         });
         return withSessionCookie(res, {
-          userId: matchedStudent.id,
+          userId: matchedStudent.id || `stu-${matchedStudent.nickname}`,
           username: matchedStudent.nickname,
           displayName: matchedStudent.nickname,
           role: "student",
-          roomCode: matchedStudent.roomCode,
+          roomCode: matchedStudent.roomCode || "VIBE26",
         });
       }
 
@@ -648,14 +664,18 @@ export async function POST(req: NextRequest) {
       const pinStr = String(pin).trim();
       const cleanRoom = String(roomCode).trim().toUpperCase();
 
-      if (/@/.test(nick)) {
+      const pdpaCheck = validatePdpaIdentifier(nick);
+      if (!pdpaCheck.valid) {
         return NextResponse.json(
-          { error: "ตามหลัก PDPA 2562 กรุณาใช้ชื่อเล่นสมมติเท่านั้น ห้ามมีเครื่องหมาย @" },
+          { error: pdpaCheck.reason || "กรุณาใช้ชื่อเล่นสมมติตามหลัก PDPA พ.ศ. 2562" },
           { status: 400 }
         );
       }
 
       const pinHash = sha256(pinStr);
+      const knownDefaultRoom = INITIAL_CLASSROOMS.some(
+        (c) => c.roomCode.toUpperCase() === cleanRoom
+      );
 
       if (isSupabaseConfigured()) {
         try {
@@ -671,14 +691,14 @@ export async function POST(req: NextRequest) {
               console.warn("Classroom lookup error:", classErr);
             }
 
-            if (!classRows || classRows.length === 0) {
+            if ((!classRows || classRows.length === 0) && !knownDefaultRoom) {
               return NextResponse.json(
-                { error: `ไม่พบห้องเรียนรหัส "${cleanRoom}" ในระบบ กรุณาตรวจสอบรหัสห้องกับครูผู้สอน` },
+                { error: `ไม่พบห้องเรียนรหัส "${cleanRoom}" ในระบบ กรุณาตรวจสอบรหัสห้องกับครูผู้สอน (หรือใช้ VIBE26 / ABC123 / JS2026)` },
                 { status: 404 }
               );
             }
 
-            const classroom = classRows[0];
+            const classroom = classRows && classRows.length > 0 ? classRows[0] : null;
 
             // 2. ตรวจสอบว่าชื่อเล่นมีอยู่แล้วในตาราง students หรือไม่
             const { data: existingStudents, error: existErr } = await supabase
@@ -692,7 +712,7 @@ export async function POST(req: NextRequest) {
 
             if (existingStudents && existingStudents.length > 0) {
               return NextResponse.json(
-                { error: `ชื่อเล่น "${nick}" มีในระบบแล้ว กรุณาเปลี่ยนชื่อเล่นสมมติ หรือสลับไปแท็บ "เข้าเล่น"` },
+                { error: `ชื่อเล่น "${nick}" มีในระบบแล้ว กรุณาเปลี่ยนชื่อเล่นสมมติ หรือสลับไปแท็บ "เข้าสู่ระบบ"` },
                 { status: 409 }
               );
             }
@@ -735,28 +755,30 @@ export async function POST(req: NextRequest) {
 
             // 5. บันทึกลงตาราง students
             let stuInserted = false;
-            try {
-              const { error: insertErr1 } = await supabase.from("students").insert({
-                id: studentId,
-                nickname: nick,
-                classroom_id: classroom.id,
-                pin_hash: pinHash,
-              });
-              if (!insertErr1) {
-                stuInserted = true;
-              } else {
-                console.warn("students insert with pin_hash notice:", insertErr1.message);
-                const { error: insertErr2 } = await supabase.from("students").insert({
+            if (classroom?.id) {
+              try {
+                const { error: insertErr1 } = await supabase.from("students").insert({
                   id: studentId,
                   nickname: nick,
                   classroom_id: classroom.id,
+                  pin_hash: pinHash,
                 });
-                if (!insertErr2) {
+                if (!insertErr1) {
                   stuInserted = true;
+                } else {
+                  console.warn("students insert with pin_hash notice:", insertErr1.message);
+                  const { error: insertErr2 } = await supabase.from("students").insert({
+                    id: studentId,
+                    nickname: nick,
+                    classroom_id: classroom.id,
+                  });
+                  if (!insertErr2) {
+                    stuInserted = true;
+                  }
                 }
+              } catch (e) {
+                console.warn("students insert attempt notice:", e);
               }
-            } catch (e) {
-              console.warn("students insert attempt notice:", e);
             }
 
             if (!stuInserted) {
@@ -825,16 +847,31 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      const fallbackStudent: StudentRecord = {
+        id: `stu-${nick}`,
+        nickname: nick,
+        pinHash,
+        role: "student",
+        roomCode: cleanRoom,
+        xp: 0,
+        streak: 1,
+        completedTopics: [],
+        cellScores: getDefaultCellScores(),
+        badges: [],
+        history: [],
+      };
+
       const fallbackRegRes = NextResponse.json({
         authenticated: true,
         source: "local",
         role: "student",
         pinHash,
+        student: fallbackStudent,
       });
       return withSessionCookie(fallbackRegRes, {
-        userId: `stu-${nick}`,
-        username: nick,
-        displayName: nick,
+        userId: fallbackStudent.id,
+        username: fallbackStudent.nickname,
+        displayName: fallbackStudent.nickname,
         role: "student",
         roomCode: cleanRoom,
       });
