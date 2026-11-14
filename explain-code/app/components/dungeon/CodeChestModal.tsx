@@ -11,11 +11,15 @@ import { dungeonSound } from "../../lib/dungeon/sound";
 import { PixelSpriteView } from "./PixelSpriteView";
 import { useUiLanguage } from "../LanguageProvider";
 
+export type InRunRewardType = "heal_hp" | "add_shield" | "double_rewards";
+
 export interface CodeChestModalProps {
   question: DungeonQuestion;
   xpReward?: number;
   coinReward?: number;
+  enableInRunRewardPicker?: boolean;
   onSolved: (reward: { xpAwarded: number; coinsAwarded: number }) => void;
+  onSelectInRunReward?: (rewardType: InRunRewardType) => void;
   onClose: () => void;
 }
 
@@ -23,7 +27,9 @@ export function CodeChestModal({
   question,
   xpReward = 20,
   coinReward = 15,
+  enableInRunRewardPicker = true,
   onSolved,
+  onSelectInRunReward,
   onClose,
 }: CodeChestModalProps) {
   const { uiLang, t } = useUiLanguage();
@@ -32,6 +38,7 @@ export function CodeChestModal({
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [eliminatedChoices, setEliminatedChoices] = useState<number[]>([]);
   const [isSolved, setIsSolved] = useState<boolean>(false);
+  const [selectedInRunReward, setSelectedInRunReward] = useState<InRunRewardType | null>(null);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
   const displayQuestion = isEn ? question.questionEn || question.question : question.question;
@@ -96,17 +103,34 @@ export function CodeChestModal({
     setSelectedChoice(idx);
   };
 
+  const handlePickInRunReward = useCallback(
+    (reward: InRunRewardType) => {
+      if (selectedInRunReward) return;
+      setSelectedInRunReward(reward);
+      dungeonSound.playCoin();
+      onSelectInRunReward?.(reward);
+    },
+    [selectedInRunReward, onSelectInRunReward]
+  );
+
+  const handleCloseModal = useCallback(() => {
+    if (isSolved && enableInRunRewardPicker && !selectedInRunReward) {
+      onSelectInRunReward?.("double_rewards");
+    }
+    onClose();
+  }, [isSolved, enableInRunRewardPicker, selectedInRunReward, onSelectInRunReward, onClose]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        onClose();
+        handleCloseModal();
         return;
       }
       if (isSolved) {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onClose();
+          handleCloseModal();
         }
         return;
       }
@@ -124,7 +148,7 @@ export function CodeChestModal({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isSolved, displayChoices.length, eliminatedChoices, selectedChoice, handleSubmit, onClose]);
+  }, [isSolved, displayChoices.length, eliminatedChoices, selectedChoice, handleSubmit, handleCloseModal]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xs select-none overflow-y-auto">
@@ -153,7 +177,7 @@ export function CodeChestModal({
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleCloseModal}
             className="w-8 h-8 rounded-lg bg-[#252238] hover:bg-[#c0283a]/85 border border-[#4a4766] text-sm font-black text-[#f4efe6] flex items-center justify-center cursor-pointer shrink-0"
             aria-label={t("ปิดหีบ", "Close chest")}
           >
@@ -238,7 +262,7 @@ export function CodeChestModal({
         )}
 
         {isSolved && (
-          <div className="p-3.5 rounded-xl border-2 border-[#2fbf71] bg-[#1a7a4a]/30 text-xs space-y-2">
+          <div className="p-3.5 rounded-xl border-2 border-[#2fbf71] bg-[#1a7a4a]/30 text-xs space-y-3">
             <div className="flex items-center justify-between gap-2 font-extrabold text-[#86efac]">
               <span>{t("✓ เปิดหีบสำเร็จ!", "✓ Chest Opened!")}</span>
               <span className="flex items-center gap-1.5 pixel-font text-[#f6c945]">
@@ -248,6 +272,62 @@ export function CodeChestModal({
             <p className="text-[#f4efe6] leading-relaxed">
               <strong>{t("คำอธิบาย:", "Explanation:")}</strong> {displayExplanation}
             </p>
+
+            {enableInRunRewardPicker && (
+              <div className="pt-2 border-t border-[#2fbf71]/40 space-y-2">
+                <div className="font-extrabold text-[#ffe27a] text-[11px]">
+                  {selectedInRunReward
+                    ? t("✓ เลือกรางวัลประจำชั้นแล้ว:", "✓ Floor Reward Selected:")
+                    : t("🎁 เลือกรางวัลเสริมเฉพาะชั้นนี้ (1 อย่าง):", "🎁 Pick 1 Floor In-Run Reward:")}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {(
+                    [
+                      {
+                        id: "heal_hp" as InRunRewardType,
+                        icon: "❤️",
+                        title: "+1 HP",
+                        desc: t("ฟื้นหัวใจ +1 ดวง", "Heal +1 Heart"),
+                      },
+                      {
+                        id: "add_shield" as InRunRewardType,
+                        icon: "🛡️",
+                        title: "+1 Shield",
+                        desc: t("โล่กันดาเมจ +1 ครั้ง", "+1 Battle Shield"),
+                      },
+                      {
+                        id: "double_rewards" as InRunRewardType,
+                        icon: "⚡",
+                        title: "XP & Coins ×2",
+                        desc: t("คูณ 2 เฉพาะชั้นนี้", "2× Rewards This Floor"),
+                      },
+                    ] as const
+                  ).map((opt) => {
+                    const isPicked = selectedInRunReward === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        disabled={selectedInRunReward !== null}
+                        onClick={() => handlePickInRunReward(opt.id)}
+                        className={`p-2 rounded-lg border text-left transition flex flex-col gap-0.5 ${
+                          isPicked
+                            ? "bg-[#5a2d91] border-[#f6c945] text-[#ffe27a] ring-2 ring-[#f6c945]/50"
+                            : selectedInRunReward !== null
+                            ? "bg-[#120f1c] border-[#2f2d45] text-[#6b6580] opacity-50 cursor-not-allowed"
+                            : "bg-[#120f1c] border-[#4a4766] hover:border-[#f6c945] text-[#f4efe6] cursor-pointer"
+                        }`}
+                      >
+                        <span className="font-black text-xs">
+                          {opt.icon} {opt.title}
+                        </span>
+                        <span className="text-[10px] text-[#9a93ad]">{opt.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -269,7 +349,7 @@ export function CodeChestModal({
           ) : (
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCloseModal}
               className="retro-button px-5 py-2.5 rounded-xl bg-[#2fbf71] hover:bg-[#34d37d] text-[#120f1c] text-xs font-black pixel-font cursor-pointer"
             >
               {t("เก็บสมบัติ & เดินต่อ →", "COLLECT & CONTINUE →")}

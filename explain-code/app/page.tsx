@@ -6,6 +6,7 @@ import { SiteHeader } from "./components/SiteHeader";
 import { useUiLanguage } from "./components/LanguageProvider";
 import {
   TOPICS,
+  SECRET_BADGES,
   BLOCK_MODEL_CELLS,
   BlockCellId,
   INITIAL_CLASSROOMS,
@@ -724,6 +725,7 @@ export default function ExplainCodeApp() {
     earnedXp: number;
     updatedCellScores: Partial<Record<BlockCellId, number>>;
     badgeId: string;
+    extraBadgeIds?: string[];
     scorePercent: number;
     answers?: {
       questionId: string;
@@ -748,9 +750,14 @@ export default function ExplainCodeApp() {
       ? currentStudentSnapshot.completedTopics
       : [...currentStudentSnapshot.completedTopics, result.topicId];
 
-    const nextBadges = currentStudentSnapshot.badges.includes(result.badgeId)
-      ? currentStudentSnapshot.badges
-      : [...currentStudentSnapshot.badges, result.badgeId];
+    const earnedBadgeIds = [
+      result.badgeId,
+      ...(Array.isArray(result.extraBadgeIds) ? result.extraBadgeIds : []),
+    ].filter(Boolean);
+
+    const nextBadges = Array.from(
+      new Set([...currentStudentSnapshot.badges, ...earnedBadgeIds])
+    );
 
     const nextCells = { ...currentStudentSnapshot.cellScores };
     Object.entries(result.updatedCellScores).forEach(([cellKey, val]) => {
@@ -799,6 +806,7 @@ export default function ExplainCodeApp() {
           earnedXp: result.earnedXp,
           updatedCellScores: result.updatedCellScores,
           badgeId: result.badgeId,
+          extraBadgeIds: result.extraBadgeIds,
           answers: result.answers,
           aiEvaluation: result.aiEvaluation,
         };
@@ -2164,7 +2172,10 @@ export default function ExplainCodeApp() {
               <div className="lg:col-span-6 bg-[#141220] border-2 border-[#2f2d45] rounded-2xl p-5 flex flex-col gap-3">
                 <h3 className="text-[17px] font-extrabold text-[#f4efe6] flex items-center gap-2">
                   <Icon name="shield" size={20} className="text-[#f6c945]" />
-                  <span>ตราความสำเร็จที่ได้รับ ({currentStudent.badges.length}/7)</span>
+                  <span>
+                    ตราความสำเร็จที่ได้รับ ({currentStudent.badges.length}/
+                    {TOPICS.length + SECRET_BADGES.length})
+                  </span>
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {TOPICS.map((t) => {
@@ -2196,6 +2207,42 @@ export default function ExplainCodeApp() {
                       </div>
                     );
                   })}
+                </div>
+
+                <div className="pt-2 border-t border-[#2f2d45] space-y-2.5">
+                  <div className="text-[13px] font-extrabold text-[#ffe27a] flex items-center gap-1.5">
+                    <Icon name="sparkles" size={14} className="text-[#f6c945]" />
+                    <span>ตราความสำเร็จลับ (Secret Badges)</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {SECRET_BADGES.map((sb) => {
+                      const unlocked = currentStudent.badges.includes(sb.id);
+                      return (
+                        <div
+                          key={sb.id}
+                          className={`p-3 rounded-xl border flex items-center gap-3 ${
+                            unlocked
+                              ? "bg-[#2a1f12] border-[#f6c945] text-[#ffe27a]"
+                              : "bg-[#1c1b2b] border-[#2f2d45] text-[#9a93ad] opacity-65"
+                          }`}
+                        >
+                          <StatusCircle
+                            variant={unlocked ? "badge" : "locked"}
+                            size="sm"
+                            label={unlocked ? sb.name : "Secret Badge"}
+                          />
+                          <div className="min-w-0">
+                            <div className="text-[14px] font-extrabold truncate">
+                              {unlocked ? sb.name : "??? (ความลับ)"}
+                            </div>
+                            <div className="text-[12px] truncate text-[#9a93ad]">
+                              {sb.description}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 

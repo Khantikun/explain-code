@@ -1192,6 +1192,35 @@ console.log(max);`,
   },
 ];
 
+export interface SecretBadgeDef {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export const SECRET_BADGES: SecretBadgeDef[] = [
+  {
+    id: "secret-no-hit",
+    name: "นักรบไร้รอยขีดข่วน (No-Hit)",
+    description: "เอาชนะมอนสเตอร์โดยไม่เสีย HP และตอบถูกครั้งแรกทุกเฟส",
+  },
+  {
+    id: "secret-no-skill",
+    name: "จอมยุทธ์สายบริสุทธิ์ (No-Skill)",
+    description: "เอาชนะมอนสเตอร์ทั้งการต่อสู้โดยไม่ใช้สกิลเลย",
+  },
+  {
+    id: "secret-bug-hunter",
+    name: "นักล่าบั๊ก (Bug Hunter)",
+    description: "พิชิตภารกิจโบนัสซ่อมโค้ด (Modify Challenge) สำเร็จ",
+  },
+  {
+    id: "secret-chest-raider",
+    name: "นักล่าสมบัติโค้ด (Chest Raider)",
+    description: "ไขรหัสเปิดหีบปริศนาในดันเจี้ยนสำเร็จ",
+  },
+];
+
 export interface TeacherRecord {
   id: string;
   username: string;

@@ -24,6 +24,7 @@ export interface CreateAttemptPayload {
   earnedXp: number;
   updatedCellScores?: Partial<Record<string, number>>;
   badgeId?: string;
+  extraBadgeIds?: string[];
   answers?: AttemptAnswerPayload[];
   aiEvaluation?: {
     studentExplanation: string;
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
       earnedXp,
       updatedCellScores,
       badgeId,
+      extraBadgeIds,
       answers,
     } = body;
 
@@ -219,22 +221,35 @@ export async function POST(req: NextRequest) {
       console.warn("topic_progress upsert exception:", e);
     }
 
-    // 5. If badgeId, insert/upsert into student_badges
-    if (badgeId && typeof badgeId === "string" && badgeId.trim()) {
+    // 5. If badgeId or extraBadgeIds, insert/upsert into student_badges
+    const allBadgeIds = Array.from(
+      new Set(
+        [
+          badgeId,
+          ...(Array.isArray(extraBadgeIds) ? extraBadgeIds : []),
+        ]
+          .map((b) => (typeof b === "string" ? b.trim() : ""))
+          .filter(Boolean)
+      )
+    );
+
+    if (allBadgeIds.length > 0) {
       try {
+        const nowIso = new Date().toISOString();
+        const badgeRows = allBadgeIds.map((bId) => ({
+          student_id: studentId,
+          badge_id: bId,
+          earned_at: nowIso,
+        }));
         const { error: badgeError } = await supabase
           .from("student_badges")
-          .upsert(
-            {
-              student_id: studentId,
-              badge_id: badgeId.trim(),
-              earned_at: new Date().toISOString(),
-            },
-            { onConflict: "student_id,badge_id", ignoreDuplicates: true }
-          );
+          .upsert(badgeRows, {
+            onConflict: "student_id,badge_id",
+            ignoreDuplicates: true,
+          });
 
         if (badgeError) {
-          console.warn("Failed to insert student_badge:", badgeError);
+          console.warn("Failed to insert student_badges:", badgeError);
         }
       } catch (e) {
         console.warn("student_badges upsert exception:", e);
@@ -275,8 +290,8 @@ export async function POST(req: NextRequest) {
       streak: 1,
       topicsCompleted: 1,
       completedTopics: [safeTopicId],
-      badgesCount: badgeId ? 1 : 0,
-      badges: badgeId ? [badgeId] : [],
+      badgesCount: allBadgeIds.length,
+      badges: allBadgeIds,
       cellScores: updatedCellScores || {},
     };
 

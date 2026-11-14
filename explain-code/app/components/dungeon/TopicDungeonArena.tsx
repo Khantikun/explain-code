@@ -28,7 +28,7 @@ import { dungeonSound } from "../../lib/dungeon/sound";
 import { GameCanvas } from "./GameCanvas";
 import { MobileDpad } from "./MobileDpad";
 import { BattleOverlay, BattlePhaseResult } from "./BattleOverlay";
-import { CodeChestModal } from "./CodeChestModal";
+import { CodeChestModal, InRunRewardType } from "./CodeChestModal";
 import { PixelSpriteView } from "./PixelSpriteView";
 import { useUiLanguage } from "../LanguageProvider";
 import { getClientSession } from "../SiteHeader";
@@ -52,6 +52,7 @@ export interface TopicDungeonArenaProps {
     earnedXp: number;
     updatedCellScores: Partial<Record<BlockCellId, number>>;
     badgeId: string;
+    extraBadgeIds?: string[];
     scorePercent: number;
     answers?: {
       questionId: string;
@@ -200,6 +201,8 @@ export function TopicDungeonArena({
   const [isInBattle, setIsInBattle] = useState<boolean>(false);
   const [isChestOpen, setIsChestOpen] = useState<boolean>(false);
   const [chestBonusXp, setChestBonusXp] = useState<number>(0);
+  const [floorShieldBonus, setFloorShieldBonus] = useState<number>(0);
+  const [floorRewardMultiplier, setFloorRewardMultiplier] = useState<number>(1);
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [battleSummary, setBattleSummary] = useState<{
     totalXp: number;
@@ -220,6 +223,8 @@ export function TopicDungeonArena({
     setIsInBattle(false);
     setIsChestOpen(false);
     setChestBonusXp(0);
+    setFloorShieldBonus(0);
+    setFloorRewardMultiplier(1);
     setIsGameOver(false);
     setBattleSummary(null);
     setScreenShake(0);
@@ -309,6 +314,34 @@ export function TopicDungeonArena({
     []
   );
 
+  const handleSelectInRunReward = useCallback(
+    (rewardType: InRunRewardType) => {
+      if (rewardType === "heal_hp") {
+        setHearts((h) => Math.min(maxHearts, h + 1));
+      } else if (rewardType === "add_shield") {
+        setFloorShieldBonus((s) => s + 1);
+      } else if (rewardType === "double_rewards") {
+        setFloorRewardMultiplier(2);
+        if (battleSummary && floorRewardMultiplier === 1) {
+          const extraBattleXp = battleSummary.totalXp;
+          const extraBattleCoins = battleSummary.totalCoins;
+          setBattleSummary((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  totalXp: prev.totalXp * 2,
+                  totalCoins: prev.totalCoins * 2,
+                }
+              : prev
+          );
+          setXp((prev) => prev + extraBattleXp);
+          setCoins((prev) => prev + extraBattleCoins);
+        }
+      }
+    },
+    [maxHearts, battleSummary, floorRewardMultiplier]
+  );
+
   const handleBattleComplete = useCallback(
     (summary: {
       totalXp: number;
@@ -380,6 +413,8 @@ export function TopicDungeonArena({
     setIsInBattle(false);
     setIsChestOpen(false);
     setChestBonusXp(0);
+    setFloorShieldBonus(0);
+    setFloorRewardMultiplier(1);
     setBattleSummary(null);
     setModifyBonusClaimed(false);
     setModifyRunResult(null);
@@ -447,15 +482,22 @@ export function TopicDungeonArena({
       battleSummary ? battleSummary.totalXp + sideQuestXp : xp
     );
 
+    const extraBadgeIds: string[] = [];
+    if (battleSummary?.noHitClear) extraBadgeIds.push("secret-no-hit");
+    if (battleSummary?.noSkillPurist) extraBadgeIds.push("secret-no-skill");
+    if (modifyBonusClaimed) extraBadgeIds.push("secret-bug-hunter");
+    if (room.chest?.isOpened) extraBadgeIds.push("secret-chest-raider");
+
     onCompleteTopic({
       topicId: activeTopic.id,
       earnedXp: totalEarnedXp,
       updatedCellScores,
       badgeId: activeTopic.badgeReward.id,
+      extraBadgeIds: extraBadgeIds.length > 0 ? extraBadgeIds : undefined,
       scorePercent,
       answers,
     });
-  }, [battleSummary, modifyBonusClaimed, chestBonusXp, activeTopic, xp, onCompleteTopic]);
+  }, [battleSummary, modifyBonusClaimed, chestBonusXp, room.chest?.isOpened, activeTopic, xp, onCompleteTopic]);
 
   const initialFocusDisplay = avatar.stats.initialMp;
   const maxFocusDisplay = avatar.stats.maxMp;
@@ -729,6 +771,16 @@ export function TopicDungeonArena({
                       ? t("🐛 Bug Hunter (+25 XP) · กดไปทำเลย!", "🐛 Bug Hunter (+25 XP) · Go!")
                       : t("🐛 Bug Hunter (+25 XP) · หลังชนะมอนสเตอร์", "🐛 Bug Hunter (+25 XP) · Post-Battle")}
                   </button>
+                )}
+                {floorShieldBonus > 0 && (
+                  <span className="px-2 py-0.5 rounded-lg border border-[#38bdf8]/60 bg-[#38bdf8]/15 text-[#7dd3fc] font-bold">
+                    🛡️ +{floorShieldBonus} Shield
+                  </span>
+                )}
+                {floorRewardMultiplier > 1 && (
+                  <span className="px-2 py-0.5 rounded-lg border border-[#f6c945]/60 bg-[#f6c945]/15 text-[#ffe27a] font-bold">
+                    ⚡ XP &amp; Coins ×{floorRewardMultiplier}
+                  </span>
                 )}
               </div>
             </div>
@@ -1028,6 +1080,7 @@ export function TopicDungeonArena({
           xpReward={20}
           coinReward={15}
           onSolved={handleChestSolved}
+          onSelectInRunReward={handleSelectInRunReward}
           onClose={() => setIsChestOpen(false)}
         />
       )}
@@ -1045,6 +1098,8 @@ export function TopicDungeonArena({
           avatarKey={avatarKey}
           initialFocus={initialFocusDisplay}
           maxFocus={maxFocusDisplay}
+          extraShield={floorShieldBonus}
+          rewardMultiplier={floorRewardMultiplier}
           localValidation={true}
           onCorrectAnswer={handleCorrectAnswer}
           onWrongAnswer={handleWrongAnswer}

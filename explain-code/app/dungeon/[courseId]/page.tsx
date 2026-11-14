@@ -11,7 +11,7 @@ import { LANGUAGE_TRACKS, LearningLanguage } from "../../lib/language-tracks";
 import { GameCanvas } from "../../components/dungeon/GameCanvas";
 import { DungeonHud } from "../../components/dungeon/DungeonHud";
 import { BattleOverlay } from "../../components/dungeon/BattleOverlay";
-import { CodeChestModal } from "../../components/dungeon/CodeChestModal";
+import { CodeChestModal, InRunRewardType } from "../../components/dungeon/CodeChestModal";
 import { MobileDpad } from "../../components/dungeon/MobileDpad";
 import { PauseModal, GameOverModal, VictoryModal } from "../../components/dungeon/GameModals";
 import { dungeonSound } from "../../lib/dungeon/sound";
@@ -106,6 +106,8 @@ function DungeonPlayContent() {
   const [maxHearts] = useState<number>(3);
   const [coins, setCoins] = useState<number>(0);
   const [xp, setXp] = useState<number>(0);
+  const [floorShieldBonus, setFloorShieldBonus] = useState<number>(0);
+  const [floorRewardMultiplier, setFloorRewardMultiplier] = useState<number>(1);
   const [screenShake, setScreenShake] = useState<number>(0);
 
   // Modals & Overlay state
@@ -186,9 +188,11 @@ function DungeonPlayContent() {
     generateDungeonRoom(courseSeed, 0, totalFloors)
   );
 
-  // Update room when floor changes
+  // Update room and reset floor-only buffs when floor changes
   useEffect(() => {
     setRoom(generateDungeonRoom(courseSeed, floorIndex, totalFloors));
+    setFloorShieldBonus(0);
+    setFloorRewardMultiplier(1);
   }, [courseSeed, floorIndex, totalFloors]);
 
   const avatar = useMemo(() => getAvatar(avatarKey), [avatarKey]);
@@ -342,6 +346,8 @@ function DungeonPlayContent() {
     setIsVictory(false);
     setIsInBattle(false);
     setChestModalMode(null);
+    setFloorShieldBonus(0);
+    setFloorRewardMultiplier(1);
     setIsPaused(false);
     setRoom(generateDungeonRoom(courseSeed, 0, totalFloors));
   }, [courseSeed, totalFloors]);
@@ -359,6 +365,19 @@ function DungeonPlayContent() {
       }
     },
     [chestModalMode, handleCorrectAnswer]
+  );
+
+  const handleSelectInRunReward = useCallback(
+    (rewardType: InRunRewardType) => {
+      if (rewardType === "heal_hp") {
+        setHearts((h) => Math.min(maxHearts, h + 1));
+      } else if (rewardType === "add_shield") {
+        setFloorShieldBonus((s) => s + 1);
+      } else if (rewardType === "double_rewards") {
+        setFloorRewardMultiplier(2);
+      }
+    },
+    [maxHearts]
   );
 
   if (loading) {
@@ -389,6 +408,22 @@ function DungeonPlayContent() {
         onTogglePause={() => setIsPaused(true)}
         onExit={() => router.push("/courses")}
       />
+
+      {/* Active Floor In-Run Buffs */}
+      {(floorShieldBonus > 0 || floorRewardMultiplier > 1) && (
+        <div className="w-full max-w-[640px] flex flex-wrap items-center justify-center gap-2 text-[11px]">
+          {floorShieldBonus > 0 && (
+            <span className="px-2.5 py-1 rounded-lg border border-[#38bdf8]/60 bg-[#38bdf8]/15 text-[#7dd3fc] font-bold">
+              🛡️ +{floorShieldBonus} Shield ({t("เฉพาะชั้นนี้", "This Floor")})
+            </span>
+          )}
+          {floorRewardMultiplier > 1 && (
+            <span className="px-2.5 py-1 rounded-lg border border-[#f6c945]/60 bg-[#f6c945]/15 text-[#ffe27a] font-bold">
+              ⚡ XP &amp; Coins ×{floorRewardMultiplier} ({t("เฉพาะชั้นนี้", "This Floor")})
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Canvas Viewport */}
       <div className="w-full flex justify-center">
@@ -441,6 +476,7 @@ function DungeonPlayContent() {
           xpReward={25}
           coinReward={20}
           onSolved={handleChestSolved}
+          onSelectInRunReward={handleSelectInRunReward}
           onClose={() => setChestModalMode(null)}
         />
       )}
@@ -456,6 +492,8 @@ function DungeonPlayContent() {
           playerHearts={hearts}
           initialFocus={3}
           maxFocus={6}
+          extraShield={floorShieldBonus}
+          rewardMultiplier={floorRewardMultiplier}
           courseId={courseId}
           lessonId={courseLessons[floorIndex]?.id}
           onCorrectAnswer={handleCorrectAnswer}

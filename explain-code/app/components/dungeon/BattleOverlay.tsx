@@ -32,6 +32,8 @@ interface BattleOverlayProps {
   lessonId?: string;
   initialFocus?: number;
   maxFocus?: number;
+  extraShield?: number;
+  rewardMultiplier?: number;
   localValidation?: boolean;
   onCorrectAnswer: (xpAwarded?: number, coinsAwarded?: number, lessonCompleted?: boolean) => void;
   onWrongAnswer: () => void;
@@ -132,6 +134,8 @@ export function BattleOverlay({
   lessonId,
   initialFocus,
   maxFocus,
+  extraShield = 0,
+  rewardMultiplier = 1,
   localValidation = false,
   onCorrectAnswer,
   onWrongAnswer,
@@ -183,7 +187,7 @@ export function BattleOverlay({
     Math.min(computedMaxFocus, initialFocus ?? heroStats.initialMp)
   );
   const [shieldCharges, setShieldCharges] = useState<number>(
-    heroStats.startingShield
+    heroStats.startingShield + extraShield
   );
   const [usedSkillIds, setUsedSkillIds] = useState<string[]>([]);
   const [skillCooldowns, setSkillCooldowns] = useState<Record<string, number>>({});
@@ -417,8 +421,8 @@ export function BattleOverlay({
 
       const firstTry = phaseTries === 0;
       const baseAdjustedXp = firstTry ? xp : Math.max(10, Math.round(xp * 0.75));
-      const adjustedXp = Math.round(baseAdjustedXp * heroStats.xpMultiplier);
-      const adjustedCoins = Math.round(coins * heroStats.coinMultiplier);
+      const adjustedXp = Math.round(baseAdjustedXp * heroStats.xpMultiplier * rewardMultiplier);
+      const adjustedCoins = Math.round(coins * heroStats.coinMultiplier * rewardMultiplier);
       const newResult: BattlePhaseResult = {
         questionId: activeQuestion.id,
         blockModelCell: activeQuestion.blockModelCell,
@@ -495,6 +499,7 @@ export function BattleOverlay({
     totalPhases,
     computedMaxFocus,
     heroStats,
+    rewardMultiplier,
     shieldCharges,
     hasReportedCompletion,
     tookDamageInBattle,
