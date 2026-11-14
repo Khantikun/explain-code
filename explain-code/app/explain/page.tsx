@@ -7,6 +7,7 @@ import {
   getClientSession,
   ClientAuthSession,
 } from "../components/SiteHeader";
+import { useUiLanguage } from "../components/LanguageProvider";
 import { Icon } from "../components/Icons";
 import { ExplainCodeResult } from "../lib/explain-code";
 import { appendLocalExplanationHistory } from "../lib/lms-data";
@@ -52,6 +53,7 @@ print(filter_passed_students({"Tonkla": 78, "Mali": 52, "Namo": 90}))`,
 };
 
 export default function ExplainCodePage() {
+  const { t } = useUiLanguage();
   const [session, setSession] = useState<ClientAuthSession | null>(null);
   const [language, setLanguage] = useState<string>("javascript");
   const [code, setCode] = useState<string>(SAMPLE_SNIPPETS.javascript);
@@ -87,7 +89,12 @@ export default function ExplainCodePage() {
     setSavedNotice(false);
 
     if (!code.trim()) {
-      setError("กรุณาวางโค้ดที่ต้องการให้อธิบายก่อนกดปุ่ม");
+      setError(
+        t(
+          "กรุณาวางโค้ดที่ต้องการให้อธิบายก่อนกดปุ่ม",
+          "Please paste the code you want explained first."
+        )
+      );
       return;
     }
 
@@ -105,7 +112,7 @@ export default function ExplainCodePage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "เกิดข้อผิดพลาดในการอธิบายโค้ด");
+        setError(data.error || t("เกิดข้อผิดพลาดในการอธิบายโค้ด", "Failed to explain the code."));
         if (data.quotaExceeded) {
           setQuotaExceeded(true);
         }
@@ -122,7 +129,12 @@ export default function ExplainCodePage() {
         setSavedNotice(true);
       }
     } catch {
-      setError("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง");
+      setError(
+        t(
+          "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง",
+          "Unable to connect to the server. Please try again."
+        )
+      );
     } finally {
       setIsLoading(false);
     }
@@ -138,13 +150,19 @@ export default function ExplainCodePage() {
           <div>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[#3d395a] bg-[#1c1b2b] px-3 py-1 text-xs font-bold text-[#f6c945]">
               <Icon name="sparkles" className="h-3.5 w-3.5" />
-              เครื่องมือช่วยแกะและอธิบายโค้ดทีละบรรทัด
+              {t(
+                "เครื่องมือช่วยแกะและอธิบายโค้ดทีละบรรทัด",
+                "Line-by-Line Code Breakdown & Explainer"
+              )}
             </span>
             <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-[#f4efe6]">
-              อธิบายโค้ด (Code Explainer)
+              {t("อธิบายโค้ด (Code Explainer)", "Code Explainer")}
             </h1>
             <p className="mt-1 text-sm text-[#9a93ad]">
-              วางโค้ดที่คุณได้จาก AI หรือโค้ดที่กำลังศึกษา ระบบจะช่วยสรุปภาพรวม แยกอธิบายทีละบรรทัด และชี้จุดที่ควรระวัง
+              {t(
+                "วางโค้ดที่คุณได้จาก AI หรือโค้ดที่กำลังศึกษา ระบบจะช่วยสรุปภาพรวม แยกอธิบายทีละบรรทัด และชี้จุดที่ควรระวัง",
+                "Paste AI-generated code or any snippet you are studying. Get a clear overview, line-by-line explanation, and key pitfalls."
+              )}
             </p>
           </div>
 
@@ -154,14 +172,19 @@ export default function ExplainCodePage() {
               className="inline-flex items-center gap-2 rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-4 py-2.5 text-xs font-bold text-[#f6c945] shadow-md hover:border-[#f6c945] hover:bg-[#252238] transition-colors whitespace-nowrap"
             >
               <Icon name="clock" className="h-4 w-4" />
-              <span>ดูประวัติการอธิบายโค้ดของฉัน</span>
+              <span>{t("ดูประวัติการอธิบายโค้ดของฉัน", "View My Explanation History")}</span>
             </Link>
           ) : (
             <div className="rounded-xl border border-[#2f2d45] bg-[#141220] px-4 py-2.5 text-xs text-[#c4bdd6] shadow-md">
-              <span className="font-bold text-[#f6c945]">โหมดผู้เยี่ยมชม (ใช้ฟรี 5 ครั้ง/วัน)</span>
+              <span className="font-bold text-[#f6c945]">
+                {t("โหมดผู้เยี่ยมชม (ใช้ฟรี 5 ครั้ง/วัน)", "Guest Mode (5 free uses/day)")}
+              </span>
               {guestQuota && (
                 <span className="ml-2 rounded-md border border-[#3d395a] bg-[#1c1b2b] px-2 py-0.5 font-mono font-bold text-[#f4efe6]">
-                  คงเหลือ {guestQuota.remaining}/{guestQuota.limit} ครั้ง
+                  {t(
+                    `คงเหลือ ${guestQuota.remaining}/${guestQuota.limit} ครั้ง`,
+                    `${guestQuota.remaining}/${guestQuota.limit} left`
+                  )}
                 </span>
               )}
               <div className="mt-1">
@@ -169,9 +192,12 @@ export default function ExplainCodePage() {
                   href="/login?redirect=/explain"
                   className="font-bold text-[#2fbf71] underline hover:text-[#34d37d]"
                 >
-                  เข้าสู่ระบบ
+                  {t("เข้าสู่ระบบ", "Log in")}
                 </Link>{" "}
-                เพื่อใช้งานไม่จำกัดและบันทึกประวัติอัตโนมัติ
+                {t(
+                  "เพื่อใช้งานไม่จำกัดและบันทึกประวัติอัตโนมัติ",
+                  "for unlimited access and automatic history saving"
+                )}
               </div>
             </div>
           )}
@@ -184,7 +210,7 @@ export default function ExplainCodePage() {
             <div className="rounded-2xl border border-[#2f2d45] bg-[#141220] p-5 shadow-lg">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-[#9a93ad]">
-                  1. เลือกภาษาโปรแกรม
+                  {t("1. เลือกภาษาโปรแกรม", "1. Select Programming Language")}
                 </label>
                 <select
                   value={language}
@@ -201,7 +227,7 @@ export default function ExplainCodePage() {
 
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-[#9a93ad]">
-                  2. วางโค้ดที่ต้องการให้อธิบาย
+                  {t("2. วางโค้ดที่ต้องการให้อธิบาย", "2. Paste Code to Explain")}
                 </label>
                 <div className="flex items-center gap-3">
                   {SAMPLE_SNIPPETS[language] && (
@@ -210,7 +236,7 @@ export default function ExplainCodePage() {
                       onClick={() => setCode(SAMPLE_SNIPPETS[language])}
                       className="text-[11px] font-semibold text-[#f6c945] underline hover:text-[#ffe27a] cursor-pointer whitespace-nowrap"
                     >
-                      ใช้โค้ดตัวอย่าง
+                      {t("ใช้โค้ดตัวอย่าง", "Load Sample")}
                     </button>
                   )}
                   <button
@@ -218,7 +244,7 @@ export default function ExplainCodePage() {
                     onClick={() => setCode("")}
                     className="text-[11px] font-semibold text-[#9a93ad] hover:text-[#fca5a5] cursor-pointer whitespace-nowrap"
                   >
-                    ล้างโค้ด
+                    {t("ล้างโค้ด", "Clear")}
                   </button>
                 </div>
               </div>
@@ -227,7 +253,7 @@ export default function ExplainCodePage() {
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 rows={13}
-                placeholder="วางโค้ดของคุณที่นี่..."
+                placeholder={t("วางโค้ดของคุณที่นี่...", "Paste your code here...")}
                 className="w-full rounded-xl border border-[#3d395a] bg-[#120f1c] p-4 font-mono text-xs leading-relaxed text-[#f4efe6] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:ring-1 focus:ring-[#f6c945] focus:outline-hidden"
               />
 
@@ -239,7 +265,7 @@ export default function ExplainCodePage() {
                       href="/login?redirect=/explain"
                       className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-[#c0283a] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#dc3548]"
                     >
-                      เข้าสู่ระบบ / สมัครสมาชิกเพื่อใช้งานต่อ
+                      {t("เข้าสู่ระบบ / สมัครสมาชิกเพื่อใช้งานต่อ", "Log in / Sign up to continue")}
                     </Link>
                   )}
                 </div>
@@ -253,7 +279,9 @@ export default function ExplainCodePage() {
               >
                 <Icon name="sparkles" className="h-4 w-4" />
                 <span>
-                  {isLoading ? "กำลังวิเคราะห์และอธิบายโค้ด..." : "อธิบายโค้ด"}
+                  {isLoading
+                    ? t("กำลังวิเคราะห์และอธิบายโค้ด...", "Analyzing & explaining code...")
+                    : t("อธิบายโค้ด", "Explain Code")}
                 </span>
               </button>
             </div>
@@ -265,22 +293,33 @@ export default function ExplainCodePage() {
               <div className="flex h-full min-h-[380px] flex-col items-center justify-center rounded-2xl border border-[#2f2d45] bg-[#141220] p-8 text-center shadow-lg">
                 <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#2f2d45] border-t-[#f6c945]" />
                 <p className="mt-4 text-sm font-bold text-[#f4efe6]">
-                  กำลังแกะโครงสร้างและอธิบายโค้ดทีละบรรทัด...
+                  {t(
+                    "กำลังแกะโครงสร้างและอธิบายโค้ดทีละบรรทัด...",
+                    "Breaking down structure and explaining line by line..."
+                  )}
                 </p>
                 <p className="mt-1 text-xs text-[#9a93ad]">
-                  ระบบกำลังสรุปแนวคิดสำคัญ ขั้นตอนการทำงาน และจุดที่ควรระวัง
+                  {t(
+                    "ระบบกำลังสรุปแนวคิดสำคัญ ขั้นตอนการทำงาน และจุดที่ควรระวัง",
+                    "Summarizing key concepts, execution flow, and potential pitfalls."
+                  )}
                 </p>
               </div>
             ) : result ? (
               <div className="space-y-5">
                 {savedNotice && (
                   <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#2fbf71]/40 bg-[#102a1e] px-4 py-3 text-xs font-semibold text-[#86efac]">
-                    <span>บันทึกคำอธิบายโค้ดนี้ลงใน &ldquo;ประวัติของฉัน&rdquo; เรียบร้อยแล้ว</span>
+                    <span>
+                      {t(
+                        "บันทึกคำอธิบายโค้ดนี้ลงใน “ประวัติของฉัน” เรียบร้อยแล้ว",
+                        "Saved this explanation to “My History”."
+                      )}
+                    </span>
                     <Link
                       href="/my-history"
                       className="underline font-bold hover:text-[#bbf7d0] whitespace-nowrap"
                     >
-                      เปิดดูประวัติ →
+                      {t("เปิดดูประวัติ →", "Open History →")}
                     </Link>
                   </div>
                 )}
@@ -290,7 +329,7 @@ export default function ExplainCodePage() {
                   <div className="flex items-center justify-between gap-2 mb-3">
                     <h2 className="text-base font-bold text-[#f4efe6] flex items-center gap-2">
                       <Icon name="book" className="h-4 w-4 text-[#f6c945]" />
-                      <span>สรุปภาพรวมการทำงาน</span>
+                      <span>{t("สรุปภาพรวมการทำงาน", "Code Summary")}</span>
                     </h2>
                     <span className="rounded-lg border border-[#9b5de5]/40 bg-[#5a2d91]/30 px-2.5 py-1 text-[11px] font-bold uppercase text-[#ffe27a]">
                       {result.language}
@@ -317,7 +356,7 @@ export default function ExplainCodePage() {
                 <div className="rounded-2xl border border-[#2f2d45] bg-[#141220] p-6 shadow-lg">
                   <h3 className="text-sm font-bold text-[#f4efe6] mb-3 flex items-center gap-2">
                     <Icon name="play" className="h-4 w-4 text-[#2fbf71]" />
-                    <span>ลำดับขั้นตอนการทำงาน (Execution Flow)</span>
+                    <span>{t("ลำดับขั้นตอนการทำงาน (Execution Flow)", "Execution Flow")}</span>
                   </h3>
                   <ul className="space-y-2 text-xs sm:text-sm text-[#e8e1cf]">
                     {result.stepByStepFlow.map((step, idx) => (
@@ -335,7 +374,7 @@ export default function ExplainCodePage() {
                 <div className="rounded-2xl border border-[#2f2d45] bg-[#141220] p-6 shadow-lg">
                   <h3 className="text-sm font-bold text-[#f4efe6] mb-3 flex items-center gap-2">
                     <Icon name="code" className="h-4 w-4 text-[#f6c945]" />
-                    <span>แกะโค้ดทีละบรรทัด (Line-by-Line Explanation)</span>
+                    <span>{t("แกะโค้ดทีละบรรทัด (Line-by-Line Explanation)", "Line-by-Line Explanation")}</span>
                   </h3>
                   <div className="space-y-3">
                     {result.lineByLine.map((item) => (
@@ -365,7 +404,7 @@ export default function ExplainCodePage() {
                 <div className="rounded-2xl border border-[#f6c945]/40 bg-[#281d08] p-5 shadow-lg">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-[#f6c945] mb-2 flex items-center gap-1.5">
                     <Icon name="alert" className="h-4 w-4 text-[#f6c945]" />
-                    <span>จุดสังเกตและสิ่งที่ควรระวัง (Pitfalls &amp; Tips)</span>
+                    <span>{t("จุดสังเกตและสิ่งที่ควรระวัง (Pitfalls & Tips)", "Pitfalls & Tips")}</span>
                   </h3>
                   <ul className="list-disc pl-5 space-y-1 text-xs text-[#ffe27a] leading-relaxed">
                     {result.potentialPitfalls.map((pitfall, idx) => (
@@ -380,10 +419,13 @@ export default function ExplainCodePage() {
                   <Icon name="code" className="h-6 w-6" />
                 </div>
                 <h2 className="mt-4 text-base font-bold text-[#f4efe6]">
-                  พร้อมช่วยคุณแกะและอธิบายโค้ด
+                  {t("พร้อมช่วยคุณแกะและอธิบายโค้ด", "Ready to Break Down Your Code")}
                 </h2>
                 <p className="mt-1 max-w-md text-xs leading-relaxed text-[#9a93ad]">
-                  วางโค้ดทางด้านซ้าย เลือกภาษาโปรแกรม แล้วกดปุ่ม &ldquo;อธิบายโค้ด&rdquo; เพื่อดูคำอธิบายแบบละเอียดทีละบรรทัด
+                  {t(
+                    "วางโค้ดทางด้านซ้าย เลือกภาษาโปรแกรม แล้วกดปุ่ม “อธิบายโค้ด” เพื่อดูคำอธิบายแบบละเอียดทีละบรรทัด",
+                    "Paste your code on the left, choose the language, and click “Explain Code” for a detailed line-by-line breakdown."
+                  )}
                 </p>
               </div>
             )}
