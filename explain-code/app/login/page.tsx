@@ -409,7 +409,7 @@ function LoginFormContent() {
                 className="h-full w-full object-contain"
               />
             </div>
-            
+
             <h1 className="mt-3 text-2xl font-extrabold text-[#f4efe6]">
               {mode === "login" ? "เข้าสู่ระบบ" : "สมัครสมาชิกใหม่"}
             </h1>
@@ -495,9 +495,6 @@ function LoginFormContent() {
                     <label className="block text-xs font-bold text-[#c4bdd6]">
                       รหัส PIN 4 หลัก (นักเรียน) หรือ รหัสผ่าน (ครู)
                     </label>
-                    <span className="text-[11px] font-semibold text-[#9a93ad]">
-                      เข้ารหัส SHA-256
-                    </span>
                   </div>
                   <div className="relative">
                     <input
@@ -568,7 +565,7 @@ function LoginFormContent() {
                   {/* 1. ชื่อเล่นสมมติ */}
                   <div>
                     <label className="block text-xs font-bold text-[#c4bdd6] mb-1.5">
-                      1. ตั้งชื่อเล่นสมมติ (ห้ามใช้ชื่อจริง/อีเมลตาม PDPA)
+                      1. ตั้งชื่อเล่นสมมติ
                     </label>
                     <input
                       type="text"
