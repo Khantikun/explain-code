@@ -1011,11 +1011,7 @@ export async function POST(req: NextRequest) {
       const pwd = String(password).trim();
       const dName = (displayName || username).trim();
       const passwordHash = sha256(pwd);
-      const cleanInvite = String(inviteCode || "").trim();
-      const isInviteApproved = cleanInvite === TEACHER_INVITE_CODE;
-      const teacherStatus: TeacherApprovalStatus = isInviteApproved
-        ? "approved"
-        : "pending";
+      const teacherStatus: TeacherApprovalStatus = "approved";
 
       if (isSupabaseConfigured()) {
         try {
@@ -1052,7 +1048,7 @@ export async function POST(req: NextRequest) {
                   role: "teacher",
                   username: uname,
                   display_name: dName,
-                  teacher_approved: isInviteApproved ? "true" : "false",
+                  teacher_approved: "true",
                 },
               });
               if (authData?.user?.id) {

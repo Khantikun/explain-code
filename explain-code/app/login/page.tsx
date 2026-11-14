@@ -45,7 +45,6 @@ function LoginFormContent() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [inviteCode, setInviteCode] = useState("TEACHER2026");
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -365,7 +364,6 @@ function LoginFormContent() {
           username: cleanUser,
           password: cleanPwd,
           displayName: cleanDisplay,
-          inviteCode: inviteCode.trim(),
         }),
       });
       const data = await res.json();
@@ -907,24 +905,6 @@ function LoginFormContent() {
                         <span>{fieldErrors.password}</span>
                       </p>
                     )}
-                  </div>
-
-                  <div className="rounded-xl border border-[#3d395a] bg-[#1c1b2b] p-3.5">
-                    <label className="block text-xs font-bold text-[#f6c945] mb-1">
-                      รหัสเชิญครูเพื่ออนุมัติทันที (Teacher Invite Code)
-                    </label>
-                    <input
-                      type="text"
-                      value={inviteCode}
-                      onChange={(e) => setInviteCode(e.target.value)}
-                      placeholder="เช่น TEACHER2026 (กรอกไว้ให้แล้วสำหรับทดสอบ)"
-                      className="w-full rounded-lg border border-[#3d395a] bg-[#141220] px-3 py-2 text-xs font-mono font-bold text-[#ffe27a] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:outline-hidden"
-                    />
-                    <p className="mt-1.5 text-[11px] text-[#9a93ad]">
-                      * รหัสเชิญเริ่มต้นสำหรับกรรมการและครูผู้สอนคือ{" "}
-                      <code className="text-[#2fbf71] font-bold">TEACHER2026</code>{" "}
-                      เพื่อรับสิทธิ์สร้างคอร์สและห้องเรียนทันที
-                    </p>
                   </div>
 
                   <button
