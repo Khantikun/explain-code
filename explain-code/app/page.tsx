@@ -418,12 +418,13 @@ export default function ExplainCodeApp() {
     setAuthMessage(null);
     const nick = loginNickname.trim();
     const pin = loginPin.trim();
-    const code = signupRoomCode.trim().toUpperCase();
+    const rawCode = signupRoomCode.trim().toUpperCase();
+    const code = rawCode || "VIBE26";
 
-    if (!nick || pin.length !== 4 || !code) {
+    if (!nick || pin.length !== 4) {
       setAuthMessage({
         type: "error",
-        text: "กรุณากรอกชื่อเล่นสมมติ, PIN 4 หลัก และรหัสห้องจากครู (เช่น ABC123)",
+        text: "กรุณากรอกชื่อเล่นสมมติ และรหัส PIN 4 หลักให้ครบถ้วน",
       });
       return;
     }
@@ -437,15 +438,17 @@ export default function ExplainCodeApp() {
       return;
     }
 
-    const roomExists = classrooms.find((r) => r.roomCode === code);
-    if (!roomExists) {
-      setAuthMessage({
-        type: "error",
-        text: `ไม่พบรหัสห้อง ${code} (รหัสห้องที่เปิดอยู่ตอนนี้: ${classrooms
-          .map((c) => c.roomCode)
-          .join(", ")})`,
-      });
-      return;
+    if (rawCode) {
+      const roomExists = classrooms.find((r) => r.roomCode === rawCode);
+      if (!roomExists) {
+        setAuthMessage({
+          type: "error",
+          text: `ไม่พบรหัสห้อง ${rawCode} (เว้นว่างได้หากไม่มีรหัสห้อง หรือใช้: ${classrooms
+            .map((c) => c.roomCode)
+            .join(", ")})`,
+        });
+        return;
+      }
     }
 
     const existing = students.find(
@@ -1401,14 +1404,14 @@ export default function ExplainCodeApp() {
 
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[14px] font-extrabold text-[#f4efe6]">
-                          3. รหัสห้องจากครู
+                          3. รหัสห้องจากครู (เว้นว่างได้)
                         </label>
                         <input
                           type="text"
                           value={signupRoomCode}
                           onChange={(e) => setSignupRoomCode(e.target.value)}
-                          placeholder="เช่น ABC123"
-                          className="w-full px-4 py-3 rounded-xl bg-[#281d08] border-2 border-[#f6c945] font-code font-extrabold text-[16px] text-[#ffe27a] focus:outline-none focus:border-[#ffe27a]"
+                          placeholder="เว้นว่างได้ (หรือใส่รหัสห้อง)"
+                          className="w-full px-4 py-3 rounded-xl bg-[#281d08] border-2 border-[#f6c945] font-code font-extrabold text-[16px] text-[#ffe27a] placeholder:font-sans placeholder:font-normal placeholder:text-[13px] placeholder:text-[#9a93ad] focus:outline-none focus:border-[#ffe27a]"
                         />
                       </div>
                     </div>

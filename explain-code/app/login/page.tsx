@@ -38,7 +38,7 @@ function LoginFormContent() {
   const [nickname, setNickname] = useState("");
   const [pin, setPin] = useState("");
   const [showStudentPin, setShowStudentPin] = useState(false);
-  const [roomCode, setRoomCode] = useState("VIBE26");
+  const [roomCode, setRoomCode] = useState("");
   const [pdpaAccepted, setPdpaAccepted] = useState(true);
 
   // Teacher Register fields
@@ -644,44 +644,25 @@ function LoginFormContent() {
                     </div>
                   </div>
 
-                  {/* 3. รหัสห้องเรียน + ปุ่มเลือกห้องด่วน */}
+                  {/* 3. รหัสห้องเรียน (ไม่บังคับ) */}
                   <div>
-                    <label className="block text-xs font-bold text-[#c4bdd6] mb-1.5">
-                      3. รหัสห้องเรียนจากครู (คลิกเลือกห้องเปิดด้านล่าง หรือกรอกรหัสจากครู)
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-[#c4bdd6]">
+                        3. รหัสห้องเรียนจากครู (ไม่บังคับ)
+                      </label>
+                      <span className="text-[11px] font-semibold text-[#9a93ad]">
+                        เว้นว่างได้หากเรียนด้วยตัวเอง
+                      </span>
+                    </div>
                     <input
                       type="text"
                       value={roomCode}
                       onChange={(e) =>
                         setRoomCode(e.target.value.toUpperCase())
                       }
-                      placeholder="เช่น VIBE26 หรือ ABC123"
-                      required
-                      className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2.5 text-sm font-mono font-extrabold uppercase text-[#ffe27a] placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:bg-[#252238] focus:outline-hidden"
+                      placeholder="เว้นว่างได้ หรือกรอกรหัสห้องจากครู (เช่น ABC123)"
+                      className="w-full rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-3.5 py-2.5 text-sm font-mono font-extrabold uppercase text-[#ffe27a] placeholder:font-sans placeholder:font-normal placeholder:normal-case placeholder:text-[#9a93ad]/60 focus:border-[#f6c945] focus:bg-[#252238] focus:outline-hidden"
                     />
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                      <span className="text-[11px] font-bold text-[#9a93ad]">
-                        ห้องเรียนที่เปิดอยู่:
-                      </span>
-                      {INITIAL_CLASSROOMS.map((room) => {
-                        const selected =
-                          roomCode.trim().toUpperCase() === room.roomCode;
-                        return (
-                          <button
-                            key={room.roomCode}
-                            type="button"
-                            onClick={() => setRoomCode(room.roomCode)}
-                            className={`rounded-lg px-2.5 py-1 text-[11px] font-extrabold transition cursor-pointer ${
-                              selected
-                                ? "bg-[#5a2d91] text-[#ffe27a] border border-[#f6c945]"
-                                : "bg-[#141220] text-[#c4bdd6] border border-[#2f2d45] hover:border-[#f6c945]/50"
-                            }`}
-                          >
-                            {room.roomCode}
-                          </button>
-                        );
-                      })}
-                    </div>
                   </div>
 
                   {/* กล่องรับทราบหลักการ PDPA พ.ศ. 2562 */}

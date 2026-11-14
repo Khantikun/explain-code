@@ -653,16 +653,18 @@ export async function POST(req: NextRequest) {
 
     // ==================== 2. สมัครเข้าเล่นใหม่ฝั่งนักเรียน (Role: student) ====================
     if (action === "register-student") {
-      if (!nickname || !pin || String(pin).trim().length !== 4 || !roomCode) {
+      if (!nickname || !pin || String(pin).trim().length !== 4) {
         return NextResponse.json(
-          { error: "กรุณากรอกชื่อเล่นสมมติ, PIN 4 หลัก และรหัสห้องจากครูให้ครบถ้วน" },
+          { error: "กรุณากรอกชื่อเล่นสมมติ และรหัส PIN 4 หลักให้ครบถ้วน" },
           { status: 400 }
         );
       }
 
       const nick = String(nickname).trim();
       const pinStr = String(pin).trim();
-      const cleanRoom = String(roomCode).trim().toUpperCase();
+      const rawRoomInput = String(roomCode || "").trim().toUpperCase();
+      const hasExplicitRoom = Boolean(rawRoomInput);
+      const cleanRoom = rawRoomInput || "VIBE26";
 
       const pdpaCheck = validatePdpaIdentifier(nick);
       if (!pdpaCheck.valid) {
@@ -673,9 +675,9 @@ export async function POST(req: NextRequest) {
       }
 
       const pinHash = sha256(pinStr);
-      const knownDefaultRoom = INITIAL_CLASSROOMS.some(
-        (c) => c.roomCode.toUpperCase() === cleanRoom
-      );
+      const knownDefaultRoom =
+        !hasExplicitRoom ||
+        INITIAL_CLASSROOMS.some((c) => c.roomCode.toUpperCase() === cleanRoom);
 
       if (isSupabaseConfigured()) {
         try {
