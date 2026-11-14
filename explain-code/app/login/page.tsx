@@ -590,6 +590,21 @@ function LoginFormContent() {
                     <label className="block text-xs font-bold text-[#c4bdd6]">
                       รหัส PIN 4 หลัก (นักเรียน) หรือ รหัสผ่าน (ครู)
                     </label>
+                    <div className="flex items-center gap-1.5">
+                      {[0, 1, 2, 3].map((idx) => (
+                        <span
+                          key={idx}
+                          className={`h-2.5 w-2.5 rounded-full transition-colors ${
+                            loginSecret.length > idx
+                              ? "bg-[#2fbf71]"
+                              : "bg-[#3d395a]"
+                          }`}
+                        />
+                      ))}
+                      <span className="ml-1 text-[11px] font-bold text-[#9a93ad]">
+                        {Math.min(loginSecret.length, 4)}/4 หลัก
+                      </span>
+                    </div>
                   </div>
                   <div className="relative">
                     <input
@@ -871,9 +886,26 @@ function LoginFormContent() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-[#c4bdd6] mb-1.5">
-                      ตั้งรหัสผ่าน (อย่างน้อย 4 ตัวอักษร · เข้ารหัส SHA-256)
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-[#c4bdd6]">
+                        ตั้งรหัสผ่าน (อย่างน้อย 4 ตัวอักษร · เข้ารหัส SHA-256)
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        {[0, 1, 2, 3].map((idx) => (
+                          <span
+                            key={idx}
+                            className={`h-2.5 w-2.5 rounded-full transition-colors ${
+                              password.length > idx
+                                ? "bg-[#2fbf71]"
+                                : "bg-[#3d395a]"
+                            }`}
+                          />
+                        ))}
+                        <span className="ml-1 text-[11px] font-bold text-[#9a93ad]">
+                          {Math.min(password.length, 4)}/4 หลัก
+                        </span>
+                      </div>
+                    </div>
                     <div className="relative">
                       <input
                         type={showRegisterPassword ? "text" : "password"}
