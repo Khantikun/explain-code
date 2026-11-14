@@ -170,6 +170,10 @@ export async function POST(req: NextRequest) {
       }
 
       const nowIso = new Date().toISOString();
+      const isPublicCourse =
+        course.visibility !== undefined
+          ? course.visibility === "public"
+          : Boolean(course.is_published);
       const newCourse = {
         id: course.id || crypto.randomUUID(),
         teacher_id: session?.userId || course.teacher_id,
@@ -180,7 +184,7 @@ export async function POST(req: NextRequest) {
           .trim()
           .toUpperCase(),
         level: course.level || "beginner",
-        is_published: Boolean(course.is_published),
+        is_published: isPublicCourse,
         created_at: course.created_at || nowIso,
         updated_at: nowIso,
       };

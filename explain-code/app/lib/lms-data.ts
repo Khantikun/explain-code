@@ -11,6 +11,41 @@ export const LMS_LESSONS_STORAGE_KEY = "explain_code_lms_lessons_v1";
 export const LMS_ENROLLMENTS_STORAGE_KEY = "explain_code_lms_enrollments_v1";
 export const LMS_PROGRESS_STORAGE_KEY = "explain_code_lms_progress_v1";
 export const LMS_HISTORY_STORAGE_KEY = "explain_code_explanations_history_v1";
+export const LMS_UNLOCKED_PRIVATE_COURSES_KEY =
+  "explain_code_unlocked_private_courses_v1";
+
+export function isCoursePublic(course: Course): boolean {
+  if (course.visibility === "private") return false;
+  if (course.visibility === "public") return true;
+  return Boolean(course.is_published);
+}
+
+export function loadUnlockedPrivateCourseIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(LMS_UNLOCKED_PRIVATE_COURSES_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function unlockPrivateCourseId(courseId: string): string[] {
+  if (typeof window === "undefined" || !courseId) return [];
+  const current = loadUnlockedPrivateCourseIds();
+  if (current.includes(courseId)) return current;
+  const updated = [courseId, ...current];
+  try {
+    localStorage.setItem(
+      LMS_UNLOCKED_PRIVATE_COURSES_KEY,
+      JSON.stringify(updated)
+    );
+  } catch {
+    // ignore
+  }
+  return updated;
+}
 
 export const INITIAL_COURSES: Course[] = [
   {

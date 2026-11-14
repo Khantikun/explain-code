@@ -11,11 +11,14 @@ import {
 import { Icon } from "../../components/Icons";
 import { Course, Enrollment, Lesson, LessonProgress } from "../../lib/supabase";
 import {
+  isCoursePublic,
   loadLocalCourses,
   loadLocalEnrollments,
   loadLocalLessonProgress,
   loadLocalLessons,
+  loadUnlockedPrivateCourseIds,
   saveLocalEnrollments,
+  unlockPrivateCourseId,
 } from "../../lib/lms-data";
 import { PixelSpriteView } from "../../components/dungeon/PixelSpriteView";
 import { getMonsterDef } from "../../lib/dungeon/monsters";
@@ -32,6 +35,9 @@ function CourseDetailContent() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [progress, setProgress] = useState<LessonProgress[]>([]);
+  const [unlockedPrivateIds, setUnlockedPrivateIds] = useState<string[]>([]);
+  const [privateCodeInput, setPrivateCodeInput] = useState<string>("");
+  const [privateCodeError, setPrivateCodeError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"curriculum" | "dungeon">("curriculum");
 
   useEffect(() => {
@@ -49,6 +55,7 @@ function CourseDetailContent() {
 
     setEnrollments(loadLocalEnrollments());
     setProgress(loadLocalLessonProgress());
+    setUnlockedPrivateIds(loadUnlockedPrivateCourseIds());
   }, [courseId]);
 
   if (!course) {
@@ -73,6 +80,111 @@ function CourseDetailContent() {
         (e) => e.course_id === course.id && e.student_id === session.userId
       )
     : null;
+
+  const isCourseOwnerOrAdmin = Boolean(
+    session &&
+      (session.role === "admin" ||
+        course.teacher_id === session.userId ||
+        (course.teacher_id === "tch-1" &&
+          (session.username.includes("สมชาย") || session.userId === "tch-1")))
+  );
+
+  const isPublic = isCoursePublic(course);
+  const isUnlockedForUser =
+    isPublic ||
+    Boolean(userEnrollment) ||
+    unlockedPrivateIds.includes(course.id) ||
+    isCourseOwnerOrAdmin;
+
+  const handleUnlockPrivateCourse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPrivateCodeError(null);
+    const clean = privateCodeInput.trim().toUpperCase();
+    if (!clean) {
+      setPrivateCodeError("กรุณากรอกรหัสเข้าร่วมคอร์ส");
+      return;
+    }
+    if (clean !== course.join_code.toUpperCase()) {
+      setPrivateCodeError("รหัสเข้าร่วมคอร์สไม่ถูกต้อง กรุณาตรวจสอบกับครูผู้สอนอีกครั้ง");
+      return;
+    }
+    const nextUnlocked = unlockPrivateCourseId(course.id);
+    setUnlockedPrivateIds(nextUnlocked);
+    if (session && !userEnrollment) {
+      const firstLessonId = lessons[0]?.id || null;
+      const newEnroll: Enrollment = {
+        id: `enr-${Date.now()}`,
+        course_id: course.id,
+        student_id: session.userId,
+        enrolled_at: new Date().toISOString(),
+        last_accessed_lesson_id: firstLessonId,
+        last_accessed_at: new Date().toISOString(),
+      };
+      const updated = [newEnroll, ...enrollments];
+      setEnrollments(updated);
+      saveLocalEnrollments(updated);
+      try {
+        await fetch("/api/lms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "enroll",
+            courseId: course.id,
+            studentId: session.userId,
+            lastAccessedLessonId: firstLessonId,
+          }),
+        });
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  if (!isUnlockedForUser) {
+    return (
+      <div className="min-h-screen bg-[#0d0b14] text-[#f4efe6]">
+        <SiteHeader />
+        <main className="mx-auto max-w-lg px-4 py-12">
+          <div className="rounded-2xl border border-[#9b5de5]/60 bg-[#141220] p-6 sm:p-8 text-center shadow-xl space-y-4">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#9b5de5]/50 bg-[#25193b] px-3 py-1 text-xs font-extrabold text-[#e9d5ff]">
+              🔒 คอร์สเรียนแบบส่วนตัว (Private Course)
+            </span>
+            <h1 className="text-xl font-bold text-[#f4efe6]">{course.title}</h1>
+            <p className="text-xs text-[#c4bdd6] leading-relaxed">
+              ครูผู้สอน ({course.teacher_name}) ตั้งค่าคอร์สนี้เป็นแบบส่วนตัว
+              กรุณากรอกรหัสเข้าร่วมคอร์ส (Join Code) เพื่อเข้าถึงบทเรียนและดันเจี้ยน
+            </p>
+            <form onSubmit={handleUnlockPrivateCourse} className="space-y-3 pt-2">
+              <input
+                type="text"
+                value={privateCodeInput}
+                onChange={(e) => setPrivateCodeInput(e.target.value.toUpperCase())}
+                placeholder="กรอกรหัสเข้าร่วมคอร์ส..."
+                className="w-full rounded-xl border border-[#3d395a] bg-[#0d0b14] px-4 py-2.5 text-center font-mono text-sm font-bold uppercase text-[#ffe27a] placeholder:text-[#7c7491] focus:border-[#f6c945] focus:outline-hidden"
+              />
+              {privateCodeError && (
+                <p className="text-xs font-bold text-[#ff6b81]">{privateCodeError}</p>
+              )}
+              <div className="flex items-center justify-center gap-2">
+                <Link
+                  href="/courses"
+                  className="rounded-xl border border-[#3d395a] bg-[#1c1b2b] px-4 py-2.5 text-xs font-bold text-[#f4efe6] hover:bg-[#252238]"
+                >
+                  ← กลับหน้าดันเจี้ยน
+                </Link>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-[#2fbf71] px-5 py-2.5 text-xs font-extrabold text-[#0b0b14] hover:bg-[#34d37d] cursor-pointer"
+                >
+                  ยืนยันรหัสเข้าเรียน →
+                </button>
+              </div>
+            </form>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   const completedLessonIds = new Set(
     progress
@@ -148,9 +260,20 @@ function CourseDetailContent() {
         {/* Course Header Card */}
         <div className="rounded-2xl border border-[#2f2d45] bg-[#141220] p-6 sm:p-8 shadow-lg mb-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="rounded-lg border border-[#3d395a] bg-[#1c1b2b] px-3 py-1 text-xs font-bold text-[#f6c945]">
-              รหัสคอร์ส: {course.join_code}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className={`rounded-lg border px-3 py-1 text-xs font-extrabold ${
+                  isPublic
+                    ? "border-[#2fbf71]/50 bg-[#102a1e] text-[#86efac]"
+                    : "border-[#9b5de5]/60 bg-[#25193b] text-[#e9d5ff]"
+                }`}
+              >
+                {isPublic ? "🌐 คอร์สสาธารณะ" : "🔒 คอร์สส่วนตัว"}
+              </span>
+              <span className="rounded-lg border border-[#3d395a] bg-[#1c1b2b] px-3 py-1 text-xs font-bold text-[#f6c945]">
+                รหัสคอร์ส: {course.join_code}
+              </span>
+            </div>
             <span className="text-xs font-medium text-[#9a93ad]">
               ผู้สอน: <strong className="text-[#f4efe6]">{course.teacher_name}</strong>
             </span>

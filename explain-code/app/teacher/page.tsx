@@ -18,6 +18,7 @@ import {
   QuizQuestionItem,
 } from "../lib/supabase";
 import {
+  isCoursePublic,
   loadLocalCourses,
   loadLocalEnrollments,
   loadLocalLessonProgress,
@@ -336,6 +337,13 @@ export default function TeacherLMSDashboardPage() {
       editingCourse.join_code?.trim().toUpperCase() ||
       Math.random().toString(36).substring(2, 8).toUpperCase();
 
+    const isPublicMode =
+      editingCourse.visibility !== undefined
+        ? editingCourse.visibility === "public"
+        : editingCourse.is_published !== undefined
+        ? Boolean(editingCourse.is_published)
+        : true;
+
     const courseObj: Course = {
       id: editingCourse.id || `course-${Date.now()}`,
       teacher_id: session.userId,
@@ -344,7 +352,8 @@ export default function TeacherLMSDashboardPage() {
       description: (editingCourse.description || "").trim(),
       join_code: joinCode,
       level: editingCourse.level || "beginner",
-      is_published: Boolean(editingCourse.is_published),
+      visibility: isPublicMode ? "public" : "private",
+      is_published: isPublicMode,
       created_at: editingCourse.created_at || nowIso,
       updated_at: nowIso,
     };
@@ -374,11 +383,16 @@ export default function TeacherLMSDashboardPage() {
     }
   };
 
-  const handleTogglePublishCourse = async (course: Course) => {
+  const handleSetCourseVisibility = async (
+    course: Course,
+    targetVisibility: "public" | "private"
+  ) => {
     if (!isApproved) return;
+    const isPublicMode = targetVisibility === "public";
     const updatedCourse: Course = {
       ...course,
-      is_published: !course.is_published,
+      visibility: targetVisibility,
+      is_published: isPublicMode,
       updated_at: new Date().toISOString(),
     };
     const updated = courses.map((c) =>
@@ -401,6 +415,14 @@ export default function TeacherLMSDashboardPage() {
     } catch {
       // ignore
     }
+  };
+
+  const handleTogglePublishCourse = async (course: Course) => {
+    const currentlyPublic = isCoursePublic(course);
+    await handleSetCourseVisibility(
+      course,
+      currentlyPublic ? "private" : "public"
+    );
   };
 
   const handleDeleteCourse = async (courseId: string) => {
@@ -685,12 +707,14 @@ export default function TeacherLMSDashboardPage() {
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <span
                         className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${
-                          course.is_published
+                          isCoursePublic(course)
                             ? "border-[#2fbf71]/40 bg-[#102a1e] text-[#86efac]"
-                            : "border-[#3d395a] bg-[#252238] text-[#9a93ad]"
+                            : "border-[#9b5de5]/50 bg-[#25193b] text-[#e9d5ff]"
                         }`}
                       >
-                        {course.is_published ? "เผยแพร่แล้ว" : "ฉบับร่าง (ซ่อน)"}
+                        {isCoursePublic(course)
+                          ? "🌐 สาธารณะ (ขึ้นในดันเจี้ยน)"
+                          : "🔒 ส่วนตัว (ใช้รหัสเข้าเรียน)"}
                       </span>
                       <span className="font-mono text-[11px] font-bold text-[#f6c945]">
                         รหัส: {course.join_code}
@@ -717,7 +741,9 @@ export default function TeacherLMSDashboardPage() {
                           onClick={() => handleTogglePublishCourse(course)}
                           className="rounded-lg border border-[#3d395a] bg-[#141220] px-2 py-1 font-semibold text-[#f4efe6] hover:border-[#f6c945] hover:bg-[#252238] transition-colors cursor-pointer whitespace-nowrap"
                         >
-                          {course.is_published ? "ยกเลิกเผยแพร่" : "เผยแพร่"}
+                          {isCoursePublic(course)
+                            ? "สลับเป็นส่วนตัว 🔒"
+                            : "สลับเป็นสาธารณะ 🌐"}
                         </button>
                         <button
                           type="button"
@@ -746,10 +772,21 @@ export default function TeacherLMSDashboardPage() {
             {selectedCourse ? (
               <div className="rounded-2xl border border-[#2f2d45] bg-[#141220] p-6 shadow-lg">
                 <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#2f2d45] pb-4">
-                  <div>
+                  <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-md border border-[#3d395a] bg-[#1c1b2b] px-2.5 py-0.5 font-mono text-xs font-bold text-[#f6c945]">
                         รหัสเข้าคอร์ส: {selectedCourse.join_code}
+                      </span>
+                      <span
+                        className={`rounded-md border px-2.5 py-0.5 text-xs font-bold ${
+                          isCoursePublic(selectedCourse)
+                            ? "border-[#2fbf71]/50 bg-[#102a1e] text-[#86efac]"
+                            : "border-[#9b5de5]/60 bg-[#25193b] text-[#e9d5ff]"
+                        }`}
+                      >
+                        {isCoursePublic(selectedCourse)
+                          ? "🌐 โหมดสาธารณะ: แสดงในดันเจี้ยนการเรียนรู้ทันที"
+                          : `🔒 โหมดส่วนตัว: นักเรียนต้องใส่รหัส ${selectedCourse.join_code} เพื่อเข้าเรียน`}
                       </span>
                       <Link
                         href={`/courses/${selectedCourse.id}`}
@@ -758,9 +795,44 @@ export default function TeacherLMSDashboardPage() {
                         ดูหน้าคอร์สฝั่งนักเรียน ↗
                       </Link>
                     </div>
-                    <h2 className="mt-2 text-xl font-bold text-[#f4efe6]">
+                    <h2 className="text-xl font-bold text-[#f4efe6]">
                       {selectedCourse.title}
                     </h2>
+                    {isApproved && (
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <span className="text-[11px] font-bold text-[#9a93ad]">
+                          ตั้งค่าการเข้าถึงคอร์ส:
+                        </span>
+                        <div className="inline-flex rounded-xl border border-[#2f2d45] bg-[#0d0b14] p-1 gap-1">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleSetCourseVisibility(selectedCourse, "public")
+                            }
+                            className={`rounded-lg px-3 py-1 text-[11px] font-extrabold transition-colors cursor-pointer ${
+                              isCoursePublic(selectedCourse)
+                                ? "bg-[#2fbf71] text-[#0b0b14]"
+                                : "text-[#9a93ad] hover:text-[#f4efe6]"
+                            }`}
+                          >
+                            🌐 สาธารณะ (ขึ้นในดันเจี้ยนเลย)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleSetCourseVisibility(selectedCourse, "private")
+                            }
+                            className={`rounded-lg px-3 py-1 text-[11px] font-extrabold transition-colors cursor-pointer ${
+                              !isCoursePublic(selectedCourse)
+                                ? "bg-[#9b5de5] text-white"
+                                : "text-[#9a93ad] hover:text-[#f4efe6]"
+                            }`}
+                          >
+                            🔒 ส่วนตัว (ใส่โค้ด {selectedCourse.join_code} เพื่อเรียน)
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {isApproved && (
@@ -1221,20 +1293,84 @@ export default function TeacherLMSDashboardPage() {
                 </div>
               </div>
 
-              <label className="flex items-center gap-2 text-xs font-bold text-[#f4efe6] cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={Boolean(editingCourse.is_published)}
-                  onChange={(e) =>
-                    setEditingCourse({
-                      ...editingCourse,
-                      is_published: e.target.checked,
-                    })
-                  }
-                  className="accent-[#2fbf71] h-4 w-4"
-                />
-                <span>เผยแพร่คอร์สนี้ให้นักเรียนเห็นทันที</span>
-              </label>
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-[#c4bdd6]">
+                  รูปแบบการเข้าถึงคอร์สและบทเรียน
+                </label>
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEditingCourse({
+                        ...editingCourse,
+                        visibility: "public",
+                        is_published: true,
+                      })
+                    }
+                    className={`rounded-xl border p-3 text-left transition-all cursor-pointer ${
+                      (
+                        editingCourse.visibility !== undefined
+                          ? editingCourse.visibility === "public"
+                          : Boolean(editingCourse.is_published)
+                      )
+                        ? "border-[#2fbf71] bg-[#102a1e] ring-1 ring-[#2fbf71]"
+                        : "border-[#3d395a] bg-[#1c1b2b] hover:border-[#4a4766]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-extrabold text-[#86efac]">
+                        🌐 แบบสาธารณะ (Public)
+                      </span>
+                      {(editingCourse.visibility !== undefined
+                        ? editingCourse.visibility === "public"
+                        : Boolean(editingCourse.is_published)) && (
+                        <span className="text-[10px] font-black text-[#2fbf71]">
+                          ✓ เลือกอยู่
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-[11px] text-[#c4bdd6] leading-relaxed">
+                      แสดงขึ้นในส่วนของดันเจี้ยนการเรียนรู้ทันที นักเรียนทุกคนเข้าเรียนและเล่นดันเจี้ยนได้เลย
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEditingCourse({
+                        ...editingCourse,
+                        visibility: "private",
+                        is_published: false,
+                      })
+                    }
+                    className={`rounded-xl border p-3 text-left transition-all cursor-pointer ${
+                      !(
+                        editingCourse.visibility !== undefined
+                          ? editingCourse.visibility === "public"
+                          : Boolean(editingCourse.is_published)
+                      )
+                        ? "border-[#9b5de5] bg-[#25193b] ring-1 ring-[#9b5de5]"
+                        : "border-[#3d395a] bg-[#1c1b2b] hover:border-[#4a4766]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-extrabold text-[#e9d5ff]">
+                        🔒 แบบส่วนตัว (Private)
+                      </span>
+                      {!(editingCourse.visibility !== undefined
+                        ? editingCourse.visibility === "public"
+                        : Boolean(editingCourse.is_published)) && (
+                        <span className="text-[10px] font-black text-[#ffe27a]">
+                          ✓ เลือกอยู่
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-[11px] text-[#c4bdd6] leading-relaxed">
+                      ซ่อนจากหน้าดันเจี้ยนสาธารณะ นักเรียนต้องกรอกรหัสคอร์ส (Join Code) เพื่อเข้าเรียน
+                    </p>
+                  </button>
+                </div>
+              </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-[#2f2d45]">
                 <button

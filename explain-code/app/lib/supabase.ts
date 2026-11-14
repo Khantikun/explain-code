@@ -175,6 +175,8 @@ export type QuizQuestionItem = {
   explanation?: string;
 };
 
+export type CourseVisibility = "public" | "private";
+
 export type Course = {
   id: string;
   teacher_id: string;
@@ -183,6 +185,7 @@ export type Course = {
   description: string;
   join_code: string;
   level: "beginner" | "intermediate" | "advanced" | string;
+  visibility?: CourseVisibility;
   is_published: boolean;
   created_at: string;
   updated_at: string;

@@ -39,12 +39,15 @@ import {
 } from "../lib/language-tracks";
 import { Course, Enrollment, Lesson } from "../lib/supabase";
 import {
+  isCoursePublic,
   loadLocalCourses,
   loadLocalEnrollments,
   loadLocalLessons,
+  loadUnlockedPrivateCourseIds,
   saveLocalCourses,
   saveLocalEnrollments,
   saveLocalLessons,
+  unlockPrivateCourseId,
 } from "../lib/lms-data";
 import {
   CustomDungeonPayload,
@@ -299,6 +302,7 @@ function CoursesContent() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [unlockedPrivateIds, setUnlockedPrivateIds] = useState<string[]>([]);
   const [joinCodeInput, setJoinCodeInput] = useState("");
   const [joinMsg, setJoinMsg] = useState<{
     type: "error" | "success";
@@ -605,6 +609,7 @@ function CoursesContent() {
     setCourses(localCourses);
     setLessons(localLessons);
     setEnrollments(localEnrolls);
+    setUnlockedPrivateIds(loadUnlockedPrivateCourseIds());
 
     const syncFromServer = async () => {
       try {
@@ -613,8 +618,18 @@ function CoursesContent() {
         );
         const data = await res.json();
         if (res.ok && Array.isArray(data.courses)) {
-          const mergedCourses = [
-            ...data.courses,
+          const mergedCourses: Course[] = [
+            ...data.courses.map((dc: Course) => {
+              const localMatch = localCourses.find((lc) => lc.id === dc.id);
+              if (
+                localMatch &&
+                new Date(localMatch.updated_at || 0).getTime() >=
+                  new Date(dc.updated_at || 0).getTime()
+              ) {
+                return localMatch;
+              }
+              return dc;
+            }),
             ...localCourses.filter(
               (lc) => !data.courses.some((dc: Course) => dc.id === lc.id)
             ),
@@ -1092,7 +1107,24 @@ function CoursesContent() {
     })();
   };
 
-  const publishedCourses = courses.filter((c) => c.is_published);
+  const isCourseVisibleInDungeon = useCallback(
+    (c: Course): boolean => {
+      if (isCoursePublic(c)) return true;
+      if (unlockedPrivateIds.includes(c.id)) return true;
+      if (
+        session &&
+        enrollments.some(
+          (e) => e.course_id === c.id && e.student_id === session.userId
+        )
+      ) {
+        return true;
+      }
+      return false;
+    },
+    [unlockedPrivateIds, session, enrollments]
+  );
+
+  const publishedCourses = courses.filter((c) => isCourseVisibleInDungeon(c));
   const languageFilteredCourses = publishedCourses.filter((c) => {
     const cLessons = lessons.filter(
       (l) => l.course_id === c.id && l.is_published
@@ -1101,10 +1133,11 @@ function CoursesContent() {
   });
 
   const handleEnrollCourse = async (course: Course) => {
+    const nextUnlocked = unlockPrivateCourseId(course.id);
+    setUnlockedPrivateIds(nextUnlocked);
+
     if (!session) {
-      router.push(
-        `/login?redirect=${encodeURIComponent(`/courses/${course.id}`)}`
-      );
+      router.push(`/courses/${course.id}`);
       return;
     }
 
@@ -1155,25 +1188,27 @@ function CoursesContent() {
     const cleanCode = joinCodeInput.trim().toUpperCase();
     if (!cleanCode) return;
 
-    const matched = publishedCourses.find(
+    const matched = courses.find(
       (c) => c.join_code.toUpperCase() === cleanCode
     );
     if (!matched) {
       setJoinMsg({
         type: "error",
         text: t(
-          `ไม่พบรหัส "${cleanCode}" (ลอง: JS2026, PY2026, SQL2026, TS2026, CPP2026, JAVA2026)`,
-          `Code "${cleanCode}" not found (Try: JS2026, PY2026, SQL2026, TS2026, CPP2026, JAVA2026)`
+          `ไม่พบรหัส "${cleanCode}" (กรุณาตรวจสอบรหัสคอร์สจากครูผู้สอนอีกครั้ง)`,
+          `Code "${cleanCode}" not found (please check your teacher's join code)`
         ),
       });
       return;
     }
 
+    const nextUnlocked = unlockPrivateCourseId(matched.id);
+    setUnlockedPrivateIds(nextUnlocked);
     setJoinMsg({
       type: "success",
       text: t(
-        `พบ "${matched.title}" กำลังเข้าสู่คอร์ส...`,
-        `Found "${matched.title}" — entering...`
+        `ปลดล็อกคอร์ส "${matched.title}" สำเร็จ! กำลังเข้าสู่บทเรียน...`,
+        `Unlocked "${matched.title}" — entering course...`
       ),
     });
     await handleEnrollCourse(matched);
@@ -1289,48 +1324,141 @@ function CoursesContent() {
             })}
           </section>
 
-          {/* Compact Course Join Code Bar */}
-          <section className="rounded-2xl border border-[#2f2d45] bg-[#1c1b2b] p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
-            <div className="text-xs sm:text-sm font-bold text-[#ffe27a]">
-              {t(
-                "มีรหัสคอร์สเรียนจากครูแล้ว?",
-                "Have a teacher course join code?"
-              )}
+          {/* Public Courses & Unlocked Private Courses in Learning Dungeon */}
+          <section className="rounded-3xl border border-[#2f2d45] bg-[#141220] p-5 sm:p-6 space-y-4 shadow-xl">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#2f2d45] pb-3.5">
+              <div>
+                <h2 className="text-base sm:text-lg font-extrabold text-[#ffe27a] flex items-center gap-2">
+                  <Icon name="book" className="h-5 w-5 text-[#2fbf71]" />
+                  <span>
+                    {t(
+                      "คอร์สและบทเรียนในดันเจี้ยนการเรียนรู้ (จากครูผู้สอน)",
+                      "Teacher Courses & Dungeon Lessons"
+                    )}
+                  </span>
+                </h2>
+                <p className="mt-0.5 text-xs text-[#9a93ad]">
+                  {t(
+                    "คอร์สแบบสาธารณะจะแสดงที่นี่ทันที ส่วนคอร์สแบบส่วนตัวสามารถกรอกรหัสคอร์ส (Join Code) ด้านขวาเพื่อปลดล็อกเข้าเรียน",
+                    "Public courses appear here automatically. Enter a Join Code on the right to unlock private courses."
+                  )}
+                </p>
+              </div>
+
+              <form
+                onSubmit={handleJoinByCode}
+                className="flex w-full sm:w-auto flex-col gap-1"
+              >
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={joinCodeInput}
+                    onChange={(e) =>
+                      setJoinCodeInput(e.target.value.toUpperCase())
+                    }
+                    placeholder={t(
+                      "กรอกรหัสคอร์สส่วนตัว เช่น JS2026",
+                      "Enter private course code"
+                    )}
+                    className="w-full sm:w-52 rounded-xl border border-[#2f2d45] bg-[#0d0b14] px-3 py-2 text-xs font-mono font-bold uppercase text-[#f4efe6] placeholder:text-[#7c7491] focus:border-[#ffe27a] focus:outline-hidden"
+                  />
+                  <button
+                    type="submit"
+                    className="retro-button rounded-xl bg-[#2fbf71] hover:bg-[#34d37d] px-4 py-2 text-xs font-extrabold text-[#120f1c] cursor-pointer shrink-0"
+                  >
+                    {t("ใส่รหัสเข้าเรียน", "Join by Code")}
+                  </button>
+                </div>
+                {joinMsg && (
+                  <p
+                    className={`text-xs font-bold ${
+                      joinMsg.type === "error"
+                        ? "text-[#ff6b81]"
+                        : "text-[#2fbf71]"
+                    }`}
+                  >
+                    {joinMsg.text}
+                  </p>
+                )}
+              </form>
             </div>
 
-            <form
-              onSubmit={handleJoinByCode}
-              className="flex w-full sm:w-auto flex-col gap-1"
-            >
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={joinCodeInput}
-                  onChange={(e) =>
-                    setJoinCodeInput(e.target.value.toUpperCase())
-                  }
-                  placeholder={t("เช่น JS2026, PY2026", "e.g. JS2026, PY2026")}
-                  className="w-full sm:w-48 rounded-xl border border-[#2f2d45] bg-[#0d0b14] px-3 py-2 text-xs font-mono font-bold uppercase text-[#f4efe6] placeholder:text-[#7c7491] focus:border-[#ffe27a] focus:outline-hidden"
-                />
-                <button
-                  type="submit"
-                  className="retro-button rounded-xl bg-[#2fbf71] hover:bg-[#34d37d] px-4 py-2 text-xs font-extrabold text-[#120f1c] cursor-pointer shrink-0"
-                >
-                  {t("เข้าร่วม", "Join")}
-                </button>
+            {publishedCourses.length === 0 ? (
+              <div className="py-6 text-center text-xs text-[#9a93ad]">
+                {t(
+                  "ยังไม่มีคอร์สสาธารณะที่เปิดแสดง กรุณากรอกรหัสคอร์สจากครูผู้สอนเพื่อเข้าเรียน",
+                  "No public courses listed yet. Enter a course join code from your teacher above."
+                )}
               </div>
-              {joinMsg && (
-                <p
-                  className={`text-xs font-bold ${
-                    joinMsg.type === "error"
-                      ? "text-[#ff6b81]"
-                      : "text-[#2fbf71]"
-                  }`}
-                >
-                  {joinMsg.text}
-                </p>
-              )}
-            </form>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {publishedCourses.map((course) => {
+                  const courseLessons = lessons
+                    .filter((l) => l.course_id === course.id && l.is_published)
+                    .sort((a, b) => a.order_index - b.order_index);
+                  const isPublic = isCoursePublic(course);
+
+                  return (
+                    <div
+                      key={course.id}
+                      className="flex flex-col justify-between rounded-2xl border border-[#2f2d45] bg-[#1c1b2b] p-4 gap-3 hover:border-[#2fbf71]/60 transition-colors"
+                    >
+                      <div>
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span
+                              className={`rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold ${
+                                isPublic
+                                  ? "bg-[#152922] border-[#2fbf71]/40 text-[#86efac]"
+                                  : "bg-[#25193b] border-[#9b5de5]/50 text-[#e9d5ff]"
+                              }`}
+                            >
+                              {isPublic
+                                ? t("🌐 สาธารณะ", "🌐 Public")
+                                : t("🔒 ส่วนตัว (ปลดล็อกแล้ว)", "🔒 Private (Unlocked)")}
+                            </span>
+                            <span className="rounded-full bg-[#141220] border border-[#2f2d45] px-2.5 py-0.5 text-[10px] font-bold text-[#c4bdd6]">
+                              {courseLessons.length} {t("บทเรียน", "lessons")}
+                            </span>
+                          </div>
+                          <span className="rounded-lg border border-[#2f2d45] bg-[#0d0b14] px-2 py-0.5 text-[11px] font-mono font-bold text-[#ffe27a]">
+                            {course.join_code}
+                          </span>
+                        </div>
+                        <h3 className="text-sm sm:text-base font-extrabold text-[#f4efe6]">
+                          {course.title}
+                        </h3>
+                        <p className="mt-1 text-xs text-[#9a93ad] line-clamp-2">
+                          {course.description}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-[#2f2d45]">
+                        <span className="text-xs font-semibold text-[#9a93ad]">
+                          {course.teacher_name}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <Link
+                            href={`/dungeon/${course.id}`}
+                            className="rounded-xl border border-[#5a2d91] bg-[#252238] hover:bg-[#322c4a] px-3 py-1.5 text-xs font-extrabold flex items-center gap-1 text-[#e9d5ff] transition-colors"
+                          >
+                            <Icon name="gamepad" size={13} />
+                            <span>{t("เล่นดันเจี้ยน", "Dungeon")}</span>
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => handleEnrollCourse(course)}
+                            className="rounded-xl bg-[#2fbf71] hover:bg-[#34d37d] px-3 py-1.5 text-xs font-extrabold text-[#120f1c] cursor-pointer transition-colors"
+                          >
+                            {t("เข้าเรียนบทเรียน →", "Study Lessons →")}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
         </main>
       </div>
@@ -1714,9 +1842,22 @@ function CoursesContent() {
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-2">
-                            <span className="rounded-full bg-[#152922] border border-[#2fbf71]/40 px-2.5 py-0.5 text-[11px] font-extrabold text-[#86efac]">
-                              {courseLessons.length} {t("บทเรียน", "lessons")}
-                            </span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span
+                                className={`rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold ${
+                                  isCoursePublic(course)
+                                    ? "bg-[#152922] border-[#2fbf71]/40 text-[#86efac]"
+                                    : "bg-[#25193b] border-[#9b5de5]/50 text-[#e9d5ff]"
+                                }`}
+                              >
+                                {isCoursePublic(course)
+                                  ? t("🌐 สาธารณะ", "🌐 Public")
+                                  : t("🔒 ส่วนตัว (ปลดล็อกแล้ว)", "🔒 Private (Unlocked)")}
+                              </span>
+                              <span className="rounded-full bg-[#141220] border border-[#2f2d45] px-2.5 py-0.5 text-[11px] font-extrabold text-[#c4bdd6]">
+                                {courseLessons.length} {t("บทเรียน", "lessons")}
+                              </span>
+                            </div>
                             <span className="rounded-lg border border-[#2f2d45] bg-[#0d0b14] px-2 py-0.5 text-[11px] font-mono font-bold text-[#ffe27a]">
                               {course.join_code}
                             </span>
