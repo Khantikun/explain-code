@@ -461,7 +461,7 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                     <span>{t("เข้าสู่ระบบ", "Login")}</span>
                   </Link>
                   <Link
-                    href="/login?mode=register"
+                    href="/register"
                     className="liquid-glass-primary-btn liquid-press inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 rounded-full px-4 py-2 text-xs sm:text-sm font-extrabold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945]"
                   >
                     <Icon name="user" className="h-3.5 w-3.5 shrink-0" />
