@@ -722,7 +722,16 @@ export function BattleOverlay({
 
           {activeQuestion.codeSnippet && (
             <pre className="p-3 rounded-xl bg-[#0b0b14] border border-[#4a4766] text-[#ffe27a] text-xs font-mono overflow-x-auto leading-relaxed">
-              <code>{activeQuestion.codeSnippet}</code>
+              <code>
+                {activeQuestion.codeSnippet.split("\n").map((line, lineIdx) => (
+                  <div key={lineIdx} className="flex items-start gap-3">
+                    <span className="w-6 shrink-0 text-right text-[#6b6580] select-none tabular-nums">
+                      {lineIdx + 1}
+                    </span>
+                    <span className="whitespace-pre">{line || " "}</span>
+                  </div>
+                ))}
+              </code>
             </pre>
           )}
         </div>

@@ -742,7 +742,16 @@ export function TopicDungeonArena({
 
                 {scrollTab === "code" || !activeTopic.steps?.length ? (
                   <pre className="p-3 rounded-xl bg-[#0d0b14] border border-[#2f2d45] text-[#ffe27a] text-xs font-mono overflow-x-auto leading-relaxed">
-                    <code>{activeTopic.code}</code>
+                    <code>
+                      {activeTopic.code.split("\n").map((line, lineIdx) => (
+                        <div key={lineIdx} className="flex items-start gap-3">
+                          <span className="w-6 shrink-0 text-right text-[#6b6580] select-none tabular-nums">
+                            {lineIdx + 1}
+                          </span>
+                          <span className="whitespace-pre">{line || " "}</span>
+                        </div>
+                      ))}
+                    </code>
                   </pre>
                 ) : (
                   (() => {
