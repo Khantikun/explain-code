@@ -56,9 +56,11 @@ import {
 } from "../lib/custom-dungeon";
 import {
   DungeonArenaSnapshot,
+  DungeonSaveRecord,
   loadUserDungeonSaveForLanguage,
   saveUserDungeonProgress,
 } from "../lib/dungeon-save";
+import { getQuestionsForTopic } from "../lib/dungeon/questions";
 
 type LearningTab = "quest" | "hero-select" | "practice" | "custom" | "custom-dungeon" | "learn";
 
@@ -240,12 +242,20 @@ function CoursesContent() {
   const rawLangParam = searchParams.get("lang");
   const langParam = isValidLearningLanguage(rawLangParam) ? rawLangParam : null;
   const customDungeonParam = searchParams.get("customDungeon");
-  const topicIdParam = Number(searchParams.get("topicId") || "");
+  const rawTopicIdParam = searchParams.get("topicId");
+  const topicIdParam =
+    rawTopicIdParam && rawTopicIdParam.trim() !== ""
+      ? Number(rawTopicIdParam)
+      : NaN;
 
   const [selectedLanguage, setSelectedLanguage] =
     useState<LearningLanguage | null>(langParam);
   const [session, setSession] = useState<ClientAuthSession | null>(null);
-  const [activeTab, setActiveTab] = useState<LearningTab>("quest");
+  const [activeTab, setActiveTab] = useState<LearningTab>(() => {
+    if (customDungeonParam) return "custom-dungeon";
+    if (langParam && Number.isFinite(topicIdParam)) return "practice";
+    return "quest";
+  });
   const [customDungeons, setCustomDungeons] = useState<CustomDungeonPayload[]>([]);
   const [activeCustomDungeon, setActiveCustomDungeonState] =
     useState<CustomDungeonPayload | null>(null);
@@ -259,10 +269,20 @@ function CoursesContent() {
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [guestProgress, setGuestProgress] = useState<StudentRecord>(GUEST_STUDENT);
   const [currentStudentId, setCurrentStudentId] = useState<string>("stu-1");
-  const [selectedTopicId, setSelectedTopicId] = useState<number>(1);
+  const [selectedTopicId, setSelectedTopicId] = useState<number>(() => {
+    if (langParam && Number.isFinite(topicIdParam)) {
+      const matched = getTopicsByLanguage(langParam).find(
+        (tp) => tp.id === topicIdParam
+      );
+      if (matched) return matched.id;
+    }
+    return 1;
+  });
   const [playAttemptNonce, setPlayAttemptNonce] = useState<number>(0);
   const [guestNotice, setGuestNotice] = useState<string | null>(null);
   const [saveGameNotice, setSaveGameNotice] = useState<string | null>(null);
+  const [savedDungeonRecord, setSavedDungeonRecord] =
+    useState<DungeonSaveRecord | null>(null);
   const [savedArenaSnapshot, setSavedArenaSnapshot] =
     useState<DungeonArenaSnapshot | null>(null);
   const [snapshotHydrationNonce, setSnapshotHydrationNonce] =
@@ -316,9 +336,18 @@ function CoursesContent() {
         const matchedTopic = Number.isFinite(topicIdParam)
           ? langTopics.find((tp) => tp.id === topicIdParam)
           : undefined;
+        const currentSess = getClientSession();
+        const savedForLang = currentSess?.userId
+          ? loadUserDungeonSaveForLanguage(currentSess.userId, langParam)
+          : null;
         if (matchedTopic) {
           setSelectedTopicId(matchedTopic.id);
           setActiveTab("practice");
+        } else if (savedForLang) {
+          const savedTopic = langTopics.find(
+            (tp) => tp.id === savedForLang.currentTopicId
+          );
+          setSelectedTopicId(savedTopic ? savedTopic.id : langTopics[0].id);
         } else {
           setSelectedTopicId(langTopics[0].id);
         }
@@ -331,6 +360,10 @@ function CoursesContent() {
   const handleSelectLanguage = (lang: LearningLanguage) => {
     const track = LANGUAGE_TRACKS.find((tr) => tr.id === lang);
     const langTopics = getTopicsByLanguage(lang);
+    const currentSess = getClientSession();
+    const savedForLang = currentSess?.userId
+      ? loadUserDungeonSaveForLanguage(currentSess.userId, lang)
+      : null;
     setSelectedLanguage(lang);
     setActiveTab("quest");
     setGuestNotice(null);
@@ -339,7 +372,10 @@ function CoursesContent() {
       setPlaygroundOutput("");
     }
     if (langTopics.length > 0) {
-      setSelectedTopicId(langTopics[0].id);
+      const savedTopic = savedForLang
+        ? langTopics.find((tp) => tp.id === savedForLang.currentTopicId)
+        : undefined;
+      setSelectedTopicId(savedTopic ? savedTopic.id : langTopics[0].id);
     }
     router.push(`/courses?lang=${lang}`);
   };
@@ -357,6 +393,13 @@ function CoursesContent() {
       localStorage.setItem(STORAGE_AVATAR_KEY, chosen);
     } catch {
       // ignore
+    }
+    if (typeof window !== "undefined" && selectedLanguage) {
+      window.history.replaceState(
+        null,
+        "",
+        `/courses?lang=${selectedLanguage}&topicId=${selectedTopicId}`
+      );
     }
     setPlayAttemptNonce((n) => n + 1);
     setActiveTab("practice");
@@ -389,9 +432,41 @@ function CoursesContent() {
             setStudents((prev) => {
               const exists = prev.some((s) => s.id === sbStudent.id);
               const nextList = exists
-                ? prev.map((s) =>
-                    s.id === sbStudent.id ? { ...s, ...sbStudent } : s
-                  )
+                ? prev.map((s) => {
+                    if (s.id !== sbStudent.id) return s;
+                    const mergedCompleted = Array.from(
+                      new Set([
+                        ...(s.completedTopics || []),
+                        ...(sbStudent.completedTopics || []),
+                      ])
+                    );
+                    const mergedBadges = Array.from(
+                      new Set([
+                        ...(s.badges || []),
+                        ...(sbStudent.badges || []),
+                      ])
+                    );
+                    const localSaveHistory = (s.history || []).filter((h) =>
+                      h.topicTitle.includes("(จุดเซฟเกม")
+                    );
+                    const remoteHistory =
+                      sbStudent.history && sbStudent.history.length > 0
+                        ? sbStudent.history
+                        : (s.history || []).filter(
+                            (h) => !h.topicTitle.includes("(จุดเซฟเกม")
+                          );
+                    return {
+                      ...s,
+                      ...sbStudent,
+                      xp: Math.max(s.xp || 0, sbStudent.xp || 0),
+                      completedTopics: mergedCompleted,
+                      badges: mergedBadges,
+                      history: [...localSaveHistory, ...remoteHistory].slice(
+                        0,
+                        20
+                      ),
+                    };
+                  })
                 : [...prev, sbStudent];
               try {
                 localStorage.setItem(
@@ -460,7 +535,7 @@ function CoursesContent() {
       const updatedSession = getClientSession();
       setSession(updatedSession);
       if (updatedSession) {
-        if (updatedSession.role === "student" && updatedSession.userId) {
+        if (updatedSession.userId) {
           setCurrentStudentId(updatedSession.userId);
         }
         try {
@@ -517,9 +592,11 @@ function CoursesContent() {
       // ignore
     }
 
-    if (current?.role === "student" && current.userId) {
+    if (current?.userId) {
       setCurrentStudentId(current.userId);
-      void syncStudentData(current.userId);
+      if (current.role === "student") {
+        void syncStudentData(current.userId);
+      }
     }
 
     const localCourses = loadLocalCourses();
@@ -598,8 +675,15 @@ function CoursesContent() {
     };
   }, [syncStudentData]);
 
-  const currentStudent: StudentRecord = session
-    ? students.find((s) => s.id === currentStudentId) || {
+  const currentAvatar = getAvatar(selectedAvatarKey);
+  const currentLanguage: LearningLanguage = selectedLanguage || "javascript";
+  const currentTrackMeta =
+    LANGUAGE_TRACKS.find((tr) => tr.id === currentLanguage) ||
+    LANGUAGE_TRACKS[0];
+  const currentLanguageTopics = getTopicsByLanguage(currentLanguage);
+
+  const rawStudent: StudentRecord = session
+    ? students.find((s) => s.id === session.userId || s.id === currentStudentId) || {
         id: session.userId,
         nickname: session.displayName || session.username,
         pinHash: "0000",
@@ -613,15 +697,30 @@ function CoursesContent() {
       }
     : guestProgress;
 
-  const currentAvatar = getAvatar(selectedAvatarKey);
-  const currentLanguage: LearningLanguage = selectedLanguage || "javascript";
-  const currentTrackMeta =
-    LANGUAGE_TRACKS.find((tr) => tr.id === currentLanguage) ||
-    LANGUAGE_TRACKS[0];
-  const currentLanguageTopics = getTopicsByLanguage(currentLanguage);
+  const savedFloorPriorTopicIds = savedDungeonRecord
+    ? currentLanguageTopics
+        .slice(0, Math.max(0, savedDungeonRecord.currentFloorNumber - 1))
+        .map((tp) => tp.id)
+    : [];
+
+  const currentStudent: StudentRecord = session
+    ? {
+        ...rawStudent,
+        id: session.userId,
+        xp: Math.max(rawStudent.xp || 0, savedDungeonRecord?.xp || 0),
+        completedTopics: Array.from(
+          new Set([
+            ...(rawStudent.completedTopics || []),
+            ...(savedDungeonRecord?.completedTopicIds || []),
+            ...savedFloorPriorTopicIds,
+          ])
+        ),
+      }
+    : guestProgress;
 
   useEffect(() => {
     if (!session?.userId) {
+      setSavedDungeonRecord(null);
       setSavedArenaSnapshot(null);
       latestArenaSnapshotRef.current = null;
       return;
@@ -630,13 +729,22 @@ function CoursesContent() {
       session.userId,
       currentLanguage
     );
+    setSavedDungeonRecord(saved);
     const snap = saved?.arenaSnapshot ?? null;
     setSavedArenaSnapshot(snap);
     latestArenaSnapshotRef.current = snap;
+    if (saved && !Number.isFinite(topicIdParam)) {
+      const matchedSavedTopic = currentLanguageTopics.find(
+        (tp) => tp.id === saved.currentTopicId
+      );
+      if (matchedSavedTopic) {
+        setSelectedTopicId(matchedSavedTopic.id);
+      }
+    }
     if (snap) {
       setSnapshotHydrationNonce((n) => n + 1);
     }
-  }, [session?.userId, currentLanguage]);
+  }, [session?.userId, currentLanguage, topicIdParam]);
 
   const activeTopicIndex = Math.max(
     0,
@@ -664,6 +772,13 @@ function CoursesContent() {
 
   const isTopicUnlocked = (topicId: number, idx: number): boolean => {
     if (idx === 0) return true;
+    if (
+      savedDungeonRecord &&
+      (topicId === savedDungeonRecord.currentTopicId ||
+        idx < savedDungeonRecord.currentFloorNumber)
+    ) {
+      return true;
+    }
     const prevTopic = currentLanguageTopics[idx - 1];
     if (topicId === 7) {
       const completedInTrack = currentLanguageTopics
@@ -683,34 +798,82 @@ function CoursesContent() {
     studentSnapshot: StudentRecord,
     targetTopicId: number,
     arenaSnapshot: DungeonArenaSnapshot | null = null
-  ) => {
-    if (!session) return;
+  ): DungeonSaveRecord | null => {
+    if (!session) return null;
     const targetIdx = Math.max(
       0,
       currentLanguageTopics.findIndex((tp) => tp.id === targetTopicId)
     );
     const targetTopic = currentLanguageTopics[targetIdx] || currentLanguageTopics[0];
+    const priorFloorTopicIds = currentLanguageTopics
+      .slice(0, targetIdx)
+      .map((tp) => tp.id);
     const completedInTrack = currentLanguageTopics
-      .filter((tp) => studentSnapshot.completedTopics.includes(tp.id))
+      .filter(
+        (tp) =>
+          studentSnapshot.completedTopics.includes(tp.id) ||
+          priorFloorTopicIds.includes(tp.id)
+      )
       .map((tp) => tp.id);
 
-    saveUserDungeonProgress(session.userId, {
+    const targetQuestions = getQuestionsForTopic(targetTopic, currentLanguage);
+    const resolvedTotalPhases =
+      arenaSnapshot?.battleTotalPhases ||
+      Math.max(1, targetQuestions.length);
+    const resolvedPhaseNumber = Math.min(
+      resolvedTotalPhases,
+      (arenaSnapshot?.battlePhaseIndex ?? 0) + 1
+    );
+
+    const record: DungeonSaveRecord = {
       userId: session.userId,
       language: currentLanguage,
       currentTopicId: targetTopic.id,
       currentTopicTitle: targetTopic.title,
       currentFloorNumber: targetIdx + 1,
       totalFloors: currentLanguageTopics.length,
+      currentPhaseNumber: resolvedPhaseNumber,
+      totalPhases: resolvedTotalPhases,
       completedTopicIds: completedInTrack,
       xp: studentSnapshot.xp,
       savedAt: new Date().toISOString(),
       history: studentSnapshot.history.slice(0, 15),
       arenaSnapshot,
-    });
+    };
+
+    saveUserDungeonProgress(session.userId, record);
+    setSavedDungeonRecord(record);
+    return record;
   };
 
-  const handleSaveDungeonGame = () => {
+  const handleSaveDungeonGame = (snapshotOverride?: DungeonArenaSnapshot) => {
     if (!session || activeTab !== "practice" || !activeTopic) return;
+
+    const validOverride =
+      snapshotOverride &&
+      typeof snapshotOverride === "object" &&
+      "topicId" in snapshotOverride &&
+      "room" in snapshotOverride
+        ? snapshotOverride
+        : undefined;
+    const rawSnapshot = validOverride || latestArenaSnapshotRef.current;
+    const snapshotToSave: DungeonArenaSnapshot | null = rawSnapshot
+      ? {
+          ...rawSnapshot,
+          topicId: activeTopic.id,
+          language: currentLanguage,
+        }
+      : null;
+
+    const totalPhases =
+      snapshotToSave?.battleTotalPhases ||
+      Math.max(1, getQuestionsForTopic(activeTopic, currentLanguage).length);
+    const currentPhaseNumber = Math.min(
+      totalPhases,
+      (snapshotToSave?.battlePhaseIndex ?? 0) + 1
+    );
+    const currentFloorNumber = activeTopicIndex + 1;
+    const totalFloors = currentLanguageTopics.length;
 
     const savedTimeLabel = new Date().toLocaleTimeString("th-TH", {
       hour: "2-digit",
@@ -719,7 +882,7 @@ function CoursesContent() {
 
     const saveHistoryItem = {
       topicId: activeTopic.id,
-      topicTitle: `${currentTrackMeta.name} · ${activeTopic.title} (จุดเซฟเกม)`,
+      topicTitle: `${currentTrackMeta.name} · ด่านที่ ${currentFloorNumber}/${totalFloors} ${activeTopic.title} (จุดเซฟเกม · เฟส ${currentPhaseNumber}/${totalPhases})`,
       scorePercent: currentStudent.completedTopics.includes(activeTopic.id)
         ? 100
         : 0,
@@ -731,12 +894,19 @@ function CoursesContent() {
       (item) =>
         !(
           item.topicId === activeTopic.id &&
-          item.topicTitle.includes("(จุดเซฟเกม)")
+          item.topicTitle.includes("(จุดเซฟเกม")
         )
     );
 
+    const priorFloorTopicIds = currentLanguageTopics
+      .slice(0, activeTopicIndex)
+      .map((tp) => tp.id);
+
     const studentToSave: StudentRecord = {
       ...currentStudent,
+      completedTopics: Array.from(
+        new Set([...currentStudent.completedTopics, ...priorFloorTopicIds])
+      ),
       history: [saveHistoryItem, ...dedupedHistory].slice(0, 20),
     };
 
@@ -747,18 +917,25 @@ function CoursesContent() {
       : [...students, studentToSave];
     saveStudentsToStorage(updatedStudents);
 
-    const snapshotToSave = latestArenaSnapshotRef.current;
+    latestArenaSnapshotRef.current = snapshotToSave;
     persistDungeonSave(studentToSave, activeTopic.id, snapshotToSave);
     setSavedArenaSnapshot(snapshotToSave);
+    if (typeof window !== "undefined") {
+      window.history.replaceState(
+        null,
+        "",
+        `/courses?lang=${currentLanguage}&topicId=${activeTopic.id}`
+      );
+    }
     setSaveGameNotice(
       t(
-        "✓ เซฟเกม ด่าน และตำแหน่งล่าสุดเรียบร้อยแล้ว! กลับมาเล่นต่อได้ที่ 'การเรียนของฉัน'",
-        "✓ Game, floor & position saved! Resume anytime in 'My Learning'."
+        `✓ เซฟเกม ด่านที่ ${currentFloorNumber}/${totalFloors} (${activeTopic.title}) · เฟสคำถามที่ ${currentPhaseNumber}/${totalPhases} เรียบร้อยแล้ว! กลับมาเล่นต่อได้ที่ 'การเรียนของฉัน'`,
+        `✓ Saved Floor ${currentFloorNumber}/${totalFloors} · Phase ${currentPhaseNumber}/${totalPhases}! Resume anytime in 'My Learning'.`
       )
     );
     window.setTimeout(() => {
       setSaveGameNotice(null);
-    }, 4500);
+    }, 5000);
   };
 
   const handleCompleteTopic = (result: {
@@ -867,12 +1044,22 @@ function CoursesContent() {
     }
 
     saveStudentsToStorage(updatedStudents);
+    setSavedArenaSnapshot(null);
+    latestArenaSnapshotRef.current = null;
     persistDungeonSave(
       optimisticStudent,
-      nextTopic ? nextTopic.id : result.topicId
+      nextTopic ? nextTopic.id : result.topicId,
+      null
     );
     if (nextTopic) {
       setSelectedTopicId(nextTopic.id);
+      if (typeof window !== "undefined") {
+        window.history.replaceState(
+          null,
+          "",
+          `/courses?lang=${currentLanguage}&topicId=${nextTopic.id}`
+        );
+      }
       setPlayAttemptNonce((n) => n + 1);
       setActiveTab("practice");
     } else {
@@ -1214,6 +1401,24 @@ function CoursesContent() {
                     <button
                       type="button"
                       onClick={() => {
+                        if (savedDungeonRecord) {
+                          setSelectedTopicId(savedDungeonRecord.currentTopicId);
+                          setSavedArenaSnapshot(
+                            savedDungeonRecord.arenaSnapshot ?? null
+                          );
+                          latestArenaSnapshotRef.current =
+                            savedDungeonRecord.arenaSnapshot ?? null;
+                          setSnapshotHydrationNonce((n) => n + 1);
+                          if (typeof window !== "undefined") {
+                            window.history.replaceState(
+                              null,
+                              "",
+                              `/courses?lang=${currentLanguage}&topicId=${savedDungeonRecord.currentTopicId}`
+                            );
+                          }
+                          setActiveTab("practice");
+                          return;
+                        }
                         const nextTopic =
                           currentLanguageTopics.find(
                             (tp) => !currentStudent.completedTopics.includes(tp.id)
@@ -1222,10 +1427,57 @@ function CoursesContent() {
                       }}
                       className="retro-button bg-[#f6c945] hover:bg-[#ffe27a] text-[#120f1c] px-4 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer"
                     >
-                      {t("ลุยชั้นถัดไป →", "Play Next Floor →")}
+                      {savedDungeonRecord
+                        ? t(
+                            `💾 เล่นต่อด่านที่ ${savedDungeonRecord.currentFloorNumber}/${savedDungeonRecord.totalFloors} (เฟส ${savedDungeonRecord.currentPhaseNumber || 1}/${savedDungeonRecord.totalPhases || 3}) →`,
+                            `💾 Resume Floor ${savedDungeonRecord.currentFloorNumber}/${savedDungeonRecord.totalFloors} (Phase ${savedDungeonRecord.currentPhaseNumber || 1}/${savedDungeonRecord.totalPhases || 3}) →`
+                          )
+                        : t("ลุยชั้นถัดไป →", "Play Next Floor →")}
                     </button>
                   </div>
                 </div>
+
+                {session && savedDungeonRecord && (
+                  <div className="rounded-2xl border border-[#2fbf71]/50 bg-[#102a1e]/90 p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div className="flex flex-wrap items-center gap-2 text-[#e8e1cf]">
+                      <span className="rounded-lg bg-[#2fbf71] px-2 py-0.5 text-[10px] font-black text-[#0b0b14]">
+                        💾 จุดเซฟล่าสุด
+                      </span>
+                      <span className="font-extrabold text-[#ffe27a]">
+                        ด่านที่ {savedDungeonRecord.currentFloorNumber}/
+                        {savedDungeonRecord.totalFloors} ·{" "}
+                        {savedDungeonRecord.currentTopicTitle}
+                      </span>
+                      <span className="rounded-md border border-[#9b5de5]/60 bg-[#25193b] px-2 py-0.5 text-[11px] font-bold text-[#e9d5ff]">
+                        เฟสคำถามที่ {savedDungeonRecord.currentPhaseNumber || 1}/
+                        {savedDungeonRecord.totalPhases || 3}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTopicId(savedDungeonRecord.currentTopicId);
+                        setSavedArenaSnapshot(
+                          savedDungeonRecord.arenaSnapshot ?? null
+                        );
+                        latestArenaSnapshotRef.current =
+                          savedDungeonRecord.arenaSnapshot ?? null;
+                        setSnapshotHydrationNonce((n) => n + 1);
+                        if (typeof window !== "undefined") {
+                          window.history.replaceState(
+                            null,
+                            "",
+                            `/courses?lang=${currentLanguage}&topicId=${savedDungeonRecord.currentTopicId}`
+                          );
+                        }
+                        setActiveTab("practice");
+                      }}
+                      className="rounded-xl bg-[#2fbf71] hover:bg-[#34d37d] px-3.5 py-1.5 text-xs font-extrabold text-[#0b0b14] cursor-pointer transition-colors"
+                    >
+                      {t("เล่นต่อจากจุดที่เซฟไว้ทันที →", "Resume Saved Game →")}
+                    </button>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {currentLanguageTopics.map((topic, idx) => {
@@ -1854,16 +2106,27 @@ function CoursesContent() {
           {activeTab === "practice" && activeTopic && (
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#2f2d45] bg-[#141220] px-4 py-2.5">
-                <span className="text-xs font-bold text-[#c4bdd6]">
-                  {t(
-                    `กำลังลุย: ${currentTrackMeta.name} · ${activeTopic.title}`,
-                    `Playing: ${currentTrackMeta.name} · ${activeTopic.title}`
-                  )}
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold text-[#c4bdd6]">
+                    {t(
+                      `กำลังลุย: ${currentTrackMeta.name} · ด่านที่ ${activeTopicIndex + 1}/${currentLanguageTopics.length} (${activeTopic.title})`,
+                      `Playing: ${currentTrackMeta.name} · Floor ${activeTopicIndex + 1}/${currentLanguageTopics.length} (${activeTopic.title})`
+                    )}
+                  </span>
+                  {savedDungeonRecord &&
+                    savedDungeonRecord.currentTopicId === activeTopic.id && (
+                      <span className="rounded-md border border-[#2fbf71]/50 bg-[#102a1e] px-2 py-0.5 text-[11px] font-bold text-[#86efac]">
+                        {t(
+                          `💾 เซฟล่าสุด: ด่าน ${savedDungeonRecord.currentFloorNumber}/${savedDungeonRecord.totalFloors} · เฟส ${savedDungeonRecord.currentPhaseNumber || 1}/${savedDungeonRecord.totalPhases || 3}`,
+                          `💾 Saved: Floor ${savedDungeonRecord.currentFloorNumber}/${savedDungeonRecord.totalFloors} · Phase ${savedDungeonRecord.currentPhaseNumber || 1}/${savedDungeonRecord.totalPhases || 3}`
+                        )}
+                      </span>
+                    )}
+                </div>
                 {session ? (
                   <button
                     type="button"
-                    onClick={handleSaveDungeonGame}
+                    onClick={() => handleSaveDungeonGame()}
                     className="px-3.5 py-1.5 rounded-xl text-xs font-extrabold border border-[#2fbf71]/70 bg-[#102a1e] text-[#86efac] hover:bg-[#153827] transition cursor-pointer flex items-center gap-1.5"
                   >
                     <span>💾</span>
@@ -1906,6 +2169,9 @@ function CoursesContent() {
                 onSnapshotChange={(snap) => {
                   latestArenaSnapshotRef.current = snap;
                 }}
+                onSaveGame={
+                  session ? (snap) => handleSaveDungeonGame(snap) : undefined
+                }
                 onBackToMap={() => setActiveTab("quest")}
                 onCompleteTopic={handleCompleteTopic}
               />

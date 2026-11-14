@@ -59,6 +59,7 @@ interface BattleOverlayProps {
     accumulatedXp: number;
     accumulatedCoins: number;
   }) => void;
+  onSaveGame?: (currentPhaseIndex: number) => void;
   onClose: () => void;
 }
 
@@ -162,6 +163,7 @@ export function BattleOverlay({
   initialAccumulatedCoins = 0,
   initialShieldCharges,
   onProgressChange,
+  onSaveGame,
   onClose,
 }: BattleOverlayProps) {
   const { uiLang, t } = useUiLanguage();
@@ -218,10 +220,28 @@ export function BattleOverlay({
   const [shieldCharges, setShieldCharges] = useState<number>(
     initialShieldCharges ?? heroStats.startingShield + extraShield
   );
+  const [inBattleSaveNotice, setInBattleSaveNotice] = useState<string | null>(
+    null
+  );
+
+  const effectivePhaseIndex =
+    isSubmitted && isCorrect && phaseIndex < totalPhases - 1
+      ? phaseIndex + 1
+      : phaseIndex;
+
+  useEffect(() => {
+    const clamped = Math.min(
+      Math.max(0, initialPhaseIndex),
+      Math.max(0, totalPhases - 1)
+    );
+    if (clamped > 0 && phaseIndex === 0 && phaseResults.length === 0) {
+      setPhaseIndex(clamped);
+    }
+  }, [initialPhaseIndex, totalPhases, phaseIndex, phaseResults.length]);
 
   useEffect(() => {
     onProgressChange?.({
-      phaseIndex,
+      phaseIndex: effectivePhaseIndex,
       phaseResults,
       focus,
       shieldCharges,
@@ -229,7 +249,7 @@ export function BattleOverlay({
       accumulatedCoins,
     });
   }, [
-    phaseIndex,
+    effectivePhaseIndex,
     phaseResults,
     focus,
     shieldCharges,
@@ -674,21 +694,69 @@ export function BattleOverlay({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-xs select-none overflow-y-auto">
       <div className="retro-panel rounded-2xl max-w-2xl w-full p-3 sm:p-6 flex flex-col gap-3 sm:gap-4 text-[#f4efe6] relative overflow-hidden my-auto max-h-[95vh] overflow-y-auto">
-        {/* Top Bar: Encounter Label + Close Button */}
+        {/* Top Bar: Encounter Label + Save + Close Button */}
         <div className="flex items-center justify-between gap-2">
-          <span className="pixel-font text-[10px] font-black tracking-wider text-[#9a93ad] uppercase">
-            {t("⚔️ การปะทะในดันเจี้ยน", "⚔️ Dungeon Encounter")}
-          </span>
-          <button
-            type="button"
-            onClick={handleCloseOverlay}
-            className="w-8 h-8 rounded-lg bg-[#252238] hover:bg-[#c0283a]/85 border border-[#4a4766] hover:border-[#ff4d6d] text-sm font-black text-[#f4efe6] flex items-center justify-center leading-none transition-colors cursor-pointer shrink-0"
-            title={t("ออกจากการต่อสู้", "Exit battle")}
-            aria-label={t("ออกจากการต่อสู้", "Exit battle")}
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="pixel-font text-[10px] font-black tracking-wider text-[#9a93ad] uppercase">
+              {t("⚔️ การปะทะในดันเจี้ยน", "⚔️ Dungeon Encounter")}
+            </span>
+            {isMultiPhase && (
+              <span className="rounded-md border border-[#9b5de5]/60 bg-[#25193b] px-2 py-0.5 text-[10px] font-extrabold text-[#ffe27a]">
+                {t(
+                  `เฟสที่ ${effectivePhaseIndex + 1}/${totalPhases}`,
+                  `Phase ${effectivePhaseIndex + 1}/${totalPhases}`
+                )}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {onSaveGame && (
+              <button
+                type="button"
+                onClick={() => {
+                  onProgressChange?.({
+                    phaseIndex: effectivePhaseIndex,
+                    phaseResults,
+                    focus,
+                    shieldCharges,
+                    accumulatedXp,
+                    accumulatedCoins,
+                  });
+                  onSaveGame(effectivePhaseIndex);
+                  setInBattleSaveNotice(
+                    t(
+                      `✓ เซฟด่านและเฟสที่ ${effectivePhaseIndex + 1}/${totalPhases} เรียบร้อยแล้ว!`,
+                      `✓ Saved floor & Phase ${effectivePhaseIndex + 1}/${totalPhases}!`
+                    )
+                  );
+                  window.setTimeout(() => {
+                    setInBattleSaveNotice(null);
+                  }, 3500);
+                }}
+                className="px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold border border-[#2fbf71]/70 bg-[#102a1e] text-[#86efac] hover:bg-[#153827] transition cursor-pointer flex items-center gap-1 shrink-0"
+                title={t("เซฟด่านและเฟสปัจจุบัน", "Save current floor and phase")}
+              >
+                <span>💾</span>
+                <span>{t("เซฟเกมไว้", "Save Game")}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleCloseOverlay}
+              className="w-8 h-8 rounded-lg bg-[#252238] hover:bg-[#c0283a]/85 border border-[#4a4766] hover:border-[#ff4d6d] text-sm font-black text-[#f4efe6] flex items-center justify-center leading-none transition-colors cursor-pointer shrink-0"
+              title={t("ออกจากการต่อสู้", "Exit battle")}
+              aria-label={t("ออกจากการต่อสู้", "Exit battle")}
+            >
+              ✕
+            </button>
+          </div>
         </div>
+
+        {inBattleSaveNotice && (
+          <div className="rounded-xl border border-[#2fbf71]/70 bg-[#102a1e] px-3 py-2 text-xs font-bold text-[#86efac]">
+            {inBattleSaveNotice}
+          </div>
+        )}
 
         {/* Battle Header: Stacked on Mobile (grid-cols-1), Side-by-Side on sm+ (sm:grid-cols-2) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 border-b border-[#4a4766] pb-3 sm:pb-3.5 items-stretch">

@@ -158,10 +158,21 @@ export default function MyLearningPage() {
                         ถึงด่านที่ {save.currentFloorNumber}/{save.totalFloors} ·{" "}
                         {save.currentTopicTitle}
                       </h3>
-                      <p className="mt-1 text-xs text-[#c4bdd6]">
-                        พิชิตแล้ว {save.completedTopicIds.length} จาก{" "}
-                        {save.totalFloors} ด่าน · สะสม {save.xp} XP
-                      </p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-[#c4bdd6]">
+                        <span className="rounded-md border border-[#9b5de5]/60 bg-[#25193b] px-2 py-0.5 text-[11px] font-bold text-[#ffe27a]">
+                          ⚔️ เฟสคำถามที่{" "}
+                          {save.currentPhaseNumber ||
+                            (save.arenaSnapshot?.battlePhaseIndex ?? 0) + 1}
+                          /
+                          {save.totalPhases ||
+                            save.arenaSnapshot?.battleTotalPhases ||
+                            3}
+                        </span>
+                        <span>
+                          พิชิตแล้ว {save.completedTopicIds.length} จาก{" "}
+                          {save.totalFloors} ด่าน · สะสม {save.xp} XP
+                        </span>
+                      </div>
 
                       <div className="mt-3">
                         <div className="flex items-center justify-between text-[11px] font-bold mb-1">

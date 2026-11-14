@@ -17,7 +17,9 @@ export interface DungeonArenaSnapshot {
   floorShieldBonus: number;
   floorRewardMultiplier: number;
   modifyBonusClaimed: boolean;
+  isInBattle?: boolean;
   battlePhaseIndex: number;
+  battleTotalPhases?: number;
   battlePhaseResults: BattlePhaseResult[];
   battleFocus?: number;
   battleShieldCharges?: number;
@@ -32,6 +34,8 @@ export interface DungeonSaveRecord {
   currentTopicTitle: string;
   currentFloorNumber: number;
   totalFloors: number;
+  currentPhaseNumber?: number;
+  totalPhases?: number;
   completedTopicIds: number[];
   xp: number;
   savedAt: string;
