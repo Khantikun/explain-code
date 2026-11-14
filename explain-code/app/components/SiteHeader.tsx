@@ -232,13 +232,13 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
           rounded="2xl"
           className="px-3.5 sm:px-5 py-2.5"
         >
-          <div className="flex h-11 items-center justify-between gap-3">
+          <div className="flex min-h-11 items-center justify-between gap-2 sm:gap-3">
             {/* Left: Brand Logo */}
-            <div className="flex flex-1 items-center justify-start">
+            <div className="flex items-center justify-start shrink-0 min-w-0">
               <Link
                 href="/"
                 aria-label={t("โค้ดนี้ฉันอธิบายได้ หน้าแรก", "ExplainCode Home")}
-                className="flex items-center gap-3 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945]"
+                className="flex items-center gap-2.5 sm:gap-3 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945]"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden bg-[#0d0b14] border border-[#f6c945]/60 shadow-sm shrink-0">
                   <Image
@@ -250,11 +250,11 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                     priority
                   />
                 </div>
-                <div className="leading-tight">
+                <div className="leading-tight whitespace-nowrap">
                   <span className="block text-sm sm:text-base font-extrabold tracking-tight text-[#f4efe6]">
                     {t("โค้ดนี้ฉันอธิบายได้", "ExplainCode")}
                   </span>
-                  <span className="hidden sm:block text-[11px] font-semibold text-[#9a93ad]">
+                  <span className="hidden xl:block text-[11px] font-semibold text-[#9a93ad]">
                     {t(
                       "Open Learning & Code Explanation",
                       "Multi-Language Code Dungeon & LMS"
@@ -284,13 +284,13 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                       navItemRefs.current[item.href] = el;
                     }}
                     aria-current={isActive ? "page" : undefined}
-                    className={`liquid-press relative z-10 rounded-full px-4 py-1.5 text-sm font-extrabold tracking-wide focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945] ${
+                    className={`liquid-press relative z-10 whitespace-nowrap shrink-0 rounded-full px-3.5 lg:px-4 py-1.5 text-xs lg:text-sm font-extrabold tracking-wide focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945] ${
                       isActive
                         ? "liquid-active-nav-item text-[#ffe27a]"
                         : "text-[#c4bdd6] hover:text-[#f4efe6] hover:bg-[#252238]"
                     }`}
                   >
-                    <span className="relative z-10 flex items-center justify-center">
+                    <span className="relative z-10 flex items-center justify-center whitespace-nowrap">
                       <span>{item.label}</span>
                     </span>
                   </Link>
@@ -299,22 +299,22 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
             </nav>
 
             {/* Right: Auth Controls & Language Toggle */}
-            <div className="flex flex-1 items-center justify-end gap-2">
+            <div className="flex items-center justify-end gap-2 shrink-0">
               <UiLanguageToggle variant="dungeon" />
 
               {mounted && session ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   {/* Role Quick Link on Desktop */}
                   {session.role === "student" && (
                     <Link
                       href="/my-learning"
-                      className={`hidden lg:inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945] ${
+                      className={`hidden lg:inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 rounded-full px-3.5 py-1.5 text-xs font-extrabold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945] ${
                         pathname.startsWith("/my-learning")
                           ? "liquid-glass-primary-btn"
                           : "liquid-glass-btn text-[#f4efe6]"
                       }`}
                     >
-                      <Icon name="award" className="h-3.5 w-3.5" />
+                      <Icon name="award" className="h-3.5 w-3.5 shrink-0" />
                       <span>{t("การเรียนของฉัน", "My Learning")}</span>
                     </Link>
                   )}
@@ -322,34 +322,34 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                   {(session.role === "teacher" || session.role === "admin") && (
                     <Link
                       href="/teacher"
-                      className={`hidden lg:inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945] ${
+                      className={`hidden lg:inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 rounded-full px-3.5 py-1.5 text-xs font-extrabold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945] ${
                         pathname.startsWith("/teacher")
                           ? "liquid-glass-primary-btn"
                           : "liquid-glass-btn text-[#f4efe6]"
                       }`}
                     >
-                      <Icon name="users" className="h-3.5 w-3.5" />
+                      <Icon name="users" className="h-3.5 w-3.5 shrink-0" />
                       <span>{t("แดชบอร์ดครู", "Teacher Dashboard")}</span>
                     </Link>
                   )}
 
                   {/* User Profile Pill & Glass Dropdown Menu */}
-                  <div ref={userMenuRef} className="relative">
+                  <div ref={userMenuRef} className="relative shrink-0">
                     <button
                       type="button"
                       onClick={() => setIsUserMenuOpen((prev) => !prev)}
                       aria-expanded={isUserMenuOpen}
                       aria-haspopup="menu"
                       aria-label={t("เมนูบัญชีผู้ใช้", "User account menu")}
-                      className="liquid-glass-btn flex items-center gap-2.5 rounded-full py-1 pl-1.5 pr-3 text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945]"
+                      className="liquid-glass-btn flex items-center gap-2 whitespace-nowrap shrink-0 rounded-full py-1 pl-1.5 pr-2.5 text-left cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945]"
                     >
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[#5a2d91] to-[#9b5de5] border border-[#f6c945]/50 text-xs font-extrabold text-[#ffe27a] shadow-2xs">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#5a2d91] to-[#9b5de5] border border-[#f6c945]/50 text-xs font-extrabold text-[#ffe27a] shadow-2xs">
                         {(session.displayName || session.username || "U")
                           .charAt(0)
                           .toUpperCase()}
                       </div>
                       <div className="hidden sm:block leading-tight">
-                        <p className="max-w-[120px] truncate text-xs font-extrabold text-[#f4efe6]">
+                        <p className="max-w-[110px] truncate text-xs font-extrabold text-[#f4efe6]">
                           {session.displayName || session.username}
                         </p>
                         <p className="text-[10px] font-semibold text-[#9a93ad]">
@@ -358,7 +358,7 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                       </div>
                       <Icon
                         name="chevron-down"
-                        className={`h-3.5 w-3.5 text-[#9a93ad] transition-transform duration-200 ${
+                        className={`h-3.5 w-3.5 shrink-0 text-[#9a93ad] transition-transform duration-200 ${
                           isUserMenuOpen ? "rotate-180" : ""
                         }`}
                       />
@@ -369,15 +369,22 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                       <div
                         role="menu"
                         aria-label={t("ตัวเลือกบัญชีผู้ใช้", "Account options")}
-                        className="liquid-glass liquid-glass-scrolled absolute right-0 mt-2.5 w-60 rounded-2xl p-2 z-50 origin-top-right animate-in fade-in zoom-in-95 duration-150"
+                        className="liquid-glass liquid-glass-scrolled absolute right-0 top-full mt-2.5 w-60 max-w-[calc(100vw-1.5rem)] rounded-2xl p-2 z-[70] origin-top-right animate-in fade-in zoom-in-95 duration-150"
                       >
-                        <div className="border-b border-[#2f2d45] px-3 py-2.5 mb-1">
-                          <p className="truncate text-xs font-extrabold text-[#f4efe6]">
-                            {session.displayName || session.username}
-                          </p>
-                          <p className="text-[11px] font-semibold text-[#ffe27a]">
-                            {t("บทบาท:", "Role:")} {getRoleLabel(session)}
-                          </p>
+                        <div className="flex items-center gap-2.5 border-b border-[#2f2d45] px-3 py-2.5 mb-1">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#5a2d91] to-[#9b5de5] border border-[#f6c945]/60 text-xs font-extrabold text-[#ffe27a]">
+                            {(session.displayName || session.username || "U")
+                              .charAt(0)
+                              .toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-extrabold text-[#f4efe6]">
+                              {session.displayName || session.username}
+                            </p>
+                            <p className="truncate text-[11px] font-semibold text-[#ffe27a]">
+                              {t("บทบาท:", "Role:")} {getRoleLabel(session)}
+                            </p>
+                          </div>
                         </div>
 
                         {session.role === "student" && (
@@ -388,9 +395,11 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                           >
                             <Icon
                               name="award"
-                              className="h-4 w-4 text-[#f6c945]"
+                              className="h-4 w-4 shrink-0 text-[#f6c945]"
                             />
-                            <span>{t("การเรียนของฉัน", "My Learning")}</span>
+                            <span className="truncate">
+                              {t("การเรียนของฉัน", "My Learning")}
+                            </span>
                           </Link>
                         )}
 
@@ -403,9 +412,11 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                           >
                             <Icon
                               name="users"
-                              className="h-4 w-4 text-[#f6c945]"
+                              className="h-4 w-4 shrink-0 text-[#f6c945]"
                             />
-                            <span>{t("แดชบอร์ดครู", "Teacher Dashboard")}</span>
+                            <span className="truncate">
+                              {t("แดชบอร์ดครู", "Teacher Dashboard")}
+                            </span>
                           </Link>
                         )}
 
@@ -416,9 +427,11 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                         >
                           <Icon
                             name="clock"
-                            className="h-4 w-4 text-[#f6c945]"
+                            className="h-4 w-4 shrink-0 text-[#f6c945]"
                           />
-                          <span>{t("ประวัติของฉัน", "My History")}</span>
+                          <span className="truncate">
+                            {t("ประวัติของฉัน", "My History")}
+                          </span>
                         </Link>
 
                         <div className="my-1 border-t border-[#2f2d45]" />
@@ -429,8 +442,10 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                           onClick={handleLogout}
                           className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[#ff6b81] hover:bg-[#2d141c] transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[#ff6b81]"
                         >
-                          <Icon name="logout" className="h-4 w-4" />
-                          <span>{t("ออกจากระบบ", "Logout")}</span>
+                          <Icon name="logout" className="h-4 w-4 shrink-0" />
+                          <span className="truncate">
+                            {t("ออกจากระบบ", "Logout")}
+                          </span>
                         </button>
                       </div>
                     )}
@@ -438,18 +453,18 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                 </div>
               ) : (
                 /* Unauthenticated: Secondary Dungeon Button + Primary Dungeon Button (Desktop only; mobile uses bottom nav) */
-                <div className="hidden md:flex items-center gap-2">
+                <div className="hidden md:flex items-center gap-2 shrink-0">
                   <Link
                     href="/login"
-                    className="liquid-glass-btn liquid-press inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-extrabold text-[#f4efe6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945]"
+                    className="liquid-glass-btn liquid-press inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 rounded-full px-4 py-2 text-xs font-extrabold text-[#f4efe6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945]"
                   >
                     <span>{t("เข้าสู่ระบบ", "Login")}</span>
                   </Link>
                   <Link
                     href="/login?mode=register"
-                    className="liquid-glass-primary-btn liquid-press inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs sm:text-sm font-extrabold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945]"
+                    className="liquid-glass-primary-btn liquid-press inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 rounded-full px-4 py-2 text-xs sm:text-sm font-extrabold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945]"
                   >
-                    <Icon name="user" className="h-3.5 w-3.5" />
+                    <Icon name="user" className="h-3.5 w-3.5 shrink-0" />
                     <span>{t("สมัครสมาชิก", "Sign Up")}</span>
                   </Link>
                 </div>

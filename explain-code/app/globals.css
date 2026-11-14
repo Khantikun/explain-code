@@ -147,8 +147,11 @@ pre,
    Liquid Glass Design System (Unified Dark Midnight-Indigo Dungeon Glass)
    ========================================================================== */
 
-.liquid-glass {
+.liquid-glass:not(.absolute):not(.fixed):not(.sticky) {
   position: relative;
+}
+
+.liquid-glass {
   background: linear-gradient(
     135deg,
     rgba(20, 18, 32, 0.9) 0%,
