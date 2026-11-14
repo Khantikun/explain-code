@@ -33,6 +33,7 @@ import { PixelSpriteView } from "./PixelSpriteView";
 import { useUiLanguage } from "../LanguageProvider";
 import { getClientSession } from "../SiteHeader";
 import { Icon } from "../Icons";
+import type { DungeonArenaSnapshot } from "../../lib/dungeon-save";
 
 const VALID_CELL_IDS = new Set<string>([
   "T1", "E1", "F1",
@@ -77,6 +78,8 @@ export interface TopicDungeonArenaProps {
   onChangeHero?: () => void;
   customQuestions?: DungeonQuestion[];
   floorBadgeLabel?: string;
+  initialSnapshot?: DungeonArenaSnapshot | null;
+  onSnapshotChange?: (snapshot: DungeonArenaSnapshot) => void;
 }
 
 export function TopicDungeonArena({
@@ -92,6 +95,8 @@ export function TopicDungeonArena({
   avatarKey: propsAvatarKey,
   customQuestions,
   floorBadgeLabel,
+  initialSnapshot = null,
+  onSnapshotChange,
 }: TopicDungeonArenaProps) {
   const { t } = useUiLanguage();
   const hasSession = Boolean(getClientSession());
@@ -170,33 +175,57 @@ export function TopicDungeonArena({
     }
   };
 
-  // Room & Encounter generation
+  // Room & Encounter generation (restore from initialSnapshot if matching this topic & language)
+  const matchedSnapshot = useMemo(
+    () =>
+      initialSnapshot &&
+      initialSnapshot.topicId === activeTopic.id &&
+      initialSnapshot.language === activeLanguage
+        ? initialSnapshot
+        : null,
+    [initialSnapshot, activeTopic.id, activeLanguage]
+  );
+
   const roomSeed = useMemo(
     () => hashString(`topic-arena-${activeTopic.id}-${activeLanguage}`),
     [activeTopic.id, activeLanguage]
   );
 
   const [room, setRoom] = useState<DungeonRoom>(() =>
-    generateDungeonRoom(
-      roomSeed,
-      resolvedFloorIndex,
-      resolvedTotalFloors,
-      activeTopic.isBoss ? "boss" : "monster"
-    )
+    matchedSnapshot?.room
+      ? matchedSnapshot.room
+      : generateDungeonRoom(
+          roomSeed,
+          resolvedFloorIndex,
+          resolvedTotalFloors,
+          activeTopic.isBoss ? "boss" : "monster"
+        )
   );
 
   const maxHearts = avatar.stats.maxHp;
-  const [hearts, setHearts] = useState<number>(maxHearts);
-  const [coins, setCoins] = useState<number>(0);
-  const [xp, setXp] = useState<number>(0);
+  const [hearts, setHearts] = useState<number>(
+    matchedSnapshot ? matchedSnapshot.hearts : maxHearts
+  );
+  const [coins, setCoins] = useState<number>(
+    matchedSnapshot ? matchedSnapshot.coins : 0
+  );
+  const [xp, setXp] = useState<number>(matchedSnapshot ? matchedSnapshot.xp : 0);
   const [screenShake, setScreenShake] = useState<number>(0);
   const [isInBattle, setIsInBattle] = useState<boolean>(false);
   const [battleResetNonce, setBattleResetNonce] = useState<number>(0);
   const [isChestOpen, setIsChestOpen] = useState<boolean>(false);
-  const [chestBonusXp, setChestBonusXp] = useState<number>(0);
-  const [chestBonusCoins, setChestBonusCoins] = useState<number>(0);
-  const [floorShieldBonus, setFloorShieldBonus] = useState<number>(0);
-  const [floorRewardMultiplier, setFloorRewardMultiplier] = useState<number>(1);
+  const [chestBonusXp, setChestBonusXp] = useState<number>(
+    matchedSnapshot ? matchedSnapshot.chestBonusXp : 0
+  );
+  const [chestBonusCoins, setChestBonusCoins] = useState<number>(
+    matchedSnapshot ? matchedSnapshot.chestBonusCoins : 0
+  );
+  const [floorShieldBonus, setFloorShieldBonus] = useState<number>(
+    matchedSnapshot ? matchedSnapshot.floorShieldBonus : 0
+  );
+  const [floorRewardMultiplier, setFloorRewardMultiplier] = useState<number>(
+    matchedSnapshot ? matchedSnapshot.floorRewardMultiplier : 1
+  );
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [battleSummary, setBattleSummary] = useState<{
     totalXp: number;
@@ -206,10 +235,31 @@ export function TopicDungeonArena({
     noSkillPurist?: boolean;
   } | null>(null);
 
-  const hasSubmittedCompletionRef = useRef<boolean>(false);
+  const [battleProgress, setBattleProgress] = useState<{
+    phaseIndex: number;
+    phaseResults: BattlePhaseResult[];
+    focus?: number;
+    shieldCharges?: number;
+    accumulatedXp: number;
+    accumulatedCoins: number;
+  }>(() => ({
+    phaseIndex: matchedSnapshot?.battlePhaseIndex ?? 0,
+    phaseResults: matchedSnapshot?.battlePhaseResults ?? [],
+    focus: matchedSnapshot?.battleFocus,
+    shieldCharges: matchedSnapshot?.battleShieldCharges,
+    accumulatedXp: matchedSnapshot?.battleAccumulatedXp ?? 0,
+    accumulatedCoins: matchedSnapshot?.battleAccumulatedCoins ?? 0,
+  }));
 
-  // Reset room and battle state whenever topic, language, or hero changes
+  const hasSubmittedCompletionRef = useRef<boolean>(false);
+  const skippedInitialResetRef = useRef<boolean>(Boolean(matchedSnapshot));
+
+  // Reset room and battle state whenever topic, language, or hero changes (unless restoring initialSnapshot)
   useEffect(() => {
+    if (skippedInitialResetRef.current) {
+      skippedInitialResetRef.current = false;
+      return;
+    }
     hasSubmittedCompletionRef.current = false;
     setHearts(avatar.stats.maxHp);
     setCoins(0);
@@ -223,6 +273,12 @@ export function TopicDungeonArena({
     setFloorRewardMultiplier(1);
     setIsGameOver(false);
     setBattleSummary(null);
+    setBattleProgress({
+      phaseIndex: 0,
+      phaseResults: [],
+      accumulatedXp: 0,
+      accumulatedCoins: 0,
+    });
     setScreenShake(0);
     setScrollTab("code");
     setTraceIdx(0);
@@ -244,6 +300,42 @@ export function TopicDungeonArena({
     activeTopic.isBoss,
     activeTopic.code,
     avatar.stats.maxHp,
+  ]);
+
+  useEffect(() => {
+    onSnapshotChange?.({
+      topicId: activeTopic.id,
+      language: activeLanguage,
+      room,
+      hearts,
+      coins,
+      xp,
+      chestBonusXp,
+      chestBonusCoins,
+      floorShieldBonus,
+      floorRewardMultiplier,
+      modifyBonusClaimed,
+      battlePhaseIndex: battleProgress.phaseIndex,
+      battlePhaseResults: battleProgress.phaseResults,
+      battleFocus: battleProgress.focus,
+      battleShieldCharges: battleProgress.shieldCharges,
+      battleAccumulatedXp: battleProgress.accumulatedXp,
+      battleAccumulatedCoins: battleProgress.accumulatedCoins,
+    });
+  }, [
+    activeTopic.id,
+    activeLanguage,
+    room,
+    hearts,
+    coins,
+    xp,
+    chestBonusXp,
+    chestBonusCoins,
+    floorShieldBonus,
+    floorRewardMultiplier,
+    modifyBonusClaimed,
+    battleProgress,
+    onSnapshotChange,
   ]);
 
   const modifyTargetOutput = useMemo(() => {
@@ -409,6 +501,12 @@ export function TopicDungeonArena({
     setFloorShieldBonus(0);
     setFloorRewardMultiplier(1);
     setBattleSummary(null);
+    setBattleProgress({
+      phaseIndex: 0,
+      phaseResults: [],
+      accumulatedXp: 0,
+      accumulatedCoins: 0,
+    });
     setModifyBonusClaimed(false);
     setModifyRunResult(null);
     setRoom(
@@ -952,11 +1050,17 @@ export function TopicDungeonArena({
         playerHearts={hearts}
         maxPlayerHearts={maxHearts}
         avatarKey={avatarKey}
-        initialFocus={initialFocusDisplay}
+        initialFocus={battleProgress.focus ?? initialFocusDisplay}
         maxFocus={maxFocusDisplay}
         extraShield={floorShieldBonus}
         rewardMultiplier={floorRewardMultiplier}
         localValidation={true}
+        initialPhaseIndex={battleProgress.phaseIndex}
+        initialPhaseResults={battleProgress.phaseResults}
+        initialAccumulatedXp={battleProgress.accumulatedXp}
+        initialAccumulatedCoins={battleProgress.accumulatedCoins}
+        initialShieldCharges={battleProgress.shieldCharges}
+        onProgressChange={setBattleProgress}
         onCorrectAnswer={handleCorrectAnswer}
         onWrongAnswer={handleWrongAnswer}
         onHealPlayer={() => setHearts((h) => Math.min(maxHearts, h + 1))}

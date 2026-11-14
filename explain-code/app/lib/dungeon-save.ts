@@ -1,7 +1,29 @@
 import { StudentRecord } from "./curriculum";
 import { LearningLanguage } from "./language-tracks";
+import type { DungeonRoom } from "./dungeon/mapgen";
+import type { BattlePhaseResult } from "../components/dungeon/BattleOverlay";
 
 export const STORAGE_DUNGEON_SAVES_KEY = "explain_code_dungeon_saves_v1";
+
+export interface DungeonArenaSnapshot {
+  topicId: number;
+  language: LearningLanguage;
+  room: DungeonRoom;
+  hearts: number;
+  coins: number;
+  xp: number;
+  chestBonusXp: number;
+  chestBonusCoins: number;
+  floorShieldBonus: number;
+  floorRewardMultiplier: number;
+  modifyBonusClaimed: boolean;
+  battlePhaseIndex: number;
+  battlePhaseResults: BattlePhaseResult[];
+  battleFocus?: number;
+  battleShieldCharges?: number;
+  battleAccumulatedXp: number;
+  battleAccumulatedCoins: number;
+}
 
 export interface DungeonSaveRecord {
   userId: string;
@@ -14,6 +36,7 @@ export interface DungeonSaveRecord {
   xp: number;
   savedAt: string;
   history: StudentRecord["history"];
+  arenaSnapshot?: DungeonArenaSnapshot | null;
 }
 
 function readAllDungeonSaves(): Record<string, DungeonSaveRecord[]> {
@@ -33,6 +56,14 @@ export function loadUserDungeonSaves(userId: string): DungeonSaveRecord[] {
   const all = readAllDungeonSaves();
   const list = all[userId];
   return Array.isArray(list) ? list : [];
+}
+
+export function loadUserDungeonSaveForLanguage(
+  userId: string,
+  language: LearningLanguage
+): DungeonSaveRecord | null {
+  const list = loadUserDungeonSaves(userId);
+  return list.find((item) => item.language === language) || null;
 }
 
 export function saveUserDungeonProgress(

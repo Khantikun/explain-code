@@ -46,6 +46,19 @@ interface BattleOverlayProps {
     noHitClear?: boolean;
     noSkillPurist?: boolean;
   }) => void;
+  initialPhaseIndex?: number;
+  initialPhaseResults?: BattlePhaseResult[];
+  initialAccumulatedXp?: number;
+  initialAccumulatedCoins?: number;
+  initialShieldCharges?: number;
+  onProgressChange?: (progress: {
+    phaseIndex: number;
+    phaseResults: BattlePhaseResult[];
+    focus: number;
+    shieldCharges: number;
+    accumulatedXp: number;
+    accumulatedCoins: number;
+  }) => void;
   onClose: () => void;
 }
 
@@ -143,6 +156,12 @@ export function BattleOverlay({
   onWrongAnswer,
   onHealPlayer,
   onBattleComplete,
+  initialPhaseIndex = 0,
+  initialPhaseResults = [],
+  initialAccumulatedXp = 0,
+  initialAccumulatedCoins = 0,
+  initialShieldCharges,
+  onProgressChange,
   onClose,
 }: BattleOverlayProps) {
   const { uiLang, t } = useUiLanguage();
@@ -162,7 +181,9 @@ export function BattleOverlay({
   const isMultiPhase = phaseQuestions.length > 1;
   const totalPhases = Math.max(1, phaseQuestions.length);
 
-  const [phaseIndex, setPhaseIndex] = useState<number>(0);
+  const [phaseIndex, setPhaseIndex] = useState<number>(() =>
+    Math.min(Math.max(0, initialPhaseIndex), Math.max(0, totalPhases - 1))
+  );
   const activeQuestion = phaseQuestions[phaseIndex] || phaseQuestions[0];
 
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
@@ -174,9 +195,15 @@ export function BattleOverlay({
 
   // Tracking multi-phase combat progress & retries
   const [phaseTries, setPhaseTries] = useState<number>(0);
-  const [phaseResults, setPhaseResults] = useState<BattlePhaseResult[]>([]);
-  const [accumulatedXp, setAccumulatedXp] = useState<number>(0);
-  const [accumulatedCoins, setAccumulatedCoins] = useState<number>(0);
+  const [phaseResults, setPhaseResults] = useState<BattlePhaseResult[]>(
+    initialPhaseResults
+  );
+  const [accumulatedXp, setAccumulatedXp] = useState<number>(
+    initialAccumulatedXp
+  );
+  const [accumulatedCoins, setAccumulatedCoins] = useState<number>(
+    initialAccumulatedCoins
+  );
   const [hasReportedCompletion, setHasReportedCompletion] = useState<boolean>(false);
 
   // Side-quest tracking across the entire battle (never reset on phase change)
@@ -189,8 +216,27 @@ export function BattleOverlay({
     Math.min(computedMaxFocus, initialFocus ?? heroStats.initialMp)
   );
   const [shieldCharges, setShieldCharges] = useState<number>(
-    heroStats.startingShield + extraShield
+    initialShieldCharges ?? heroStats.startingShield + extraShield
   );
+
+  useEffect(() => {
+    onProgressChange?.({
+      phaseIndex,
+      phaseResults,
+      focus,
+      shieldCharges,
+      accumulatedXp,
+      accumulatedCoins,
+    });
+  }, [
+    phaseIndex,
+    phaseResults,
+    focus,
+    shieldCharges,
+    accumulatedXp,
+    accumulatedCoins,
+    onProgressChange,
+  ]);
   const [usedSkillIds, setUsedSkillIds] = useState<string[]>([]);
   const [skillCooldowns, setSkillCooldowns] = useState<Record<string, number>>({});
   const [eliminatedChoices, setEliminatedChoices] = useState<number[]>([]);

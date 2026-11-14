@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, Suspense } from "react";
+import React, { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -54,7 +54,11 @@ import {
   setActiveCustomDungeon,
   deleteCustomDungeon,
 } from "../lib/custom-dungeon";
-import { saveUserDungeonProgress } from "../lib/dungeon-save";
+import {
+  DungeonArenaSnapshot,
+  loadUserDungeonSaveForLanguage,
+  saveUserDungeonProgress,
+} from "../lib/dungeon-save";
 
 type LearningTab = "quest" | "hero-select" | "practice" | "custom" | "custom-dungeon" | "learn";
 
@@ -259,6 +263,11 @@ function CoursesContent() {
   const [playAttemptNonce, setPlayAttemptNonce] = useState<number>(0);
   const [guestNotice, setGuestNotice] = useState<string | null>(null);
   const [saveGameNotice, setSaveGameNotice] = useState<string | null>(null);
+  const [savedArenaSnapshot, setSavedArenaSnapshot] =
+    useState<DungeonArenaSnapshot | null>(null);
+  const [snapshotHydrationNonce, setSnapshotHydrationNonce] =
+    useState<number>(0);
+  const latestArenaSnapshotRef = useRef<DungeonArenaSnapshot | null>(null);
 
   // Code runner sandbox state
   const [playgroundCode, setPlaygroundCode] = useState<string>(
@@ -611,6 +620,24 @@ function CoursesContent() {
     LANGUAGE_TRACKS[0];
   const currentLanguageTopics = getTopicsByLanguage(currentLanguage);
 
+  useEffect(() => {
+    if (!session?.userId) {
+      setSavedArenaSnapshot(null);
+      latestArenaSnapshotRef.current = null;
+      return;
+    }
+    const saved = loadUserDungeonSaveForLanguage(
+      session.userId,
+      currentLanguage
+    );
+    const snap = saved?.arenaSnapshot ?? null;
+    setSavedArenaSnapshot(snap);
+    latestArenaSnapshotRef.current = snap;
+    if (snap) {
+      setSnapshotHydrationNonce((n) => n + 1);
+    }
+  }, [session?.userId, currentLanguage]);
+
   const activeTopicIndex = Math.max(
     0,
     currentLanguageTopics.findIndex((tp) => tp.id === selectedTopicId)
@@ -654,7 +681,8 @@ function CoursesContent() {
 
   const persistDungeonSave = (
     studentSnapshot: StudentRecord,
-    targetTopicId: number
+    targetTopicId: number,
+    arenaSnapshot: DungeonArenaSnapshot | null = null
   ) => {
     if (!session) return;
     const targetIdx = Math.max(
@@ -677,6 +705,7 @@ function CoursesContent() {
       xp: studentSnapshot.xp,
       savedAt: new Date().toISOString(),
       history: studentSnapshot.history.slice(0, 15),
+      arenaSnapshot,
     });
   };
 
@@ -718,11 +747,13 @@ function CoursesContent() {
       : [...students, studentToSave];
     saveStudentsToStorage(updatedStudents);
 
-    persistDungeonSave(studentToSave, activeTopic.id);
+    const snapshotToSave = latestArenaSnapshotRef.current;
+    persistDungeonSave(studentToSave, activeTopic.id, snapshotToSave);
+    setSavedArenaSnapshot(snapshotToSave);
     setSaveGameNotice(
       t(
-        "✓ เซฟเกมและประวัติการเล่นล่าสุดเรียบร้อยแล้ว! ดูหรือกลับมาเล่นต่อได้ที่ 'การเรียนของฉัน'",
-        "✓ Game & latest history saved! Resume anytime in 'My Learning'."
+        "✓ เซฟเกม ด่าน และตำแหน่งล่าสุดเรียบร้อยแล้ว! กลับมาเล่นต่อได้ที่ 'การเรียนของฉัน'",
+        "✓ Game, floor & position saved! Resume anytime in 'My Learning'."
       )
     );
     window.setTimeout(() => {
@@ -1861,7 +1892,7 @@ function CoursesContent() {
               )}
 
               <TopicDungeonArena
-                key={`${currentLanguage}-${activeTopic.id}-${playAttemptNonce}`}
+                key={`${currentLanguage}-${activeTopic.id}-${playAttemptNonce}-${snapshotHydrationNonce}`}
                 topic={activeTopic}
                 language={currentLanguage}
                 topicIndex={activeTopicIndex}
@@ -1871,6 +1902,10 @@ function CoursesContent() {
                 avatarKey={selectedAvatarKey}
                 onChangeHero={() => setActiveTab("hero-select")}
                 embedded
+                initialSnapshot={savedArenaSnapshot}
+                onSnapshotChange={(snap) => {
+                  latestArenaSnapshotRef.current = snap;
+                }}
                 onBackToMap={() => setActiveTab("quest")}
                 onCompleteTopic={handleCompleteTopic}
               />
