@@ -12,7 +12,7 @@ import {
   getTopicsByLanguage,
   runCodeByLanguage,
 } from "../../lib/language-tracks";
-import { getQuestionsForTopic, getChestQuestion } from "../../lib/dungeon/questions";
+import { getQuestionsForTopic, getChestQuestion, DungeonQuestion } from "../../lib/dungeon/questions";
 import {
   AVATARS,
   AvatarKey,
@@ -75,6 +75,8 @@ export interface TopicDungeonArenaProps {
   embedded?: boolean;
   avatarKey?: AvatarKey;
   onChangeHero?: () => void;
+  customQuestions?: DungeonQuestion[];
+  floorBadgeLabel?: string;
 }
 
 export function TopicDungeonArena({
@@ -88,6 +90,8 @@ export function TopicDungeonArena({
   studentId,
   embedded = false,
   avatarKey: propsAvatarKey,
+  customQuestions,
+  floorBadgeLabel,
 }: TopicDungeonArenaProps) {
   const { t } = useUiLanguage();
   const hasSession = Boolean(getClientSession());
@@ -271,8 +275,11 @@ export function TopicDungeonArena({
   }, [activeTopic.isBoss, room.entity?.monsterType]);
 
   const phaseQuestions = useMemo(
-    () => getQuestionsForTopic(activeTopic, activeLanguage),
-    [activeTopic, activeLanguage]
+    () =>
+      customQuestions && customQuestions.length > 0
+        ? customQuestions
+        : getQuestionsForTopic(activeTopic, activeLanguage),
+    [customQuestions, activeTopic, activeLanguage]
   );
 
   const chestQuestion = useMemo(
@@ -443,17 +450,27 @@ export function TopicDungeonArena({
           )
         : 90;
 
-    const answers = activeTopic.questions.map((q) => {
-      const matched = results.find((r) => r.questionId.endsWith(q.id));
-      return {
-        questionId: q.id,
-        cellId: q.cellId,
-        chosenOptionId: q.correctOptionId,
-        isCorrect: matched ? matched.isCorrectFirstTry : true,
-        tries: matched ? matched.tries : 1,
-        xpEarned: matched ? matched.xpEarned : 20,
-      };
-    });
+    const answers =
+      activeTopic.questions.length > 0
+        ? activeTopic.questions.map((q) => {
+            const matched = results.find((r) => r.questionId.endsWith(q.id));
+            return {
+              questionId: q.id,
+              cellId: q.cellId,
+              chosenOptionId: q.correctOptionId,
+              isCorrect: matched ? matched.isCorrectFirstTry : true,
+              tries: matched ? matched.tries : 1,
+              xpEarned: matched ? matched.xpEarned : 20,
+            };
+          })
+        : results.map((r) => ({
+            questionId: r.questionId,
+            cellId: r.blockModelCell || "E4",
+            chosenOptionId: null,
+            isCorrect: r.isCorrectFirstTry,
+            tries: r.tries,
+            xpEarned: r.xpEarned,
+          }));
 
     const sideQuestXp =
       (battleSummary?.noHitClear ? 15 : 0) +
@@ -510,7 +527,7 @@ export function TopicDungeonArena({
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="pixel-font text-[10px] px-2 py-0.5 rounded bg-[#5a2d91] text-[#ffe27a] font-black">
-                  FLOOR {resolvedFloorIndex + 1}/{resolvedTotalFloors}
+                  {floorBadgeLabel || `FLOOR ${resolvedFloorIndex + 1}/${resolvedTotalFloors}`}
                 </span>
                 {activeTopic.isBoss && (
                   <span className="pixel-font text-[10px] px-2 py-0.5 rounded bg-[#c0283a] text-white font-black">

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   SiteHeader,
   getClientSession,
@@ -11,6 +12,7 @@ import { useUiLanguage } from "../components/LanguageProvider";
 import { Icon } from "../components/Icons";
 import { ExplainCodeResult } from "../lib/explain-code";
 import { appendLocalExplanationHistory } from "../lib/lms-data";
+import { saveCustomDungeon } from "../lib/custom-dungeon";
 
 const LANGUAGE_OPTIONS = [
   { value: "javascript", label: "JavaScript" },
@@ -111,6 +113,7 @@ ORDER BY avg_score DESC;`,
 };
 
 export default function ExplainCodePage() {
+  const router = useRouter();
   const { t, uiLang } = useUiLanguage();
   const [session, setSession] = useState<ClientAuthSession | null>(null);
   const [language, setLanguage] = useState<string>("javascript");
@@ -125,6 +128,8 @@ export default function ExplainCodePage() {
   } | null>(null);
   const [result, setResult] = useState<ExplainCodeResult | null>(null);
   const [savedNotice, setSavedNotice] = useState<boolean>(false);
+  const [isCreatingDungeon, setIsCreatingDungeon] = useState<boolean>(false);
+  const [dungeonError, setDungeonError] = useState<string | null>(null);
 
   useEffect(() => {
     setSession(getClientSession());
@@ -143,6 +148,7 @@ export default function ExplainCodePage() {
 
   const handleExplain = async () => {
     setError(null);
+    setDungeonError(null);
     setQuotaExceeded(false);
     setSavedNotice(false);
 
@@ -196,6 +202,49 @@ export default function ExplainCodePage() {
       );
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCreateDungeon = async () => {
+    if (!code.trim() || !result) return;
+    setDungeonError(null);
+    setIsCreatingDungeon(true);
+    try {
+      const res = await fetch("/api/explain/to-dungeon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          language,
+          uiLang,
+          explanation: result,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.dungeon) {
+        setDungeonError(
+          data.error ||
+            t(
+              "ไม่สามารถสร้างดันเจี้ยนจากโค้ดนี้ได้",
+              "Failed to generate a dungeon from this code."
+            )
+        );
+        return;
+      }
+
+      saveCustomDungeon(data.dungeon);
+      router.push(
+        `/courses?lang=${encodeURIComponent(data.dungeon.language)}&customDungeon=${encodeURIComponent(data.dungeon.id)}`
+      );
+    } catch {
+      setDungeonError(
+        t(
+          "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์เพื่อสร้างดันเจี้ยนได้",
+          "Unable to connect to the server to create the dungeon."
+        )
+      );
+    } finally {
+      setIsCreatingDungeon(false);
     }
   };
 
@@ -409,6 +458,42 @@ export default function ExplainCodePage() {
                       </span>
                     ))}
                   </div>
+
+                  {/* ปุ่มเปลี่ยนโค้ดเป็นดันเจี้ยน */}
+                  <div className="mt-5 pt-4 border-t border-[#2f2d45] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="text-xs text-[#c4bdd6]">
+                      <span className="font-bold text-[#ffe27a]">
+                        {t(
+                          "อยากทดสอบความเข้าใจโค้ดนี้แบบเกม RPG?",
+                          "Want to test your understanding in an RPG Dungeon?"
+                        )}
+                      </span>
+                      <p className="text-[11px] text-[#9a93ad] mt-0.5">
+                        {t(
+                          "ระบบจะสร้างด่านถาม-ตอบ 3 เฟสจากโค้ดชุดนี้ให้คุณลุยทันที",
+                          "Generates a 3-phase battle challenge directly from this code."
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCreateDungeon}
+                      disabled={isCreatingDungeon}
+                      className="retro-button inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#9b5de5] hover:bg-[#b07af0] px-4 py-2.5 text-xs font-extrabold text-white shadow-md disabled:opacity-60 cursor-pointer transition-colors whitespace-nowrap"
+                    >
+                      <Icon name="gamepad" className="h-4 w-4" />
+                      <span>
+                        {isCreatingDungeon
+                          ? t("กำลังสร้างดันเจี้ยน...", "Generating Dungeon...")
+                          : t("สร้างดันเจี้ยนจากโค้ดนี้ →", "Play as Dungeon →")}
+                      </span>
+                    </button>
+                  </div>
+                  {dungeonError && (
+                    <p className="mt-2 text-xs font-medium text-[#fca5a5]">
+                      {dungeonError}
+                    </p>
+                  )}
                 </div>
 
                 {/* 2. ลำดับขั้นตอนการทำงาน */}

@@ -46,8 +46,16 @@ import {
   saveLocalEnrollments,
   saveLocalLessons,
 } from "../lib/lms-data";
+import {
+  CustomDungeonPayload,
+  loadCustomDungeons,
+  getCustomDungeonById,
+  getActiveCustomDungeon,
+  setActiveCustomDungeon,
+  deleteCustomDungeon,
+} from "../lib/custom-dungeon";
 
-type LearningTab = "quest" | "hero-select" | "practice" | "custom" | "learn";
+type LearningTab = "quest" | "hero-select" | "practice" | "custom" | "custom-dungeon" | "learn";
 
 const GUEST_CELL_SCORES: Record<BlockCellId, number> = {
   T1: 0,
@@ -226,11 +234,15 @@ function CoursesContent() {
   const { t } = useUiLanguage();
   const rawLangParam = searchParams.get("lang");
   const langParam = isValidLearningLanguage(rawLangParam) ? rawLangParam : null;
+  const customDungeonParam = searchParams.get("customDungeon");
 
   const [selectedLanguage, setSelectedLanguage] =
     useState<LearningLanguage | null>(langParam);
   const [session, setSession] = useState<ClientAuthSession | null>(null);
   const [activeTab, setActiveTab] = useState<LearningTab>("quest");
+  const [customDungeons, setCustomDungeons] = useState<CustomDungeonPayload[]>([]);
+  const [activeCustomDungeon, setActiveCustomDungeonState] =
+    useState<CustomDungeonPayload | null>(null);
 
   // Dungeon Hub merged preferences: Avatar & Leaderboard
   const [selectedAvatarKey, setSelectedAvatarKey] =
@@ -262,8 +274,25 @@ function CoursesContent() {
     text: string;
   } | null>(null);
 
-  // Sync ?lang=... query param
+  // Sync ?lang=... and ?customDungeon=... query params
   useEffect(() => {
+    queueMicrotask(() => {
+      setCustomDungeons(loadCustomDungeons());
+      if (customDungeonParam) {
+        const found =
+          getCustomDungeonById(customDungeonParam) || getActiveCustomDungeon();
+        if (found) {
+          setActiveCustomDungeonState(found);
+          setSelectedLanguage(found.language);
+          setActiveTab("custom-dungeon");
+        }
+      }
+    });
+
+    if (customDungeonParam) {
+      return;
+    }
+
     if (langParam) {
       setSelectedLanguage(langParam);
       const track = LANGUAGE_TRACKS.find((tr) => tr.id === langParam);
@@ -278,7 +307,7 @@ function CoursesContent() {
     } else {
       setSelectedLanguage(null);
     }
-  }, [langParam]);
+  }, [langParam, customDungeonParam]);
 
   const handleSelectLanguage = (lang: LearningLanguage) => {
     const track = LANGUAGE_TRACKS.find((tr) => tr.id === lang);
@@ -1177,6 +1206,77 @@ function CoursesContent() {
                 </div>
               </section>
 
+              {/* Subsection A2: Custom Code Dungeons (from /explain) */}
+              {customDungeons.length > 0 && (
+                <section className="flex flex-col gap-3 pb-6 border-b border-[#2f2d45]">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-base sm:text-lg font-extrabold text-[#e9d5ff] flex items-center gap-2">
+                      <Icon name="sparkles" className="h-4 w-4 text-[#9b5de5]" />
+                      <span>
+                        {t(
+                          "ดันเจี้ยนจากโค้ดของคุณ (Custom Dungeons)",
+                          "Your Custom Code Dungeons"
+                        )}
+                      </span>
+                    </h2>
+                    <Link
+                      href="/explain"
+                      className="text-xs font-bold text-[#f6c945] hover:underline"
+                    >
+                      {t("+ สร้างใหม่จากหน้าอธิบายโค้ด", "+ Create New from Code Explainer")}
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {customDungeons.slice(0, 6).map((cd) => (
+                      <div
+                        key={cd.id}
+                        className="flex flex-col justify-between rounded-2xl border border-[#9b5de5]/40 bg-[#1c1b2b] p-4 gap-3"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                            <span className="rounded-md border border-[#9b5de5]/40 bg-[#5a2d91]/30 px-2 py-0.5 text-[10px] font-extrabold uppercase text-[#e9d5ff]">
+                              {cd.language}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = deleteCustomDungeon(cd.id);
+                                setCustomDungeons(updated);
+                                if (activeCustomDungeon?.id === cd.id) {
+                                  setActiveCustomDungeonState(null);
+                                }
+                              }}
+                              className="text-[11px] font-semibold text-[#9a93ad] hover:text-[#ff6b81] cursor-pointer"
+                            >
+                              {t("ลบ", "Delete")}
+                            </button>
+                          </div>
+                          <h3 className="text-sm font-extrabold text-[#f4efe6] line-clamp-1">
+                            {cd.title}
+                          </h3>
+                          <p className="mt-1 text-[11px] text-[#9a93ad] line-clamp-2">
+                            {cd.subtitle}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveCustomDungeon(cd);
+                            setActiveCustomDungeonState(cd);
+                            setPlayAttemptNonce((n) => n + 1);
+                            setActiveTab("custom-dungeon");
+                          }}
+                          className="retro-button w-full rounded-xl bg-[#9b5de5] hover:bg-[#b07af0] px-3 py-2 text-xs font-extrabold text-white flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Icon name="gamepad" size={14} />
+                          <span>{t("ลุยดันเจี้ยนนี้ →", "Play Dungeon →")}</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               {/* Subsection B: Course Dungeons + Compact Join Code */}
               <section className="flex flex-col gap-4 pb-6 border-b border-[#2f2d45]">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1648,6 +1748,60 @@ function CoursesContent() {
               embedded
               onBackToMap={() => setActiveTab("quest")}
               onCompleteTopic={handleCompleteTopic}
+            />
+          )}
+
+          {/* ==================== TAB 2B: CUSTOM EXPLAINED CODE DUNGEON ==================== */}
+          {activeTab === "custom-dungeon" && activeCustomDungeon && (
+            <TopicDungeonArena
+              key={`custom-${activeCustomDungeon.id}-${playAttemptNonce}`}
+              topic={activeCustomDungeon.topic}
+              language={activeCustomDungeon.language}
+              customQuestions={activeCustomDungeon.questions}
+              floorBadgeLabel="CUSTOM DUNGEON"
+              currentStudent={currentStudent}
+              studentId={currentStudent?.id}
+              avatarKey={selectedAvatarKey}
+              onChangeHero={() => setActiveTab("hero-select")}
+              embedded
+              onBackToMap={() => setActiveTab("quest")}
+              onCompleteTopic={(result) => {
+                const currentStudentSnapshot = currentStudent;
+                const nextCells = { ...currentStudentSnapshot.cellScores };
+                Object.entries(result.updatedCellScores).forEach(([cellKey, val]) => {
+                  const k = cellKey as BlockCellId;
+                  if (typeof val === "number") {
+                    nextCells[k] = Math.max(nextCells[k] || 0, val);
+                  }
+                });
+                const updatedStudent: StudentRecord = {
+                  ...currentStudentSnapshot,
+                  xp: currentStudentSnapshot.xp + result.earnedXp,
+                  cellScores: nextCells,
+                  history: [
+                    {
+                      topicId: 0,
+                      topicTitle: `Custom: ${activeCustomDungeon.title}`,
+                      scorePercent: result.scorePercent,
+                      xpEarned: result.earnedXp,
+                      timestamp: "เมื่อสักครู่",
+                    },
+                    ...currentStudentSnapshot.history,
+                  ],
+                };
+                if (!session) {
+                  setGuestProgress(updatedStudent);
+                } else {
+                  const updatedList = students.map((stu) =>
+                    stu.id === currentStudentSnapshot.id ? updatedStudent : stu
+                  );
+                  if (!updatedList.some((stu) => stu.id === currentStudentSnapshot.id)) {
+                    updatedList.push(updatedStudent);
+                  }
+                  saveStudentsToStorage(updatedList);
+                }
+                setActiveTab("quest");
+              }}
             />
           )}
 
