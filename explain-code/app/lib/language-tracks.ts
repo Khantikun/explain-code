@@ -553,7 +553,6 @@ print(status)`,
     id: 103,
     title: "Python ด่านที่ 3 · ลูป for ... in range() และการสะสมค่า",
     shortName: "PY 3 · ลูป range()",
-    isBoss: true,
     subtitle: "ระวังจุดที่ AI มักทำให้สับสน: range(1, 5) ใน Python จะหยุดก่อนถึงเลขตัวสุดท้าย!",
     code: `total = 0
 for i in range(1, 5):
@@ -659,6 +658,215 @@ print(total)`,
       id: "badge-py-3",
       name: "ผู้พิชิตลูป range() Python",
       description: "เข้าใจขอบเขตของ range(start, stop) และการสะสมค่าในลูป Python",
+    },
+  },
+  {
+    id: 104,
+    title: "Python ด่านที่ 4 · ฟังก์ชัน def และการคืนค่า return",
+    shortName: "PY 4 · def & return",
+    subtitle: "ฝึกอ่านลำดับการเรียกฟังก์ชัน การส่งอาร์กิวเมนต์ และเงื่อนไขป้องกันค่าติดลบ",
+    code: `def calc_damage(atk, armor):
+    dmg = atk - armor
+    if dmg < 0:
+        return 0
+    return dmg
+
+print(calc_damage(45, 20))`,
+    predictPrompt:
+      "เมื่อเรียก calc_damage(45, 20) ผลลัพธ์ที่พิมพ์ออกทางหน้าจอคือค่าใด?",
+    predictOptions: ["25", "0", "65", "-25"],
+    predictExplanation:
+      "45 - 20 = 25 ซึ่งไม่น้อยกว่า 0 จึงข้าม if และคืนค่า dmg = 25",
+    steps: [
+      {
+        stepNumber: 1,
+        line: 7,
+        codeLine: "print(calc_damage(45, 20))",
+        variables: { atk: "45", armor: "20" },
+        outputSoFar: [],
+        explanation: "เรียกฟังก์ชัน calc_damage โดยส่ง atk = 45 และ armor = 20",
+      },
+      {
+        stepNumber: 2,
+        line: 2,
+        codeLine: "    dmg = atk - armor",
+        variables: { atk: "45", armor: "20", dmg: "25" },
+        outputSoFar: [],
+        explanation: "คำนวณ dmg = 45 - 20 ได้ 25",
+      },
+      {
+        stepNumber: 3,
+        line: 3,
+        codeLine: "    if dmg < 0:",
+        variables: { dmg: "25" },
+        outputSoFar: [],
+        explanation: "ตรวจสอบว่า 25 < 0 หรือไม่ (เป็นเท็จ) จึงไม่เข้า return 0",
+      },
+      {
+        stepNumber: 4,
+        line: 5,
+        codeLine: "    return dmg",
+        variables: { returnValue: "25" },
+        outputSoFar: ["25"],
+        explanation: "คืนค่า 25 กลับไปให้ print() เพื่อแสดงผล",
+      },
+    ],
+    questions: [
+      {
+        id: "py4-q1",
+        cellId: "T2",
+        targetLine: 4,
+        question: "หากฟังก์ชันทำงานถึงบรรทัด return 0 บรรทัดที่ 5 (return dmg) จะทำงานต่อหรือไม่?",
+        options: [
+          { id: "a", text: "ไม่ทำงาน เพราะคำสั่ง return จะจบการทำงานของฟังก์ชันทันที" },
+          { id: "b", text: "ทำงานต่อและคืนค่า 2 ค่าพร้อมกัน" },
+          { id: "c", text: "เกิด Error เพราะมี return สองครั้ง" },
+          { id: "d", text: "ข้ามกลับไปบรรทัดที่ 1 อัตโนมัติ" },
+        ],
+        correctOptionId: "a",
+        hint: "นึกถึงหน้าที่ของคำสั่ง return เมื่อถูกเรียกใช้ภายในฟังก์ชัน",
+        explanation:
+          "เมื่อโปรแกรมเจอคำสั่ง return ฟังก์ชันจะส่งค่ากลับและหยุดทำงานทันที (Early Return)",
+      },
+      {
+        id: "py4-q2",
+        cellId: "F4",
+        targetLine: 3,
+        question: "เงื่อนไข if dmg < 0: return 0 มีประโยชน์อย่างไรเมื่อใช้ร่วมกับโค้ดจาก AI?",
+        options: [
+          { id: "a", text: "ป้องกันดาเมจติดลบจนกลายเป็นเพิ่มพลังชีวิตให้ศัตรู" },
+          { id: "b", text: "ทำให้คำนวณเลขทศนิยมได้เร็วขึ้น" },
+          { id: "c", text: "บังคับให้ atk เป็น 0 เสมอ" },
+          { id: "d", text: "ลบตัวแปร armor ทิ้งหลังจบฟังก์ชัน" },
+        ],
+        correctOptionId: "a",
+        hint: "ลองคิดดูว่าถ้า armor มากกว่า atk แล้วนำค่าลบไปลบออกจาก HP จะเกิดอะไรขึ้น",
+        explanation:
+          "การเช็คขอบเขตล่าง (Clamp >= 0) ช่วยป้องกันบั๊กทางตรรกะที่ค่าความเสียหายติดลบ",
+      },
+    ],
+    modifyChallenge: {
+      instruction:
+        "ลองเปลี่ยนการเรียกในบรรทัดที่ 7 จาก calc_damage(45, 20) เป็น calc_damage(15, 20) เพื่อทดสอบเกราะหนากว่าพลังโจมตี",
+      suggestedCode: `def calc_damage(atk, armor):
+    dmg = atk - armor
+    if dmg < 0:
+        return 0
+    return dmg
+
+print(calc_damage(15, 20))`,
+      changeDescription: "เปลี่ยนอาร์กิวเมนต์เป็น calc_damage(15, 20)",
+      options: ["0", "-5", "5", "15"],
+      explanation: "15 - 20 = -5 ซึ่งน้อยกว่า 0 จึงเข้าเงื่อนไข return 0",
+    },
+    badgeReward: {
+      id: "badge-py-4",
+      name: "สถาปนิกฟังก์ชัน Python",
+      description: "เข้าใจการส่งอาร์กิวเมนต์และ Early Return ในฟังก์ชัน def",
+    },
+  },
+  {
+    id: 105,
+    title: "Python ด่านบอส · List, Dictionary และจับบั๊กจาก AI",
+    shortName: "PY 5 · List & Dict Boss",
+    isBoss: true,
+    subtitle: "ด่านบอส Python: แกะรอยการนับไอเทมด้วย Dictionary และการเช็ค Key ก่อนอัปเดตค่า",
+    code: `bag = {"potion": 2, "key": 1}
+items = ["potion", "potion", "gem"]
+for item in items:
+    if item in bag:
+        bag[item] = bag[item] + 1
+print(bag["potion"])`,
+    predictPrompt:
+      "เมื่อลูปทำงานครบทุกตัวใน items ค่าของ bag[\"potion\"] ที่พิมพ์ออกมาคือเท่าไร?",
+    predictOptions: ["4", "2", "3", "KeyError"],
+    predictExplanation:
+      "\"potion\" เดิมมี 2 และพบใน items อีก 2 ครั้ง จึงบวกเพิ่มเป็น 4 ส่วน \"gem\" ไม่อยู่ใน bag จึงถูกข้ามไม่เกิด KeyError",
+    steps: [
+      {
+        stepNumber: 1,
+        line: 1,
+        codeLine: `bag = {"potion": 2, "key": 1}`,
+        variables: { "bag['potion']": "2", "bag['key']": "1" },
+        outputSoFar: [],
+        explanation: "สร้าง Dictionary เก็บจำนวนไอเทมเริ่มต้นในกระเป๋า",
+      },
+      {
+        stepNumber: 2,
+        line: 3,
+        codeLine: `for item in items: # "potion", "potion"`,
+        variables: { item: "potion", "bag['potion']": "4" },
+        outputSoFar: [],
+        explanation: "พบ 'potion' 2 รอบ และ 'potion' อยู่ใน bag จึงบวกจาก 2 -> 3 -> 4",
+      },
+      {
+        stepNumber: 3,
+        line: 4,
+        codeLine: `    if item in bag: # item = "gem"`,
+        variables: { item: "gem", "in_bag": "False" },
+        outputSoFar: [],
+        explanation: "รอบสุดท้าย item = 'gem' ซึ่งไม่มีใน bag เงื่อนไขเป็นเท็จจึงข้ามไปอย่างปลอดภัย",
+      },
+      {
+        stepNumber: 4,
+        line: 6,
+        codeLine: `print(bag["potion"])`,
+        variables: { output: "4" },
+        outputSoFar: ["4"],
+        explanation: "แสดงจำนวน potion ล่าสุดคือ 4",
+      },
+    ],
+    questions: [
+      {
+        id: "py5-q1",
+        cellId: "T2",
+        targetLine: 4,
+        question: "หากลบบรรทัดที่ 4 (if item in bag:) ออก แล้วรันโค้ดเดิม จะเกิดอะไรขึ้นเมื่อ item เป็น \"gem\"?",
+        options: [
+          { id: "a", text: "เกิด KeyError เพราะไม่มีคีย์ 'gem' อยู่ใน bag" },
+          { id: "b", text: "Python จะสร้างคีย์ 'gem' เป็น 1 ให้อัตโนมัติ" },
+          { id: "c", text: "โปรแกรมข้ามไปโดยไม่แจ้งเตือน" },
+          { id: "d", text: "ค่า bag['potion'] จะกลายเป็น 0" },
+        ],
+        correctOptionId: "a",
+        hint: "การอ่านค่า bag['gem'] ก่อนที่จะมีคีย์นี้อยู่ใน Dictionary จะเกิด Exception อะไร?",
+        explanation:
+          "การเข้าถึง dict[key] ที่ยังไม่มีอยู่ใน Python จะโยน KeyError ทันที จึงควรเช็ค if key in dict หรือใช้ dict.get()",
+      },
+      {
+        id: "py5-q2",
+        cellId: "F4",
+        targetLine: 1,
+        question: "โครงสร้างข้อมูลใดเหมาะสำหรับเก็บคู่ 'ชื่อไอเทม -> จำนวน' แล้วค้นหาได้ทันทีโดยไม่ต้องวนลูป?",
+        options: [
+          { id: "a", text: "Dictionary (dict)" },
+          { id: "b", text: "Tuple ที่มีตัวเลขล้วน" },
+          { id: "c", text: "String เดี่ยวๆ" },
+          { id: "d", text: "Boolean" },
+        ],
+        correctOptionId: "a",
+        hint: "โครงสร้างข้อมูลแบบ Key-Value ในบรรทัดที่ 1 คืออะไร?",
+        explanation:
+          "Dictionary เก็บข้อมูลแบบ Key-Value ทำให้ค้นหาและอัปเดตค่าตามชื่อคีย์ได้รวดเร็ว",
+      },
+    ],
+    modifyChallenge: {
+      instruction:
+        "ลองแก้ไขรายการ items ในบรรทัดที่ 2 เป็น [\"potion\", \"gem\"] แล้วสังเกตจำนวน potion ที่เหลือ",
+      suggestedCode: `bag = {"potion": 2, "key": 1}
+items = ["potion", "gem"]
+for item in items:
+    if item in bag:
+        bag[item] = bag[item] + 1
+print(bag["potion"])`,
+      changeDescription: "ลด 'potion' ใน items จาก 2 ตัวเหลือ 1 ตัว",
+      options: ["3", "4", "2", "1"],
+      explanation: "เดิมมี 2 พบ 'potion' เพิ่มอีก 1 รอบ จึงได้ผลลัพธ์เป็น 3",
+    },
+    badgeReward: {
+      id: "badge-py-boss",
+      name: "ผู้พิชิตดันเจี้ยน Python",
+      description: "เชี่ยวชาญตัวแปร, if/elif, range(), ฟังก์ชัน def และ List/Dictionary",
     },
   },
 ];
@@ -786,7 +994,6 @@ ORDER BY price DESC;`,
     id: 202,
     title: "SQL ด่านที่ 2 · การรวมกลุ่มข้อมูลด้วย GROUP BY & SUM",
     shortName: "SQL 2 · GROUP BY & SUM",
-    isBoss: true,
     subtitle: "แกะรอยการยุบรวมแถวตามหมวดหมู่ (GROUP BY) และการกรองกลุ่มด้วย HAVING",
     code: `-- ตาราง sales:
 -- ('Book', 200), ('Book', 300), ('Pen', 50)
@@ -881,6 +1088,217 @@ HAVING SUM(amount) >= 50;`,
       id: "badge-sql-2",
       name: "นักวิเคราะห์กลุ่มข้อมูล SQL",
       description: "เข้าใจการทำงานของ GROUP BY, SUM และการกรองกลุ่มด้วย HAVING",
+    },
+  },
+  {
+    id: 203,
+    title: "SQL ด่านที่ 3 · การจัดเรียง ORDER BY และจำกัดแถว LIMIT",
+    shortName: "SQL 3 · ORDER BY & LIMIT",
+    subtitle: "อ่านลำดับการจัดเรียงจากมากไปน้อย (DESC) และตัดเอาเฉพาะอันดับต้นๆ ด้วย LIMIT",
+    code: `-- ตาราง products:
+-- (Keyboard, 900), (Mouse, 450), (Monitor, 3500)
+SELECT name, price
+FROM products
+ORDER BY price DESC
+LIMIT 2;`,
+    predictPrompt:
+      "เมื่อรันคำสั่ง SQL นี้ จะได้สินค้า 2 อันดับแรกใดออกมา?",
+    predictOptions: [
+      "Monitor (3500), Keyboard (900)",
+      "Mouse (450), Keyboard (900)",
+      "Keyboard (900), Mouse (450)",
+      "Monitor (3500)",
+    ],
+    predictExplanation:
+      "ORDER BY price DESC เรียงราคาจากมากไปน้อย (3500 -> 900 -> 450) แล้ว LIMIT 2 ตัดเอา 2 แถวแรกคือ Monitor และ Keyboard",
+    steps: [
+      {
+        stepNumber: 1,
+        line: 4,
+        codeLine: "FROM products",
+        variables: { rows: "3 แถว: Keyboard(900), Mouse(450), Monitor(3500)" },
+        outputSoFar: [],
+        explanation: "ดึงข้อมูลสินค้าทั้งหมด 3 แถวจากตาราง products",
+      },
+      {
+        stepNumber: 2,
+        line: 5,
+        codeLine: "ORDER BY price DESC",
+        variables: { sorted: "Monitor(3500), Keyboard(900), Mouse(450)" },
+        outputSoFar: [],
+        explanation: "เรียงลำดับตามราคาจากมากไปน้อย (DESC = Descending)",
+      },
+      {
+        stepNumber: 3,
+        line: 6,
+        codeLine: "LIMIT 2;",
+        variables: { result: "Monitor (3500), Keyboard (900)" },
+        outputSoFar: ["Monitor (3500), Keyboard (900)"],
+        explanation: "จำกัดผลลัพธ์ให้แสดงเพียง 2 แถวบนสุด",
+      },
+    ],
+    questions: [
+      {
+        id: "sql3-q1",
+        cellId: "T2",
+        targetLine: 5,
+        question: "หากไม่ระบุคำว่า DESC หลัง ORDER BY price ระบบ SQL จะเรียงลำดับอย่างไรเป็นค่าเริ่มต้น?",
+        options: [
+          { id: "a", text: "เรียงจากน้อยไปมาก (ASC)" },
+          { id: "b", text: "เรียงจากมากไปน้อย (DESC)" },
+          { id: "c", text: "เรียงแบบสุ่มทุกครั้ง" },
+          { id: "d", text: "เกิด Syntax Error ทันที" },
+        ],
+        correctOptionId: "a",
+        hint: "ค่าเริ่มต้นของ ORDER BY คือ Ascending (ASC)",
+        explanation:
+          "หากไม่ใส่ DESC คำสั่ง ORDER BY จะใช้ ASC (น้อยไปมาก) เป็นค่าเริ่มต้นเสมอ",
+      },
+      {
+        id: "sql3-q2",
+        cellId: "F2",
+        targetLine: 6,
+        question: "เหตุใดจึงควรใช้ LIMIT ควบคู่กับ ORDER BY เสมอเวลาต้องการหา 'Top N'?",
+        options: [
+          { id: "a", text: "เพราะถ้าไม่เรียงลำดับก่อน LIMIT อาจได้แถวที่ไม่ได้เรียงตามที่ต้องการ" },
+          { id: "b", text: "เพราะ LIMIT ใช้ได้เฉพาะกับคอลัมน์ที่เป็นตัวเลข" },
+          { id: "c", text: "เพราะ ORDER BY จะลบแถวที่เหลือออกจากฐานข้อมูล" },
+          { id: "d", text: "เพราะฐานข้อมูลห้ามใช้ SELECT โดยไม่มี LIMIT" },
+        ],
+        correctOptionId: "a",
+        hint: "ถ้าตารางไม่ได้เรียงไว้ล่วงหน้า การตัด 2 แถวแรกเลยจะได้ข้อมูลแบบไหน?",
+        explanation:
+          "LIMIT แค่ตัด N แถวแรกจากผลลัพธ์ จึงต้องเรียงลำดับด้วย ORDER BY ก่อนเพื่อให้ได้ Top N ที่ถูกต้อง",
+      },
+    ],
+    modifyChallenge: {
+      instruction:
+        "ลองเปลี่ยน ORDER BY price DESC ในบรรทัดที่ 5 เป็น ORDER BY price ASC เพื่อดูสินค้าที่ถูกที่สุด 2 อันดับแรก",
+      suggestedCode: `-- ตาราง products:
+-- (Keyboard, 900), (Mouse, 450), (Monitor, 3500)
+SELECT name, price
+FROM products
+ORDER BY price ASC
+LIMIT 2;`,
+      changeDescription: "เปลี่ยนการเรียงจาก DESC เป็น ASC",
+      options: [
+        "Mouse (450), Keyboard (900)",
+        "Monitor (3500), Keyboard (900)",
+        "Keyboard (900), Mouse (450)",
+        "Mouse (450)",
+      ],
+      explanation: "ASC เรียงจากน้อยไปมาก (450 -> 900 -> 3500) เมื่อ LIMIT 2 จึงได้ Mouse และ Keyboard",
+    },
+    badgeReward: {
+      id: "badge-sql-3",
+      name: "ผู้จัดระเบียบข้อมูล SQL",
+      description: "เข้าใจการจัดเรียงข้อมูลด้วย ORDER BY และจำกัดจำนวนด้วย LIMIT",
+    },
+  },
+  {
+    id: 204,
+    title: "SQL ด่านบอส · การเชื่อมตาราง INNER JOIN และกรองผลลัพธ์",
+    shortName: "SQL 4 · INNER JOIN Boss",
+    isBoss: true,
+    subtitle: "ด่านบอส SQL: แกะรอยการเชื่อม 2 ตารางด้วยคีย์อ้างอิง (Foreign Key) และเงื่อนไข JOIN",
+    code: `-- orders: (101, cust_id=1, 500), (102, cust_id=2, 300)
+-- customers: (1, 'Alice'), (2, 'Bob')
+SELECT c.name, o.total
+FROM orders o
+INNER JOIN customers c ON o.cust_id = c.id
+WHERE o.total >= 400;`,
+    predictPrompt:
+      "ผลลัพธ์จากการเชื่อมตาราง orders และ customers พร้อมเงื่อนไข WHERE o.total >= 400 คือข้อใด?",
+    predictOptions: [
+      "Alice: 500",
+      "Alice: 500, Bob: 300",
+      "Bob: 300",
+      "ไม่มีข้อมูลแสดงผล",
+    ],
+    predictExplanation:
+      "เชื่อมแถวที่มี o.cust_id = c.id จะได้ (Alice, 500) และ (Bob, 300) จากนั้น WHERE o.total >= 400 คัดเหลือเพียง Alice: 500",
+    steps: [
+      {
+        stepNumber: 1,
+        line: 4,
+        codeLine: "FROM orders o",
+        variables: { orders: "(101, cust_id=1, 500), (102, cust_id=2, 300)" },
+        outputSoFar: [],
+        explanation: "ตั้งต้นจากตาราง orders โดยตั้งชื่อย่อ (Alias) ว่า o",
+      },
+      {
+        stepNumber: 2,
+        line: 5,
+        codeLine: "INNER JOIN customers c ON o.cust_id = c.id",
+        variables: { joined: "(Alice, 500), (Bob, 300)" },
+        outputSoFar: [],
+        explanation: "จับคู่แต่ละใบสั่งซื้อเข้ากับข้อมูลลูกค้าที่ o.cust_id ตรงกับ c.id",
+      },
+      {
+        stepNumber: 3,
+        line: 6,
+        codeLine: "WHERE o.total >= 400;",
+        variables: { filtered: "(Alice, 500)" },
+        outputSoFar: ["Alice: 500"],
+        explanation: "กรองเฉพาะออเดอร์ที่ยอดรวม >= 400 จึงเหลือ Alice: 500",
+      },
+    ],
+    questions: [
+      {
+        id: "sql4-q1",
+        cellId: "T2",
+        targetLine: 5,
+        question: "เงื่อนไข ON o.cust_id = c.id ใน INNER JOIN มีไว้ทำอะไร?",
+        options: [
+          { id: "a", text: "ระบุคีย์ที่ใช้จับคู่แถวที่สัมพันธ์กันระหว่างตาราง orders และ customers" },
+          { id: "b", text: "เรียงลำดับชื่อลูกค้าตามตัวอักษร" },
+          { id: "c", text: "ลบข้อมูลลูกค้าที่ไม่มีออเดอร์ออกจากฐานข้อมูล" },
+          { id: "d", text: "บวกยอดเงินทั้งหมดเข้าด้วยกัน" },
+        ],
+        correctOptionId: "a",
+        hint: "ถ้าไม่มี ON การ JOIN จะไม่รู้ว่าแถวไหนใน orders คู่กับแถวไหนใน customers",
+        explanation:
+          "คำสั่ง ON กำหนดเงื่อนไขการเชื่อมคีย์ (Foreign Key = Primary Key) เพื่อป้องกันการจับคู่ไขว้กันมั่ว (Cartesian Product)",
+      },
+      {
+        id: "sql4-q2",
+        cellId: "F4",
+        targetLine: 5,
+        question: "หาก AI ลืมใส่เงื่อนไข ON หรือเขียนเงื่อนไข JOIN ผิดเป็น ON 1 = 1 จะเกิดปัญหาใด?",
+        options: [
+          { id: "a", text: "แถวจะถูกจับคู่ไขว้กันทั้งหมดทำให้ได้ข้อมูลซ้ำและยอดรวมผิดเพี้ยน" },
+          { id: "b", text: "คิวรีจะทำงานเร็วขึ้น 2 เท่า" },
+          { id: "c", text: "ตารางจะถูกเปลี่ยนชื่อเป็น 1" },
+          { id: "d", text: "SQL จะเดาคีย์ที่ถูกต้องให้เองเสมอ" },
+        ],
+        correctOptionId: "a",
+        hint: "เมื่อทุกแถวของตาราง A จับคู่กับทุกแถวของตาราง B ผลลัพธ์จะมีจำนวนแถวเท่ากับ A × B",
+        explanation:
+          "เงื่อนไข JOIN ที่เป็นจริงเสมอจะทำให้เกิด Cross Join ข้อมูลทวีคูณและทำให้รายงานหรือยอดเงินผิดพลาดร้ายแรง",
+      },
+    ],
+    modifyChallenge: {
+      instruction:
+        "ลองแก้เงื่อนไข WHERE o.total >= 400; เป็น WHERE o.total >= 300; เพื่อดึงข้อมูลของ Bob ด้วย",
+      suggestedCode: `-- orders: (101, cust_id=1, 500), (102, cust_id=2, 300)
+-- customers: (1, 'Alice'), (2, 'Bob')
+SELECT c.name, o.total
+FROM orders o
+INNER JOIN customers c ON o.cust_id = c.id
+WHERE o.total >= 300;`,
+      changeDescription: "ลดเกณฑ์ WHERE o.total จาก 400 เป็น 300",
+      options: [
+        "Alice: 500, Bob: 300",
+        "Alice: 500",
+        "Bob: 300",
+        "ไม่มีข้อมูลแสดงผล",
+      ],
+      explanation: "ออเดอร์ของ Bob มียอด 300 จึงผ่านเงื่อนไข >= 300 และแสดงผลทั้งสองคน",
+    },
+    badgeReward: {
+      id: "badge-sql-boss",
+      name: "ผู้พิชิตวิหารข้อมูล SQL",
+      description: "เชี่ยวชาญ SELECT/WHERE, GROUP BY/HAVING, ORDER BY/LIMIT และ INNER JOIN",
     },
   },
 ];
@@ -1135,10 +1553,9 @@ console.log(result);`,
   },
   {
     id: 303,
-    title: "TypeScript ด่านบอส · Generics <T> และ Readonly Guard",
-    shortName: "TS 3 · Generics Boss",
-    isBoss: true,
-    subtitle: "ปราบบอสวิหารไทป์สคริปต์ด้วยฟังก์ชัน Generic และการป้องกันอาเรย์ว่าง",
+    title: "TypeScript ด่านที่ 3 · Generics <T> และ Readonly Guard",
+    shortName: "TS 3 · Generics <T>",
+    subtitle: "แกะรอยฟังก์ชัน Generic และการป้องกันอาเรย์ว่าง",
     code: `function getFirstScore<T>(items: readonly T[], fallback: T): T {
   if (items.length === 0) return fallback;
   return items[0];
@@ -1246,9 +1663,117 @@ console.log(getFirstScore(scores, 0));`,
       explanation: "เมื่อ scores ว่าง เงื่อนไข items.length === 0 เป็นจริง จึงส่งคืน fallback (0)",
     },
     badgeReward: {
+      id: "badge-ts-3",
+      name: "ผู้เชี่ยวชาญ Generics TS",
+      description: "เข้าใจ Generic <T> และ Readonly Guard ใน TypeScript",
+    },
+  },
+  {
+    id: 304,
+    title: "TypeScript ด่านบอส · Utility Types และกับดัก Type Assertion (as)",
+    shortName: "TS 4 · Utility & as Boss",
+    isBoss: true,
+    subtitle: "ด่านบอส TypeScript: ระวังบั๊กที่ AI มักใช้ `as` บังคับชนิดข้อมูลโดยไม่ตรวจค่าจริง",
+    code: `interface Player {
+  name: string;
+  hp: number;
+}
+type PlayerPreview = Pick<Player, "name">;
+const raw = { name: "Aria" } as Player;
+const hpValue = typeof raw.hp === "number" ? raw.hp : 100;
+console.log(raw.name + ":" + hpValue);`,
+    predictPrompt:
+      "เมื่อรันโค้ด TypeScript ชุดนี้ console.log จะพิมพ์ค่าใดออกมา?",
+    predictOptions: ["Aria:100", "Aria:undefined", "Aria:0", "Compile Error"],
+    predictExplanation:
+      "raw ถูกบังคับด้วย `as Player` ทั้งที่ไม่มี field `hp` อยู่จริง แต่บรรทัดที่ 7 เช็ค typeof raw.hp === 'number' ก่อน จึงได้ค่าเริ่มต้น 100 และพิมพ์ Aria:100",
+    steps: [
+      {
+        stepNumber: 1,
+        line: 5,
+        codeLine: `type PlayerPreview = Pick<Player, "name">;`,
+        variables: { PlayerPreview: "{ name: string }" },
+        outputSoFar: [],
+        explanation: "Pick<Player, 'name'> เลือกเฉพาะ property 'name' มาสร้างเป็น Type ใหม่",
+      },
+      {
+        stepNumber: 2,
+        line: 6,
+        codeLine: `const raw = { name: "Aria" } as Player;`,
+        variables: { "raw.name": "Aria", "raw.hp": "undefined" },
+        outputSoFar: [],
+        explanation: "`as Player` แค่หลอก Compiler แต่ตอนรันจริง raw.hp ยังเป็น undefined!",
+      },
+      {
+        stepNumber: 3,
+        line: 7,
+        codeLine: `const hpValue = typeof raw.hp === "number" ? raw.hp : 100;`,
+        variables: { hpValue: "100" },
+        outputSoFar: [],
+        explanation: "ใช้ Runtime Guard ตรวจว่า raw.hp เป็น number หรือไม่ เมื่อไม่ใช่จึงใช้ค่าปลอดภัย 100",
+      },
+      {
+        stepNumber: 4,
+        line: 8,
+        codeLine: `console.log(raw.name + ":" + hpValue);`,
+        variables: { output: "Aria:100" },
+        outputSoFar: ["Aria:100"],
+        explanation: "พิมพ์ค่า Aria:100 ออกทางหน้าจอ",
+      },
+    ],
+    questions: [
+      {
+        id: "ts4-q1",
+        cellId: "T2",
+        targetLine: 6,
+        question: "เหตุใดการใช้ `as Player` กับข้อมูลที่ขาด field จึงเป็นจุดอันตรายในโค้ดจาก AI?",
+        options: [
+          { id: "a", text: "เพราะ TypeScript จะเชื่อตาม `as` โดยไม่ตรวจตอนรันจริง ทำให้ field ที่หายไปกลายเป็น undefined" },
+          { id: "b", text: "เพราะ `as` จะเติมค่า 0 ให้ทุก field อัตโนมัติ" },
+          { id: "c", text: "เพราะ `as` ใช้ได้เฉพาะกับตัวเลขเท่านั้น" },
+          { id: "d", text: "เพราะ `as` ทำให้โค้ดรันช้าลง 5 เท่า" },
+        ],
+        correctOptionId: "a",
+        hint: "Type Assertion (`as`) มีผลแค่ตอนตรวจ Type ก่อนคอมไพล์ หรือตอนรันจริงด้วย?",
+        explanation:
+          "TypeScript ถูกลบ Type ทิ้งตอนคอมไพล์เป็น JS ดังนั้น `as` ไม่ได้เพิ่มค่าให้ตอนรันจริง จึงต้องมี Runtime Check เสมอ",
+      },
+      {
+        id: "ts4-q2",
+        cellId: "F4",
+        targetLine: 5,
+        question: "Utility Type `Pick<Player, \"name\">` ทำหน้าที่อะไร?",
+        options: [
+          { id: "a", text: "สร้าง Type ใหม่ที่คัดมาเฉพาะ property 'name' จาก Player" },
+          { id: "b", text: "ลบ property 'name' ออกจาก Player" },
+          { id: "c", text: "แปลงทุก property ใน Player ให้เป็น boolean" },
+          { id: "d", text: "ดึงค่าข้อมูลจากฐานข้อมูลอัตโนมัติ" },
+        ],
+        correctOptionId: "a",
+        hint: "คำว่า Pick แปลว่า 'เลือกหยิบมาเฉพาะส่วนที่ระบุ'",
+        explanation:
+          "Pick<T, K> ใช้เลือกเฉพาะคีย์ K จาก Type T ช่วยลดการเขียน Interface ซ้ำซ้อน",
+      },
+    ],
+    modifyChallenge: {
+      instruction:
+        "ลองเพิ่ม hp: 85 เข้าไปในออบเจ็กต์ raw บรรทัดที่ 6 (`{ name: \"Aria\", hp: 85 } as Player`) แล้วสังเกตผลลัพธ์",
+      suggestedCode: `interface Player {
+  name: string;
+  hp: number;
+}
+type PlayerPreview = Pick<Player, "name">;
+const raw = { name: "Aria", hp: 85 } as Player;
+const hpValue = typeof raw.hp === "number" ? raw.hp : 100;
+console.log(raw.name + ":" + hpValue);`,
+      changeDescription: "เติม hp: 85 ในออบเจ็กต์ raw",
+      options: ["Aria:85", "Aria:100", "Aria:undefined", "85"],
+      explanation: "เมื่อ raw มี hp: 85 จริง เงื่อนไข typeof raw.hp === 'number' จึงเป็นจริงและใช้ค่า 85",
+    },
+    badgeReward: {
       id: "badge-ts-boss",
       name: "ผู้พิชิตวิหาร TypeScript",
-      description: "เชี่ยวชาญการอ่าน Interface, Union Narrowing และ Generic <T>",
+      description: "เชี่ยวชาญ Interface, Union Narrowing, Generic <T> และ Utility Types",
     },
   },
 ];
@@ -1479,10 +2004,9 @@ int main() {
   },
   {
     id: 403,
-    title: "C++ ด่านบอส · std::vector และขอบเขตลูป",
-    shortName: "C++ 3 · Vector Boss",
-    isBoss: true,
-    subtitle: "ปราบบอสป้อมปราการเหล็กด้วยการไล่ index ใน std::vector<int>",
+    title: "C++ ด่านที่ 3 · std::vector และขอบเขตลูป",
+    shortName: "C++ 3 · Vector & Loop",
+    subtitle: "แกะรอยการไล่ index ใน std::vector<int> และขอบเขตของลูป",
     code: `#include <iostream>
 #include <vector>
 using namespace std;
@@ -1577,9 +2101,131 @@ int main() {
       explanation: "เมื่อเริ่มที่ i = 1 จะบวกเฉพาะ nums[1] (20) + nums[2] (30) = 50",
     },
     badgeReward: {
+      id: "badge-cpp-3",
+      name: "ผู้คุมลูป std::vector",
+      description: "เข้าใจการวนลูป std::vector และขอบเขต Index ใน C++",
+    },
+  },
+  {
+    id: 404,
+    title: "C++ ด่านบอส · เงื่อนไขซ้อนลูปและกับดัก Index เกินขอบเขตจาก AI",
+    shortName: "C++ 4 · Bounds Guard Boss",
+    isBoss: true,
+    subtitle: "ด่านบอส C++: ตรวจสอบขอบเขต Index และเงื่อนไขการกรองค่าสูงสุดใน vector",
+    code: `#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    vector<int> dmg = {12, 45, 30, 18};
+    int maxDmg = dmg[0];
+    for (int i = 1; i < dmg.size(); i++) {
+        if (dmg[i] > maxDmg) {
+            maxDmg = dmg[i];
+        }
+    }
+    cout << maxDmg << endl;
+    return 0;
+}`,
+    predictPrompt:
+      "เมื่อรันโค้ด C++ ด่านบอสนี้ ค่า maxDmg ที่พิมพ์ออกมาคือเท่าไร?",
+    predictOptions: ["45", "30", "18", "12"],
+    predictExplanation:
+      "เริ่มต้น maxDmg = 12 จากนั้นเทียบ 45 (>12 อัปเดตเป็น 45), 30 (>45 เท็จ), 18 (>45 เท็จ) จึงได้ค่าสูงสุด 45",
+    steps: [
+      {
+        stepNumber: 1,
+        line: 7,
+        codeLine: "int maxDmg = dmg[0];",
+        variables: { maxDmg: "12" },
+        outputSoFar: [],
+        explanation: "ตั้งค่าเริ่มต้นของค่าสูงสุดจากสมาชิกตัวแรก dmg[0] = 12",
+      },
+      {
+        stepNumber: 2,
+        line: 9,
+        codeLine: "if (dmg[i] > maxDmg) { maxDmg = dmg[i]; } // i = 1",
+        variables: { i: "1", "dmg[1]": "45", maxDmg: "45" },
+        outputSoFar: [],
+        explanation: "รอบ i = 1: dmg[1] คือ 45 > 12 จึงอัปเดต maxDmg = 45",
+      },
+      {
+        stepNumber: 3,
+        line: 8,
+        codeLine: "for (int i = 1; i < dmg.size(); i++) // i = 2, 3",
+        variables: { i: "3", maxDmg: "45" },
+        outputSoFar: [],
+        explanation: "รอบ i = 2 (30) และ i = 3 (18) น้อยกว่า 45 ทั้งคู่จึงไม่อัปเดต แล้วจบลูปก่อนถึง 4",
+      },
+      {
+        stepNumber: 4,
+        line: 13,
+        codeLine: "cout << maxDmg << endl;",
+        variables: { output: "45" },
+        outputSoFar: ["45"],
+        explanation: "พิมพ์ค่า maxDmg สูงสุดคือ 45",
+      },
+    ],
+    questions: [
+      {
+        id: "cpp4-q1",
+        cellId: "T2",
+        targetLine: 8,
+        question: "หาก AI เขียนเงื่อนไขลูปผิดเป็น `i <= dmg.size()` จะเกิดปัญหาใดใน C++?",
+        options: [
+          { id: "a", text: "เกิดการอ่านเกินขอบเขต (Out-of-Bounds) ที่ index 4 ซึ่งเป็น Undefined Behavior" },
+          { id: "b", text: "C++ จะคืนค่า 0 ให้อัตโนมัติอย่างปลอดภัยเสมอ" },
+          { id: "c", text: "ลูปจะข้ามสมาชิกตัวแรกไป" },
+          { id: "d", text: "โปรแกรมจะเรียงเลขใน vector จากมากไปน้อย" },
+        ],
+        correctOptionId: "a",
+        hint: "vector ที่มี 4 ตัว มี index ที่ใช้ได้คือ 0 ถึง 3 เท่านั้น",
+        explanation:
+          "ใน C++ การใช้ <= size() จะทำให้รอบสุดท้ายเข้าถึง dmg[4] ซึ่งเกินขนาดจริงและเสี่ยงแครชหรืออ่านค่าขยะ",
+      },
+      {
+        id: "cpp4-q2",
+        cellId: "F4",
+        targetLine: 7,
+        question: "ทำไมการตั้ง `int maxDmg = dmg[0];` จึงดีกว่าตั้ง `int maxDmg = 0;` หากข้อมูลอาจเป็นเลขติดลบทั้งหมด?",
+        options: [
+          { id: "a", text: "เพราะถ้าตั้งเป็น 0 แล้วทุกค่าใน vector ติดลบ คำตอบที่ได้จะเป็น 0 ซึ่งไม่มีอยู่ในข้อมูลจริง" },
+          { id: "b", text: "เพราะ C++ ไม่อนุญาตให้ตั้งค่า int เป็น 0" },
+          { id: "c", text: "เพราะ dmg[0] ทำให้ลูปไม่ต้องเช็ค if" },
+          { id: "d", text: "เพราะ 0 มีขนาดหน่วยความจำใหญ่กว่า dmg[0]" },
+        ],
+        correctOptionId: "a",
+        hint: "ลองสมมติว่า dmg = {-5, -10, -2} แล้วตั้ง maxDmg = 0 ดูว่าผลลัพธ์จะผิดเพี้ยนอย่างไร",
+        explanation:
+          "การเริ่มต้นด้วยสมาชิกตัวแรกของข้อมูลจริงช่วยให้หาค่าสูงสุดได้ถูกต้องแม้ข้อมูลจะเป็นค่าลบทั้งหมด",
+      },
+    ],
+    modifyChallenge: {
+      instruction:
+        "ลองเพิ่มค่า 60 เข้าไปใน vector บรรทัดที่ 6 (`{12, 45, 30, 60}`) เพื่อทดสอบการอัปเดตค่าสูงสุดตัวสุดท้าย",
+      suggestedCode: `#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    vector<int> dmg = {12, 45, 30, 60};
+    int maxDmg = dmg[0];
+    for (int i = 1; i < dmg.size(); i++) {
+        if (dmg[i] > maxDmg) {
+            maxDmg = dmg[i];
+        }
+    }
+    cout << maxDmg << endl;
+    return 0;
+}`,
+      changeDescription: "เปลี่ยนสมาชิกตัวสุดท้ายเป็น 60",
+      options: ["60", "45", "30", "12"],
+      explanation: "รอบสุดท้าย i = 3 จะพบ dmg[3] = 60 > 45 จึงอัปเดต maxDmg เป็น 60",
+    },
+    badgeReward: {
       id: "badge-cpp-boss",
       name: "ผู้พิชิตป้อมปราการ C++",
-      description: "เชี่ยวชาญการอ่านชนิดตัวแปร, Reference (&) และ std::vector ใน C++",
+      description: "เชี่ยวชาญชนิดตัวแปร, Reference (&), std::vector และการป้องกัน Out-of-Bounds",
     },
   },
 ];
@@ -1774,10 +2420,9 @@ export const JAVA_TOPICS: TopicQuest[] = [
   },
   {
     id: 503,
-    title: "Java ด่านบอส · OOP Class, Constructor และ Array Loop",
-    shortName: "Java 3 · OOP Boss",
-    isBoss: true,
-    subtitle: "ปราบบอสหอคอยคลาสแห่งจาวา ด้วยการติดตามสถานะ Object ผ่านเมธอด takeDamage()",
+    title: "Java ด่านที่ 3 · OOP Class, Constructor และ Array Loop",
+    shortName: "Java 3 · OOP & Loop",
+    subtitle: "แกะรอยการติดตามสถานะ Object ผ่านเมธอด takeDamage()",
     code: `class Hero {
     int hp;
     Hero(int startHp) { this.hp = startHp; }
@@ -1890,9 +2535,107 @@ public class Main {
       explanation: "150 - 30 = 120, 120 - 45 = 75, 75 - 50 = 25",
     },
     badgeReward: {
+      id: "badge-java-3",
+      name: "อัศวิน OOP Java",
+      description: "เข้าใจ Class, Constructor, Encapsulation และ Array Loop ใน Java",
+    },
+  },
+  {
+    id: 504,
+    title: "Java ด่านบอส · Null Guard และกับดัก NullPointerException จาก AI",
+    shortName: "Java 4 · Null Guard Boss",
+    isBoss: true,
+    subtitle: "ด่านบอส Java: จับบั๊กค่า null ที่ AI มักลืมตรวจสอบก่อนเรียกใช้เมธอด",
+    code: `public class Main {
+    public static void main(String[] args) {
+        String title = null;
+        String safeTitle = (title != null) ? title : "Guest";
+        System.out.println(safeTitle);
+    }
+}`,
+    predictPrompt:
+      "เมื่อ title เป็น null โค้ด Java ด่านบอสนี้จะพิมพ์ค่าใดออกมา?",
+    predictOptions: ["Guest", "null", "NullPointerException", "title"],
+    predictExplanation:
+      "เงื่อนไข (title != null) เป็นเท็จ จึงเลือกค่าสำรอง 'Guest' ทำให้ไม่เกิด NullPointerException",
+    steps: [
+      {
+        stepNumber: 1,
+        line: 3,
+        codeLine: `String title = null;`,
+        variables: { title: "null" },
+        outputSoFar: [],
+        explanation: "ประกาศตัวแปร String ชื่อ title ให้มีค่าเป็น null (ไม่มีออบเจ็กต์อยู่จริง)",
+      },
+      {
+        stepNumber: 2,
+        line: 4,
+        codeLine: `String safeTitle = (title != null) ? title : "Guest";`,
+        variables: { title: "null", safeTitle: '"Guest"' },
+        outputSoFar: [],
+        explanation: "เช็ค Guard ว่า title != null หรือไม่ เมื่อเป็นเท็จจึงใช้ค่า 'Guest'",
+      },
+      {
+        stepNumber: 3,
+        line: 5,
+        codeLine: `System.out.println(safeTitle);`,
+        variables: { output: "Guest" },
+        outputSoFar: ["Guest"],
+        explanation: "พิมพ์ข้อความ Guest ออกทางหน้าจออย่างปลอดภัย",
+      },
+    ],
+    questions: [
+      {
+        id: "java4-q1",
+        cellId: "T2",
+        targetLine: 4,
+        question: "หาก AI เขียน `title.length()` โดยไม่เช็ค `title != null` ก่อน จะเกิดอะไรขึ้นตอนรัน?",
+        options: [
+          { id: "a", text: "เกิด NullPointerException (NPE) ทำให้โปรแกรมหยุดทำงานทันที" },
+          { id: "b", text: "Java จะคืนค่าความยาว 0 ให้อัตโนมัติ" },
+          { id: "c", text: "Java จะเปลี่ยน null เป็นคำว่า 'null' ความยาว 4" },
+          { id: "d", text: "คอมไพล์ไม่ผ่านตั้งแต่แรก" },
+        ],
+        correctOptionId: "a",
+        hint: "การเรียกเมธอดบนตัวแปรที่อ้างอิงไปยัง null ใน Java จะเกิด Exception ชื่อดังตัวใด?",
+        explanation:
+          "NullPointerException เป็นบั๊กยอดฮิตใน Java เมื่อเรียกเมธอดบนออบเจ็กต์ที่เป็น null จึงต้องมี Null Guard เสมอ",
+      },
+      {
+        id: "java4-q2",
+        cellId: "F4",
+        targetLine: 4,
+        question: "Ternary Operator `(title != null) ? title : \"Guest\"` ทำงานเหมือนโครงสร้างใด?",
+        options: [
+          { id: "a", text: "if (title != null) safeTitle = title; else safeTitle = \"Guest\";" },
+          { id: "b", text: "for (int i = 0; i < 2; i++)" },
+          { id: "c", text: "switch (title)" },
+          { id: "d", text: "try / finally" },
+        ],
+        correctOptionId: "a",
+        hint: "เครื่องหมาย `? :` เป็นรูปแบบย่อของเงื่อนไข 2 ทาง",
+        explanation:
+          "Ternary Operator ใช้เขียนเงื่อนไข if-else แบบสั้นสำหรับกำหนดค่าเริ่มต้นที่ปลอดภัย",
+      },
+    ],
+    modifyChallenge: {
+      instruction:
+        "ลองเปลี่ยน `String title = null;` ในบรรทัดที่ 3 เป็น `String title = \"Knight\";` แล้วดูผลลัพธ์",
+      suggestedCode: `public class Main {
+    public static void main(String[] args) {
+        String title = "Knight";
+        String safeTitle = (title != null) ? title : "Guest";
+        System.out.println(safeTitle);
+    }
+}`,
+      changeDescription: "กำหนดค่า title เป็น \"Knight\" แทน null",
+      options: ["Knight", "Guest", "null", "Error"],
+      explanation: "เมื่อ title ไม่เป็น null เงื่อนไข (title != null) เป็นจริง จึงพิมพ์ Knight",
+    },
+    badgeReward: {
       id: "badge-java-boss",
       name: "ผู้พิชิตหอคอย Java OOP",
-      description: "เข้าใจ Class, Constructor, Encapsulation และ Array Loop ใน Java",
+      description: "เข้าใจ Types, String.equals(), OOP Class และ Null Guard ใน Java",
     },
   },
 ];
@@ -2118,10 +2861,9 @@ export const HTML_TOPICS: TopicQuest[] = [
   },
   {
     id: 603,
-    title: "HTML/CSS ด่านบอส · CSS Specificity & บั๊กเลย์เอาต์จาก AI",
-    shortName: "HTML 3 · Specificity Boss",
-    isBoss: true,
-    subtitle: "ปราบบอสป้อมปราการเว็บ! จับบั๊ก CSS Specificity ที่ AI เขียนทับจนปุ่มเปลี่ยนสีไม่ได้",
+    title: "HTML/CSS ด่านที่ 3 · CSS Specificity & ลำดับความสำคัญ",
+    shortName: "HTML 3 · Specificity",
+    subtitle: "จับบั๊ก CSS Specificity ที่ AI เขียนทับจนปุ่มเปลี่ยนสีไม่ได้",
     aiScenario:
       "AI สร้าง CSS ให้ปุ่ม: `#action-btn { color: red; }` แล้วเขียน `.btn-safe { color: green; }` ไว้ข้างล่าง แต่ปุ่มยังคงเป็นสีแดง!",
     code: `<style>
@@ -2219,9 +2961,118 @@ export const HTML_TOPICS: TopicQuest[] = [
       explanation: "เมื่อทั้งคู่เป็น Class Selector ที่มีน้ำหนัก (0,1,0) เท่ากัน กฎที่อยู่ด้านล่าง (.btn-safe) จะชนะทันที",
     },
     badgeReward: {
+      id: "badge-html-3",
+      name: "ผู้คุมกฎ CSS Specificity",
+      description: "เข้าใจลำดับความสำคัญของ Selector และแก้ปัญหาสไตล์ทับซ้อน",
+    },
+  },
+  {
+    id: 604,
+    title: "HTML/CSS ด่านบอส · Form Accessibility & Responsive Media Query",
+    shortName: "HTML 4 · Form & Responsive Boss",
+    isBoss: true,
+    subtitle: "ด่านบอส HTML/CSS: ตรวจสอบฟอร์มที่เข้าถึงง่าย (<label>) และ @media สำหรับมือถือ",
+    aiScenario:
+      "AI สร้างฟอร์มล็อกอินโดยใช้ <input placeholder=\"Email\"> อย่างเดียวไม่มี <label> และกำหนดความกว้างกล่องตายตัว 600px จนล้นจอมือถือ!",
+    code: `<style>
+  .card { width: 600px; }
+  @media (max-width: 640px) { .card { width: 100%; } }
+</style>
+<form class="card">
+  <label for="email">Player Email</label>
+  <input id="email" type="email" required />
+  <button type="submit">Join Raid</button>
+</form>`,
+    predictPrompt:
+      "เมื่อเรนเดอร์ฟอร์มนี้ ข้อความที่มองเห็นบนหน้าเว็บคือข้อใด?",
+    predictOptions: [
+      "Player Email | Join Raid",
+      "email | submit",
+      "600px | 100%",
+      "card | required",
+    ],
+    predictExplanation:
+      "เบราว์เซอร์จะแสดงข้อความภายใน <label> ('Player Email') และปุ่ม <button> ('Join Raid') ส่วนกฎ CSS และ attribute จะไม่แสดงเป็นข้อความ",
+    steps: [
+      {
+        stepNumber: 1,
+        line: 3,
+        codeLine: `@media (max-width: 640px) { .card { width: 100%; } }`,
+        variables: { mobileWidth: "100%", desktopWidth: "600px" },
+        outputSoFar: [],
+        explanation: "Media Query จะปรับความกว้าง .card เป็น 100% อัตโนมัติเมื่อหน้าจอกว้างไม่เกิน 640px",
+      },
+      {
+        stepNumber: 2,
+        line: 6,
+        codeLine: `<label for="email">Player Email</label>`,
+        variables: { forAttr: "email", labelText: "Player Email" },
+        outputSoFar: ["Player Email"],
+        explanation: "ผูก <label for=\"email\"> เข้ากับ <input id=\"email\"> เพื่อให้คลิกโฟกัสได้และรองรับ Screen Reader",
+      },
+      {
+        stepNumber: 3,
+        line: 8,
+        codeLine: `<button type="submit">Join Raid</button>`,
+        variables: { buttonType: "submit", text: "Join Raid" },
+        outputSoFar: ["Player Email | Join Raid"],
+        explanation: "แสดงปุ่มส่งฟอร์มข้อความ Join Raid",
+      },
+    ],
+    questions: [
+      {
+        id: "html-604-q1",
+        cellId: "T2",
+        targetLine: 6,
+        question: "เหตุใดจึงต้องเชื่อม <label for=\"email\"> เข้ากับ <input id=\"email\"> แทนการใช้ placeholder อย่างเดียว?",
+        options: [
+          { id: "a", text: "ช่วยให้โปรแกรมอ่านหน้าจอ (Screen Reader) อ่านชื่อช่องได้ และคลิกที่ป้ายชื่อเพื่อโฟกัสช่องกรอกได้" },
+          { id: "b", text: "ทำให้เบราว์เซอร์ส่งฟอร์มโดยไม่ต้องกดปุ่ม" },
+          { id: "c", text: "ช่วยเข้ารหัสข้อมูลอีเมลอัตโนมัติ" },
+          { id: "d", text: "บังคับให้ <input> มีความกว้าง 100% เสมอ" },
+        ],
+        correctOptionId: "a",
+        hint: "นึกถึงการใช้งานของผู้พิการทางสายตาและพฤติกรรมเมื่อผู้ใช้เริ่มพิมพ์แล้ว placeholder หายไป",
+        explanation:
+          "placeholder จะหายไปเมื่อพิมพ์ข้อความ แต่ <label for=...> ช่วยทั้ง Accessibility และ UX อย่างถาวร",
+      },
+      {
+        id: "html-604-q2",
+        cellId: "F4",
+        targetLine: 3,
+        question: "กฎ `@media (max-width: 640px) { .card { width: 100%; } }` แก้บั๊กเลย์เอาต์ใดจาก AI?",
+        options: [
+          { id: "a", text: "แก้ปัญหากล่องกว้างตายตัว 600px จนล้นหน้าจอมือถือที่มีขนาดเล็กกว่า 640px" },
+          { id: "b", text: "ทำให้ข้อความในปุ่มเปลี่ยนเป็นสีแดง" },
+          { id: "c", text: "ซ่อนฟอร์มทั้งหมดเมื่อเปิดบนเดสก์ท็อป" },
+          { id: "d", text: "ลบปุ่ม Join Raid ออกจากหน้าเว็บ" },
+        ],
+        correctOptionId: "a",
+        hint: "ดูค่า width: 600px เทียบกับเงื่อนไข max-width: 640px",
+        explanation:
+          "Responsive Media Query ช่วยปรับขนาดกล่องให้พอดีกับหน้าจอมือถือ ป้องกันการเลื่อนแนวนอน (Horizontal Overflow)",
+      },
+    ],
+    modifyChallenge: {
+      instruction:
+        "ลองเปลี่ยนข้อความปุ่มจาก 'Join Raid' เป็น 'Enter Dungeon' เพื่อทดสอบการอัปเดตฟอร์ม",
+      suggestedCode: `<style>
+  .card { width: 600px; }
+  @media (max-width: 640px) { .card { width: 100%; } }
+</style>
+<form class="card">
+  <label for="email">Player Email</label>
+  <input id="email" type="email" required />
+  <button type="submit">Enter Dungeon</button>
+</form>`,
+      changeDescription: "เปลี่ยนข้อความปุ่มเป็น Enter Dungeon",
+      options: ["Player Email | Enter Dungeon", "Player Email | Join Raid", "Enter Dungeon"],
+      explanation: "ข้อความที่เรนเดอร์จาก <label> และ <button> จะอัปเดตเป็น Player Email | Enter Dungeon",
+    },
+    badgeReward: {
       id: "badge-html-boss",
       name: "ผู้พิชิตป้อมปราการ HTML/CSS",
-      description: "เชี่ยวชาญ Semantic HTML, Box Model, Flexbox และ CSS Specificity",
+      description: "เชี่ยวชาญ Semantic HTML, Box Model, Flexbox, Specificity และ Responsive Form",
     },
   },
 ];
@@ -2287,6 +3138,41 @@ function runPythonSimulated(code: string): {
 } {
   try {
     const clean = code.replace(/\r\n/g, "\n").trim();
+
+    // ตรวจจับรูปแบบเควสต์ที่ 5 (Boss): bag = {...}; items = [...]; print(bag["potion"])
+    if (clean.includes("bag =") && clean.includes("items =") && clean.includes("for item in items")) {
+      const bagMatch = clean.match(/bag\s*=\s*(\{[^}]*\})/);
+      const itemsMatch = clean.match(/items\s*=\s*(\[[^\]]*\])/);
+      if (bagMatch && itemsMatch) {
+        const bag = JSON.parse(bagMatch[1].replace(/'/g, '"')) as Record<string, number>;
+        const items = JSON.parse(itemsMatch[1].replace(/'/g, '"')) as string[];
+        for (const item of items) {
+          if (item in bag) {
+            bag[item] = bag[item] + 1;
+          }
+        }
+        const keyMatch = clean.match(/print\(\s*bag\[['"]([^'"]+)['"]\]\s*\)/);
+        const key = keyMatch ? keyMatch[1] : "potion";
+        const val = String(bag[key] ?? 0);
+        return {
+          outputs: [val],
+          finalOutput: val,
+          success: true,
+        };
+      }
+    }
+
+    // ตรวจจับรูปแบบเควสต์ที่ 4: def calc_damage(atk, armor): ... print(calc_damage(a, b))
+    const dmgCallMatch = clean.match(/print\(\s*calc_damage\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)\s*\)/);
+    if (clean.includes("def calc_damage") && dmgCallMatch) {
+      const dmg = Number(dmgCallMatch[1]) - Number(dmgCallMatch[2]);
+      const result = dmg < 0 ? 0 : dmg;
+      return {
+        outputs: [String(result)],
+        finalOutput: String(result),
+        success: true,
+      };
+    }
 
     // ตรวจจับรูปแบบเควสต์ที่ 3: for i in range(a, b): total = total + (i * m)
     const rangeMatch = clean.match(
@@ -2441,6 +3327,23 @@ function runSqlSimulated(code: string): {
     };
   }
 
+  // ตาราง orders + customers สำหรับด่านที่ 4 (Boss)
+  if (clean.includes("FROM ORDERS")) {
+    const rows = [
+      { name: "Alice", total: 500 },
+      { name: "Bob", total: 300 },
+    ];
+    const whereTotalGte = clean.match(/WHERE\s+(?:O\.)?TOTAL\s*>=\s*(\d+)/);
+    const minTotal = whereTotalGte ? Number(whereTotalGte[1]) : 0;
+    const filtered = rows.filter((r) => r.total >= minTotal);
+    const out = filtered.map((r) => `${r.name}: ${r.total}`).join(", ");
+    return {
+      outputs: [out],
+      finalOutput: out,
+      success: true,
+    };
+  }
+
   // ตาราง sales สำหรับด่านที่ 2
   if (clean.includes("FROM SALES")) {
     const havingMatch = clean.match(/HAVING\s+SUM\(AMOUNT\)\s*>=\s*(\d+)/);
@@ -2475,6 +3378,11 @@ function runSqlSimulated(code: string): {
     products.sort((a, b) => b.price - a.price);
   } else if (clean.includes("ORDER BY PRICE ASC") || clean.includes("ORDER BY PRICE")) {
     products.sort((a, b) => a.price - b.price);
+  }
+
+  const limitMatch = clean.match(/LIMIT\s+(\d+)/);
+  if (limitMatch) {
+    products = products.slice(0, Number(limitMatch[1]));
   }
 
   const out = products.map((p) => `${p.name} (${p.price})`).join(", ");
