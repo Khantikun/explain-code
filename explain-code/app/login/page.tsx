@@ -806,16 +806,16 @@ function LoginFormContent() {
                     />
                   </div>
 
-                  {/* กล่องรับทราบหลักการ PDPA พ.ศ. 2562 */}
-                  <label className="flex items-start gap-2.5 rounded-xl border border-[#2f2d45] bg-[#1c1b2b]/70 p-3 text-xs text-[#c4bdd6] cursor-pointer">
+                  {/* รับทราบหลักการ PDPA แบบมินิมอล */}
+                  <label className="flex items-center gap-2 px-1 py-0.5 text-xs text-[#9a93ad] hover:text-[#c4bdd6] transition-colors cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={pdpaAccepted}
                       onChange={(e) => setPdpaAccepted(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 accent-[#2fbf71] rounded cursor-pointer"
+                      className="h-3.5 w-3.5 shrink-0 accent-[#2fbf71] rounded cursor-pointer"
                     />
-                    <span className="leading-relaxed">
-                      รับทราบหลักการคุ้มครองข้อมูลส่วนบุคคล (<strong>PDPA พ.ศ. 2562</strong>): ระบบเก็บเฉพาะชื่อเล่นสมมติ คะแนนความเข้าใจ Block Model และแฮชของรหัส PIN ด้วย SHA-256 โดยไม่เก็บชื่อ-นามสกุลจริง อีเมล หรือเบอร์โทรศัพท์
+                    <span>
+                      รับทราบหลัก <strong className="text-[#c4bdd6]">PDPA</strong> · ระบบเก็บเฉพาะชื่อเล่นสมมติและรหัส PIN (ไม่เก็บข้อมูลส่วนตัวจริง)
                     </span>
                   </label>
 
