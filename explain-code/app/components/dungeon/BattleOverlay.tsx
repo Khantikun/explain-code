@@ -40,6 +40,8 @@ interface BattleOverlayProps {
     totalXp: number;
     totalCoins: number;
     phaseResults: BattlePhaseResult[];
+    noHitClear?: boolean;
+    noSkillPurist?: boolean;
   }) => void;
   onClose: () => void;
 }
@@ -170,6 +172,10 @@ export function BattleOverlay({
   const [accumulatedXp, setAccumulatedXp] = useState<number>(0);
   const [accumulatedCoins, setAccumulatedCoins] = useState<number>(0);
   const [hasReportedCompletion, setHasReportedCompletion] = useState<boolean>(false);
+
+  // Side-quest tracking across the entire battle (never reset on phase change)
+  const [hasUsedAnySkill, setHasUsedAnySkill] = useState<boolean>(false);
+  const [tookDamageInBattle, setTookDamageInBattle] = useState<boolean>(false);
 
   // Focus / Mana (MP) & Hero-specific Skills + Shield state
   const computedMaxFocus = maxFocus ?? heroStats.maxMp;
@@ -340,6 +346,7 @@ export function BattleOverlay({
         break;
     }
 
+    setHasUsedAnySkill(true);
     setUsedSkillIds((prev) => [...prev, skill.id]);
     setSkillCooldowns((prev) => ({
       ...prev,
@@ -431,12 +438,16 @@ export function BattleOverlay({
       const isFinalPhase = phaseIndex >= totalPhases - 1;
       if (isFinalPhase && !hasReportedCompletion) {
         setHasReportedCompletion(true);
+        const noHitClear = !tookDamageInBattle && nextResults.every((r) => r.isCorrectFirstTry);
+        const noSkillPurist = !hasUsedAnySkill;
         if (isMultiPhase) {
           onCorrectAnswer(nextTotalXp, nextTotalCoins, isLessonDone);
           onBattleComplete?.({
             totalXp: nextTotalXp,
             totalCoins: nextTotalCoins,
             phaseResults: nextResults,
+            noHitClear,
+            noSkillPurist,
           });
         } else {
           onCorrectAnswer(adjustedXp, adjustedCoins, isLessonDone);
@@ -444,11 +455,14 @@ export function BattleOverlay({
             totalXp: adjustedXp,
             totalCoins: adjustedCoins,
             phaseResults: nextResults,
+            noHitClear,
+            noSkillPurist,
           });
         }
       }
     } else {
       setFlashDamage("player");
+      setTookDamageInBattle(true);
       setPhaseTries((prev) => prev + 1);
       dungeonSound.playHurt();
       if (shieldCharges > 0) {
@@ -483,6 +497,8 @@ export function BattleOverlay({
     heroStats,
     shieldCharges,
     hasReportedCompletion,
+    tookDamageInBattle,
+    hasUsedAnySkill,
     onCorrectAnswer,
     onBattleComplete,
     onWrongAnswer,
@@ -704,6 +720,31 @@ export function BattleOverlay({
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Battle Side-Quests Live Status */}
+        <div className="flex flex-wrap items-center gap-2 text-[10px]">
+          <span className="text-[#9a93ad] font-extrabold uppercase">
+            {t("เควสเสริม:", "Side-Quests:")}
+          </span>
+          <span
+            className={`px-2 py-0.5 rounded-full border font-bold ${
+              !tookDamageInBattle && phaseResults.every((r) => r.isCorrectFirstTry)
+                ? "bg-[#2fbf71]/15 border-[#2fbf71]/50 text-[#86efac]"
+                : "bg-[#1c1b2b] border-[#2f2d45] text-[#6b6580] line-through"
+            }`}
+          >
+            🛡️ {t("No-Hit Clear (+15 XP)", "No-Hit Clear (+15 XP)")}
+          </span>
+          <span
+            className={`px-2 py-0.5 rounded-full border font-bold ${
+              !hasUsedAnySkill
+                ? "bg-[#f6c945]/15 border-[#f6c945]/50 text-[#ffe27a]"
+                : "bg-[#1c1b2b] border-[#2f2d45] text-[#6b6580] line-through"
+            }`}
+          >
+            ⚔️ {t("No-Skill Purist (+15 XP)", "No-Skill Purist (+15 XP)")}
+          </span>
         </div>
 
         {/* Question Header Badges */}

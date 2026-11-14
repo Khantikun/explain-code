@@ -202,6 +202,8 @@ export function TopicDungeonArena({
     totalXp: number;
     totalCoins: number;
     phaseResults: BattlePhaseResult[];
+    noHitClear?: boolean;
+    noSkillPurist?: boolean;
   } | null>(null);
 
   const hasSubmittedCompletionRef = useRef<boolean>(false);
@@ -284,9 +286,13 @@ export function TopicDungeonArena({
       totalXp: number;
       totalCoins: number;
       phaseResults: BattlePhaseResult[];
+      noHitClear?: boolean;
+      noSkillPurist?: boolean;
     }) => {
       setBattleSummary(summary);
-      setXp(summary.totalXp);
+      const sideQuestXp =
+        (summary.noHitClear ? 15 : 0) + (summary.noSkillPurist ? 15 : 0);
+      setXp(summary.totalXp + sideQuestXp + (modifyBonusClaimed ? 25 : 0));
       setCoins(summary.totalCoins);
       dungeonSound.playDoorOpen();
 
@@ -296,7 +302,7 @@ export function TopicDungeonArena({
         isDoorUnlocked: true,
       }));
     },
-    []
+    [modifyBonusClaimed]
   );
 
   const handleCorrectAnswer = useCallback(
@@ -340,6 +346,8 @@ export function TopicDungeonArena({
     setIsGameOver(false);
     setIsInBattle(false);
     setBattleSummary(null);
+    setModifyBonusClaimed(false);
+    setModifyRunResult(null);
     setRoom(
       generateDungeonRoom(
         roomSeed,
@@ -394,15 +402,24 @@ export function TopicDungeonArena({
       };
     });
 
+    const sideQuestXp =
+      (battleSummary?.noHitClear ? 15 : 0) +
+      (battleSummary?.noSkillPurist ? 15 : 0) +
+      (modifyBonusClaimed ? 25 : 0);
+    const totalEarnedXp = Math.max(
+      30,
+      battleSummary ? battleSummary.totalXp + sideQuestXp : xp
+    );
+
     onCompleteTopic({
       topicId: activeTopic.id,
-      earnedXp: Math.max(30, battleSummary?.totalXp ?? xp),
+      earnedXp: totalEarnedXp,
       updatedCellScores,
       badgeId: activeTopic.badgeReward.id,
       scorePercent,
       answers,
     });
-  }, [battleSummary, activeTopic, xp, onCompleteTopic]);
+  }, [battleSummary, modifyBonusClaimed, activeTopic, xp, onCompleteTopic]);
 
   const initialFocusDisplay = avatar.stats.initialMp;
   const maxFocusDisplay = avatar.stats.maxMp;
@@ -608,6 +625,77 @@ export function TopicDungeonArena({
               )}
             </div>
 
+            {/* Battle Side-Quests Strip (Visible on Mobile & Desktop) */}
+            <div className="rounded-xl border border-[#2f2d45] bg-[#1c1b2b] px-3.5 py-2.5 flex flex-col gap-2 text-[11px]">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-extrabold text-[#ffe27a] flex items-center gap-1.5">
+                  <Icon name="sparkles" size={13} />
+                  <span>{t("เควสเสริมประจำด่าน (Side-Quests)", "Floor Side-Quests")}</span>
+                </span>
+                {activeTopic.modifyChallenge && !room.isDoorUnlocked && (
+                  <span className="lg:hidden pixel-font text-[9px] px-2 py-0.5 rounded bg-[#2fbf71]/15 text-[#86efac] border border-[#2fbf71]/40">
+                    🐛 {t("มี Bug Hunter รออยู่!", "Bug Hunter Ready!")}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span
+                  className={`px-2 py-0.5 rounded-lg border font-bold ${
+                    battleSummary?.noHitClear
+                      ? "bg-[#2fbf71]/20 border-[#2fbf71]/60 text-[#86efac]"
+                      : battleSummary
+                      ? "bg-[#141220] border-[#2f2d45] text-[#6b6580] line-through"
+                      : "bg-[#141220] border-[#2f2d45] text-[#c4bdd6]"
+                  }`}
+                >
+                  {battleSummary?.noHitClear ? "✓ " : "🛡️ "}
+                  {t("No-Hit Clear (+15 XP)", "No-Hit Clear (+15 XP)")}
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded-lg border font-bold ${
+                    battleSummary?.noSkillPurist
+                      ? "bg-[#f6c945]/20 border-[#f6c945]/60 text-[#ffe27a]"
+                      : battleSummary
+                      ? "bg-[#141220] border-[#2f2d45] text-[#6b6580] line-through"
+                      : "bg-[#141220] border-[#2f2d45] text-[#c4bdd6]"
+                  }`}
+                >
+                  {battleSummary?.noSkillPurist ? "✓ " : "⚔️ "}
+                  {t("No-Skill Purist (+15 XP)", "No-Skill Purist (+15 XP)")}
+                </span>
+                {activeTopic.modifyChallenge && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (room.isDoorUnlocked) {
+                        document
+                          .getElementById("bug-hunter-panel")
+                          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                      }
+                    }}
+                    className={`px-2 py-0.5 rounded-lg border font-bold transition ${
+                      modifyBonusClaimed
+                        ? "bg-[#2fbf71]/20 border-[#2fbf71]/60 text-[#86efac]"
+                        : room.isDoorUnlocked
+                        ? "bg-[#2fbf71]/15 border-[#2fbf71] text-[#86efac] cursor-pointer hover:bg-[#2fbf71]/25"
+                        : "bg-[#141220] border-[#2fbf71]/35 text-[#86efac]/80 cursor-default"
+                    }`}
+                    title={
+                      room.isDoorUnlocked
+                        ? t("กดเพื่อเลื่อนไปยังภารกิจซ่อมโค้ด", "Click to jump to Bug Hunter challenge")
+                        : t("ปลดล็อกหลังชนะมอนสเตอร์", "Unlocks after defeating the monster")
+                    }
+                  >
+                    {modifyBonusClaimed
+                      ? t("✓ Bug Hunter (+25 XP)", "✓ Bug Hunter (+25 XP)")
+                      : room.isDoorUnlocked
+                      ? t("🐛 Bug Hunter (+25 XP) · กดไปทำเลย!", "🐛 Bug Hunter (+25 XP) · Go!")
+                      : t("🐛 Bug Hunter (+25 XP) · หลังชนะมอนสเตอร์", "🐛 Bug Hunter (+25 XP) · Post-Battle")}
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Door Unlocked Action Bar (shown only after monster is defeated) */}
             {room.isDoorUnlocked && (
               <div className="rounded-xl border border-[#2f2d45] bg-[#1c1b2b] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -807,7 +895,10 @@ export function TopicDungeonArena({
 
               {/* Optional Modify Bonus Challenge (Unlocked after Monster Defeated) */}
               {room.isDoorUnlocked && activeTopic.modifyChallenge && (
-                <div className="p-3.5 rounded-xl bg-[#141220] border border-[#2fbf71]/50 space-y-2.5 animate-in fade-in duration-200">
+                <div
+                  id="bug-hunter-panel"
+                  className="p-3.5 rounded-xl bg-[#141220] border border-[#2fbf71]/50 space-y-2.5 animate-in fade-in duration-200"
+                >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-extrabold text-[#2fbf71] flex items-center gap-1.5">
                       <Icon name="sparkles" size={14} />
