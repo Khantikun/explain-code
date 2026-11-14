@@ -10,7 +10,6 @@ import {
   INITIAL_CLASSROOMS,
   INITIAL_STUDENTS,
   INITIAL_TEACHERS,
-  generateRandomPdpaNickname,
   validatePdpaIdentifier,
 } from "../lib/curriculum";
 
@@ -639,28 +638,16 @@ function LoginFormContent() {
 
               {registerRole === "student" ? (
                 <form onSubmit={handleStudentRegister} className="space-y-4">
-                  {/* 1. ชื่อเล่นสมมติ + ปุ่มสุ่มชื่อ PDPA */}
+                  {/* 1. ชื่อเล่นสมมติ */}
                   <div>
-                    <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                      <label className="block text-xs font-bold text-[#c4bdd6]">
-                        1. ตั้งชื่อเล่นสมมติ (ห้ามใช้ชื่อจริง/อีเมลตาม PDPA)
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setNickname(generateRandomPdpaNickname(nickname))
-                        }
-                        className="inline-flex items-center gap-1 rounded-lg border border-[#f6c945]/60 bg-[#281d08] px-2.5 py-1 text-[11px] font-extrabold text-[#ffe27a] hover:bg-[#3a2a0d] transition cursor-pointer"
-                      >
-                        <Icon name="sparkles" className="h-3 w-3 text-[#f6c945]" />
-                        <span>🎲 สุ่มฉายาปลอดภัย (PDPA)</span>
-                      </button>
-                    </div>
+                    <label className="block text-xs font-bold text-[#c4bdd6] mb-1.5">
+                      1. ตั้งชื่อเล่นสมมติ (ห้ามใช้ชื่อจริง/อีเมลตาม PDPA)
+                    </label>
                     <input
                       type="text"
                       value={nickname}
                       onChange={(e) => setNickname(e.target.value)}
-                      placeholder="เช่น แมวส้ม_สายโค้ด หรือกดปุ่มสุ่มฉายาด้านบน"
+                      placeholder="เช่น แมวส้ม_สายโค้ด"
                       required
                       className={`w-full rounded-xl border bg-[#1c1b2b] px-3.5 py-2.5 text-sm font-bold text-[#f4efe6] placeholder:font-normal placeholder:text-[#9a93ad]/60 focus:bg-[#252238] focus:outline-hidden ${
                         nicknamePdpaCheck

@@ -19,7 +19,6 @@ import {
   AI_USAGE_LOGS,
   getMasteryStatus,
   runJavaScriptReal,
-  generateRandomPdpaNickname,
   validatePdpaIdentifier,
 } from "./lib/curriculum";
 import { Icon, StatusCircle } from "./components/Icons";
@@ -1363,27 +1362,14 @@ export default function ExplainCodeApp() {
                     className="flex flex-col gap-4"
                   >
                     <div className="flex flex-col gap-1.5">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <label className="text-[14px] font-extrabold text-[#f4efe6]">
-                          1. ตั้งชื่อเล่นสมมติของคุณ (PDPA)
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setLoginNickname(
-                              generateRandomPdpaNickname(loginNickname)
-                            )
-                          }
-                          className="px-2.5 py-1 rounded-lg bg-[#281d08] border border-[#f6c945]/60 text-[12px] font-extrabold text-[#ffe27a] hover:bg-[#3a2a0d] cursor-pointer"
-                        >
-                          🎲 สุ่มฉายาปลอดภัย (PDPA)
-                        </button>
-                      </div>
+                      <label className="text-[14px] font-extrabold text-[#f4efe6]">
+                        1. ตั้งชื่อเล่นสมมติของคุณ (PDPA)
+                      </label>
                       <input
                         type="text"
                         value={loginNickname}
                         onChange={(e) => setLoginNickname(e.target.value)}
-                        placeholder="เช่น แมวส้ม_สายโค้ด, โลมาสีฟ้า"
+                        placeholder="เช่น เสือน้อย, โลมาสีฟ้า"
                         className="w-full px-4 py-3 rounded-xl bg-[#0d0b14] border-2 border-[#2f2d45] text-[16px] font-bold text-[#f4efe6] focus:outline-none focus:border-[#f6c945]"
                       />
                     </div>

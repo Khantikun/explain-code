@@ -1741,27 +1741,6 @@ export function getMasteryStatus(score: number): {
 // ระบบคุ้มครองข้อมูลส่วนบุคคล (Active PDPA Guard — พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562)
 // ============================================================================
 
-export const PDPA_SAFE_NICKNAMES: string[] = [
-  "แมวส้ม_สายโค้ด",
-  "เพนกวิน_ไร้บั๊ก",
-  "จิ้งจอก_อัลกอริทึม",
-  "แพนด้า_ดีบั๊ก",
-  "มังกรน้อย_ไฟธอน",
-  "นกฮูก_ลอจิก",
-  "กระต่าย_ไฮสปีด",
-  "ฉลามฟ้า_ควอนตัม",
-  "หมีขาว_ไซเบอร์",
-  "โลมา_พิกเซล",
-];
-
-export function generateRandomPdpaNickname(currentValue?: string): string {
-  const candidates = PDPA_SAFE_NICKNAMES.filter((name) => name !== currentValue);
-  const randomBase =
-    candidates[Math.floor(Math.random() * candidates.length)] || "แมวส้ม_สายโค้ด";
-  const randomNum = Math.floor(10 + Math.random() * 90);
-  return `${randomBase}${randomNum}`;
-}
-
 export interface PdpaValidationResult {
   valid: boolean;
   reason?: string;
