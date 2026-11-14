@@ -768,11 +768,6 @@ export function BattleOverlay({
                 {activeQuestion.phaseLabel}
               </span>
             )}
-            {activeQuestion.blockModelCell && (
-              <span className="text-[10px] font-bold text-[#2fbf71] bg-[#1a7a4a]/30 px-2 py-0.5 rounded border border-[#2fbf71]/40">
-                Block Model: {activeQuestion.blockModelCell}
-              </span>
-            )}
           </div>
 
           <h4 className="text-sm sm:text-base font-bold text-[#f4efe6] leading-relaxed">

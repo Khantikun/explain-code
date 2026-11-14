@@ -890,9 +890,6 @@ export function DungeonRunScreen({
             <div className="lg:col-span-6 bg-[#141220] border border-[#2f2d45] rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#9a93ad] mb-3">
                 <span className="font-mono text-[#f6c945] font-bold">คัมภีร์เวทมนตร์ (Code View)</span>
-                <span className="bg-[#1c1b2b] border border-[#2f2d45] px-2 py-0.5 rounded text-[10px] text-[#c4bdd6]">
-                  วัดผลช่อง Block Model: {currentEncounter.blockCell}
-                </span>
               </div>
 
               {/* Code Box */}

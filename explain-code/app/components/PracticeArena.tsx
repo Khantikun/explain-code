@@ -685,14 +685,6 @@ export function PracticeArena({
                   <span className="px-3 py-1 rounded-full bg-[#5a2d91] border border-[#9b5de5] text-[#ffe27a] text-[13px] font-extrabold">
                     ขั้นที่ 3 · เดินโค้ดและตอบคำถาม (ข้อ {currentQIdx + 1}/{topic.questions.length})
                   </span>
-
-                  {/* ป้ายบอกช่องของ Block Model */}
-                  <span className="px-3 py-1 rounded-lg bg-[#1c1b2b] border border-[#3d395a] text-[#ffe27a] text-[13px] font-extrabold flex items-center gap-1.5">
-                    <Icon name="grid" size={16} />
-                    <span>
-                      ช่อง {currentQ.cellId} · {currentCellMeta.shortTitle}
-                    </span>
-                  </span>
                 </div>
 
                 {/* แถบเลือกข้อคำถามย่อย */}
