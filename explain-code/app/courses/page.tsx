@@ -1475,12 +1475,15 @@ function CoursesContent() {
                       role="button"
                       tabIndex={0}
                       onClick={() => {
+                        if (isSelected) {
+                          handleConfirmHeroAndPlay(av.key);
+                          return;
+                        }
                         setSelectedAvatarKey(av.key);
                         try {
                           localStorage.setItem(STORAGE_AVATAR_KEY, av.key);
                         } catch {}
                       }}
-                      onDoubleClick={() => handleConfirmHeroAndPlay(av.key)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
@@ -1618,50 +1621,6 @@ function CoursesContent() {
                     </div>
                   );
                 })}
-              </div>
-
-              {/* Bottom Confirm Bar */}
-              <div className="pt-4 border-t border-[#2f2d45] flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3 text-xs">
-                  <div className="p-1 rounded bg-[#0d0b14] border border-[#2f2d45]">
-                    <PixelSpriteView
-                      sprite={getAvatar(selectedAvatarKey).sprite}
-                      size={26}
-                    />
-                  </div>
-                  <div>
-                    <span className="text-[#9a93ad] block text-[11px]">
-                      {t("ตัวละครที่เตรียมออกศึก:", "Chosen Hero:")}
-                    </span>
-                    <strong className="text-[#f6c945] font-extrabold text-xs sm:text-sm">
-                      {getAvatar(selectedAvatarKey).name}
-                    </strong>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("quest")}
-                    className="retro-button flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border border-[#2f2d45] bg-[#0d0b14] hover:bg-[#1c1b2b] text-xs font-bold text-[#f4efe6] cursor-pointer"
-                  >
-                    {t("← เลือกด่านอื่น", "← Pick Another Floor")}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleConfirmHeroAndPlay()}
-                    className="retro-button flex-1 sm:flex-initial px-6 py-2.5 rounded-xl bg-[#f6c945] hover:bg-[#ffe27a] text-[#120f1c] text-xs sm:text-sm font-black pixel-font flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-transform hover:scale-[1.02]"
-                  >
-                    <Icon name="gamepad" size={16} />
-                    <span>
-                      {t(
-                        `ยืนยัน & เริ่มลุยชั้นนี้ (${getAvatar(selectedAvatarKey).name}) →`,
-                        `Confirm & Enter Floor (${getAvatar(selectedAvatarKey).name}) →`
-                      )}
-                    </span>
-                  </button>
-                </div>
               </div>
             </div>
           )}

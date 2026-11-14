@@ -503,26 +503,6 @@ export function GameCanvas({
         style={{ imageRendering: "pixelated" }}
       />
 
-      {/* Compact In-Screen Control / Objective HUD Hint */}
-      <div className="pointer-events-none absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2 z-10">
-        <div
-          className={`px-2.5 py-1 rounded-lg backdrop-blur-xs border text-[10px] sm:text-[11px] font-bold shadow-md ${
-            room.isDoorUnlocked
-              ? "bg-[#1a7a4a]/85 border-[#2fbf71]/80 text-[#ffe27a]"
-              : "bg-[#0b0a12]/75 border-[#4a4766]/80 text-[#f4efe6]/90"
-          }`}
-        >
-          {room.isDoorUnlocked
-            ? t(
-                "🚪 ประตูเปิดแล้ว! เดินเข้าประตู",
-                "🚪 Door open! Walk through top door"
-              )
-            : t(
-                "[WASD / ลูกศร] เดิน · ชนมอนสเตอร์เพื่อสู้",
-                "[WASD / Arrows] Move · Bump monster to fight"
-              )}
-        </div>
-      </div>
     </div>
   );
 }

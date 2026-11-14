@@ -595,7 +595,7 @@ export function BattleOverlay({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-xs select-none overflow-y-auto">
-      <div className="retro-panel rounded-2xl max-w-2xl w-full p-4 sm:p-6 flex flex-col gap-4 text-[#f4efe6] relative overflow-hidden my-auto max-h-[95vh] overflow-y-auto">
+      <div className="retro-panel rounded-2xl max-w-2xl w-full p-3 sm:p-6 flex flex-col gap-3 sm:gap-4 text-[#f4efe6] relative overflow-hidden my-auto max-h-[95vh] overflow-y-auto">
         {/* Top Bar: Encounter Label + Close Button */}
         <div className="flex items-center justify-between gap-2">
           <span className="pixel-font text-[10px] font-black tracking-wider text-[#9a93ad] uppercase">
@@ -612,25 +612,25 @@ export function BattleOverlay({
           </button>
         </div>
 
-        {/* Battle Header: Symmetric Monster Card (Left) & Player Card (Right) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-b border-[#4a4766] pb-3.5 items-stretch">
-          {/* Left Card: Monster Profile + Monster HP */}
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-[#120f1c] border border-[#c0283a]/40">
+        {/* Battle Header: Stacked on Mobile (grid-cols-1), Side-by-Side on sm+ (sm:grid-cols-2) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 border-b border-[#4a4766] pb-3 sm:pb-3.5 items-stretch">
+          {/* Top / Left Card: Monster Profile + Monster HP */}
+          <div className="flex items-center gap-3 p-2.5 sm:p-3 rounded-xl bg-[#120f1c] border border-[#c0283a]/40">
             <div
-              className={`p-2 rounded-xl bg-[#1c1b2b] border-2 border-[#4a4766] flex items-center justify-center shrink-0 transition-transform ${
+              className={`p-1.5 sm:p-2 rounded-xl bg-[#1c1b2b] border-2 border-[#4a4766] flex items-center justify-center shrink-0 transition-transform ${
                 flashDamage === "monster" ? "scale-110 bg-[#c0283a] ring-4 ring-[#ff4d6d]" : ""
               }`}
             >
-              <PixelSpriteView sprite={monster.sprite} size={44} animateBounce />
+              <PixelSpriteView sprite={monster.sprite} size={42} animateBounce />
             </div>
-            <div className="min-w-0 flex-1 space-y-1.5">
+            <div className="min-w-0 flex-1 space-y-1 sm:space-y-1.5">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="font-extrabold text-[#f6c945] text-sm truncate">
                   {monster.name}
                 </h3>
                 {isMultiPhase && (
                   <span className="pixel-font text-[9px] bg-[#5a2d91] text-[#ffe27a] px-1.5 py-0.5 rounded font-black shrink-0">
-                    PHASE {phaseIndex + 1}/{totalPhases}
+                    P{phaseIndex + 1}/{totalPhases}
                   </span>
                 )}
               </div>
@@ -651,16 +651,16 @@ export function BattleOverlay({
             </div>
           </div>
 
-          {/* Right Card: Player Profile + Hearts + MP */}
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-[#120f1c] border border-[#38bdf8]/40">
+          {/* Bottom / Right Card: Player Profile + Hearts + MP */}
+          <div className="flex items-center gap-3 p-2.5 sm:p-3 rounded-xl bg-[#120f1c] border border-[#38bdf8]/40">
             <div
-              className={`p-2 rounded-xl bg-[#1c1b2b] border-2 border-[#38bdf8]/50 flex items-center justify-center shrink-0 transition-transform ${
+              className={`p-1.5 sm:p-2 rounded-xl bg-[#1c1b2b] border-2 border-[#38bdf8]/50 flex items-center justify-center shrink-0 transition-transform ${
                 flashDamage === "player" ? "scale-105 bg-[#c0283a]/60 ring-4 ring-[#ff4d6d]" : ""
               }`}
             >
-              <PixelSpriteView sprite={heroDef.sprite} size={44} animateBounce />
+              <PixelSpriteView sprite={heroDef.sprite} size={42} animateBounce />
             </div>
-            <div className="min-w-0 flex-1 space-y-1.5">
+            <div className="min-w-0 flex-1 space-y-1 sm:space-y-1.5">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-extrabold text-[#ffe27a] text-sm truncate">
                   {isEn ? heroDef.nameEn : heroDef.name}
@@ -1019,8 +1019,8 @@ export function BattleOverlay({
           </div>
         )}
 
-        {/* Footer Actions */}
-        <div className="pt-2 border-t border-[#4a4766] flex items-center justify-between gap-3">
+        {/* Footer Actions (Sticky on Mobile) */}
+        <div className="sticky bottom-0 z-10 bg-[#141220]/95 backdrop-blur-xs -mx-3 px-3 pb-1 pt-2.5 sm:static sm:bg-transparent sm:backdrop-blur-none sm:mx-0 sm:px-0 sm:pb-0 sm:pt-2 border-t border-[#4a4766] flex items-center justify-between gap-3">
           <span className="text-[11px] text-[#9a93ad] hidden sm:inline">
             {isSubmitted
               ? t("กด Enter เพื่อไปต่อ", "Enter to continue")

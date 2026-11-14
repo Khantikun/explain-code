@@ -429,21 +429,20 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                   </div>
                 </div>
               ) : (
-                /* Unauthenticated: Secondary Dungeon Button + Primary Dungeon Button */
-                <div className="flex items-center gap-2">
+                /* Unauthenticated: Secondary Dungeon Button + Primary Dungeon Button (Desktop only; mobile uses bottom nav) */
+                <div className="hidden md:flex items-center gap-2">
                   <Link
                     href="/login"
-                    className="liquid-glass-btn liquid-press hidden sm:inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-extrabold text-[#f4efe6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945]"
+                    className="liquid-glass-btn liquid-press inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-extrabold text-[#f4efe6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945]"
                   >
                     <span>{t("เข้าสู่ระบบ", "Login")}</span>
                   </Link>
                   <Link
                     href="/login?mode=register"
-                    className="liquid-glass-primary-btn liquid-press inline-flex items-center gap-1.5 rounded-full px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-extrabold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945]"
+                    className="liquid-glass-primary-btn liquid-press inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs sm:text-sm font-extrabold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945]"
                   >
                     <Icon name="user" className="h-3.5 w-3.5" />
-                    <span className="sm:hidden">{t("เข้าสู่ระบบ", "Login")}</span>
-                    <span className="hidden sm:inline">{t("สมัครสมาชิก", "Sign Up")}</span>
+                    <span>{t("สมัครสมาชิก", "Sign Up")}</span>
                   </Link>
                 </div>
               )}

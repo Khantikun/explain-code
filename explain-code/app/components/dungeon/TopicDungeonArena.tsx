@@ -466,7 +466,7 @@ export function TopicDungeonArena({
               {trackMeta.name}
             </span>
             {!hasSession && (
-              <span className="text-[11px] font-bold text-[#9a93ad]">
+              <span className="hidden sm:inline text-[11px] font-bold text-[#9a93ad]">
                 {t("โหมดทดลอง (ไม่บันทึกผล)", "Guest mode (unsaved)")}
               </span>
             )}
@@ -625,8 +625,8 @@ export function TopicDungeonArena({
               </div>
             )}
 
-            {/* Mobile D-Pad */}
-            <div className="sm:hidden">
+            {/* Touch D-Pad (shown on mobile & tablet below lg) */}
+            <div className="lg:hidden">
               <MobileDpad
                 disabled={isInBattle || isGameOver}
                 onMove={(dx, dy) => {
@@ -659,8 +659,12 @@ export function TopicDungeonArena({
             </div>
           </div>
 
-          {/* Right: Quest Code Scroll & Monster Intel */}
-          <div className="lg:col-span-5 flex flex-col gap-4">
+          {/* Right: Quest Code Scroll & Monster Intel (hidden on mobile until monster is defeated) */}
+          <div
+            className={`${
+              room.isDoorUnlocked ? "flex" : "hidden lg:flex"
+            } lg:col-span-5 flex-col gap-4`}
+          >
             <div className="rounded-2xl border border-[#2f2d45] bg-[#1c1b2b] p-4 sm:p-5 space-y-4 text-[#f4efe6]">
               {/* Monster Card */}
               <div className="flex items-center gap-3 pb-3 border-b border-[#2f2d45]">
