@@ -354,6 +354,14 @@ function LoginFormContent() {
       return;
     }
 
+    if (!pdpaAccepted) {
+      setMessage({
+        type: "error",
+        text: "กรุณาติ๊กรับทราบหลักการคุ้มครองข้อมูลส่วนบุคคล (PDPA) ก่อนสมัครสมาชิก",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const res = await fetch("/api/auth", {
@@ -938,6 +946,19 @@ function LoginFormContent() {
                       </p>
                     )}
                   </div>
+
+                  {/* รับทราบหลักการ PDPA แบบมินิมอล */}
+                  <label className="flex items-center gap-2 px-1 py-0.5 text-xs text-[#9a93ad] hover:text-[#c4bdd6] transition-colors cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={pdpaAccepted}
+                      onChange={(e) => setPdpaAccepted(e.target.checked)}
+                      className="h-3.5 w-3.5 shrink-0 accent-[#2fbf71] rounded cursor-pointer"
+                    />
+                    <span>
+                      รับทราบหลัก <strong className="text-[#c4bdd6]">PDPA</strong> · ระบบเก็บเฉพาะชื่อผู้ใช้และรหัสผ่านที่เข้ารหัสแล้ว (ไม่เก็บข้อมูลส่วนตัวจริง)
+                    </span>
+                  </label>
 
                   <button
                     type="submit"
