@@ -8,6 +8,7 @@ import React, {
   useMemo,
 } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { Icon } from "./Icons";
 import { GlassPanel } from "./GlassPanel";
@@ -239,8 +240,15 @@ export function SiteHeader({ onOpenClassicPortal }: SiteHeaderProps) {
                 aria-label={t("โค้ดนี้ฉันอธิบายได้ หน้าแรก", "ExplainCode Home")}
                 className="flex items-center gap-3 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f6c945]"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#5a2d91] to-[#3b1d66] border border-[#f6c945]/60 text-[#ffe27a] shadow-sm">
-                  <Icon name="code" className="h-5 w-5" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden bg-[#0d0b14] border border-[#f6c945]/60 shadow-sm shrink-0">
+                  <Image
+                    src="/logo.png"
+                    alt={t("โลโก้ โค้ดนี้ฉันอธิบายได้", "ExplainCode Logo")}
+                    width={40}
+                    height={40}
+                    className="h-full w-full object-contain"
+                    priority
+                  />
                 </div>
                 <div className="leading-tight">
                   <span className="block text-sm sm:text-base font-extrabold tracking-tight text-[#f4efe6]">
