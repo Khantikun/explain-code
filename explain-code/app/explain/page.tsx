@@ -45,11 +45,69 @@ print(filter_passed_students({"Tonkla": 78, "Mali": 52, "Namo": 90}))`,
   typescript: `async function fetchUserProfile(userId: string) {
   const response = await fetch(\`/api/users/\${userId}\`);
   if (!response.ok) {
-    throw new Error("ไม่สามารถดึงข้อมูลผู้ใช้ได้");
+    throw new Error("Unable to fetch user profile");
   }
   const data = await response.json();
   return data;
 }`,
+  java: `public class GradeCalculator {
+  public static String getGrade(int score) {
+    if (score >= 80) return "A";
+    if (score >= 70) return "B";
+    if (score >= 60) return "C";
+    return "F";
+  }
+
+  public static void main(String[] args) {
+    int[] scores = {85, 72, 58};
+    for (int s : scores) {
+      System.out.println(s + " -> " + getGrade(s));
+    }
+  }
+}`,
+  cpp: `#include <iostream>
+#include <vector>
+using namespace std;
+
+int sumEvenNumbers(const vector<int>& nums) {
+  int total = 0;
+  for (int n : nums) {
+    if (n % 2 == 0) {
+      total += n;
+    }
+  }
+  return total;
+}
+
+int main() {
+  vector<int> values = {3, 8, 11, 14, 6};
+  cout << "Even sum: " << sumEvenNumbers(values) << endl;
+  return 0;
+}`,
+  sql: `SELECT
+  c.course_name,
+  COUNT(e.student_id) AS total_students,
+  ROUND(AVG(e.score), 2) AS avg_score
+FROM courses c
+JOIN enrollments e ON c.id = e.course_id
+WHERE e.score >= 50
+GROUP BY c.course_name
+ORDER BY avg_score DESC;`,
+  html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    .card { padding: 16px; border-radius: 12px; background: #1c1b2b; color: #f4efe6; }
+    .badge { display: inline-block; padding: 4px 10px; background: #2fbf71; color: #0b0b14; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="badge">New</span>
+    <h2>ExplainCode Lesson</h2>
+  </div>
+</body>
+</html>`,
 };
 
 export default function ExplainCodePage() {
