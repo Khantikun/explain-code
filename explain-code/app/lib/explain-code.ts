@@ -3,6 +3,7 @@ import { LineExplanationItem } from "./supabase";
 export interface ExplainCodeInput {
   code: string;
   language: string;
+  uiLang?: "th" | "en";
 }
 
 export interface ExplainCodeResult {
@@ -123,23 +124,199 @@ function explainSingleLine(line: string, lineNumber: number, lang: string): stri
 }
 
 /**
+ * เรียกใช้ Gemini API ฝั่ง Server เท่านั้น (ผ่าน process.env.GEMINI_API_KEY)
+ */
+async function explainWithGemini(
+  rawCode: string,
+  language: string,
+  langLabel: string,
+  uiLang: "th" | "en",
+  apiKey: string
+): Promise<ExplainCodeResult | null> {
+  const isEn = uiLang === "en";
+  const numberedLines = rawCode
+    .split(/\r?\n/)
+    .map((line, idx) => `${idx + 1}: ${line}`)
+    .join("\n");
+
+  const prompt = isEn
+    ? `You are a friendly programming tutor. Explain the following ${langLabel} code clearly for a high-school/vocational student.
+Return ONLY valid JSON (no markdown fences) with this exact structure:
+{
+  "summary": "2-3 concise sentences summarizing what the code does overall.",
+  "keyConcepts": ["Concept 1", "Concept 2", "Concept 3"],
+  "stepByStepFlow": ["1. ...", "2. ...", "3. ..."],
+  "lineByLine": [
+    { "lineNumber": 1, "code": "exact line text", "explanation": "clear explanation of what this line does" }
+  ],
+  "potentialPitfalls": ["Important edge case or best-practice tip 1", "Tip 2"]
+}
+Rules:
+- Include only non-empty lines in "lineByLine" using their 1-based lineNumber.
+- Keep all explanations accurate, concise, and beginner-friendly in English.
+
+Code:
+${numberedLines}`
+    : `คุณคือครูผู้ช่วยสอนเขียนโปรแกรมที่อธิบายเข้าใจง่าย จงวิเคราะห์และอธิบายโค้ดภาษา ${langLabel} ต่อไปนี้สำหรับนักเรียนมัธยม/อาชีวะ
+ตอบกลับเป็น JSON ที่ถูกต้องเท่านั้น (ห้ามใส่ markdown fence) ตามโครงสร้างนี้:
+{
+  "summary": "สรุปภาพรวมการทำงานของโค้ดสั้นๆ กระชับ 2-3 ประโยคเป็นภาษาไทย",
+  "keyConcepts": ["แนวคิดหลัก 1", "แนวคิดหลัก 2", "แนวคิดหลัก 3"],
+  "stepByStepFlow": ["1. ...", "2. ...", "3. ..."],
+  "lineByLine": [
+    { "lineNumber": 1, "code": "ข้อความโค้ดบรรทัดนั้น", "explanation": "คำอธิบายการทำงานของบรรทัดนี้เป็นภาษาไทยที่เข้าใจง่าย" }
+  ],
+  "potentialPitfalls": ["จุดที่ควรระวังหรือคำแนะนำ 1", "คำแนะนำ 2"]
+}
+กติกา:
+- ใน "lineByLine" ให้ใส่เฉพาะบรรทัดที่ไม่ว่าง โดยใช้เลขบรรทัด (lineNumber) เริ่มจาก 1 ให้ตรงกับโค้ดจริง
+- อธิบายให้ตรงตามการทำงานจริงของโค้ด กระชับ และเข้าใจง่ายเป็นภาษาไทย
+
+โค้ด:
+${numberedLines}`;
+
+  try {
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.2,
+          },
+        }),
+        signal: AbortSignal.timeout(15000),
+      }
+    );
+
+    if (!response.ok) {
+      console.warn("Gemini API explain non-OK status:", response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText || typeof rawText !== "string") {
+      return null;
+    }
+
+    const cleanedText = rawText
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
+
+    const parsed = JSON.parse(cleanedText);
+    if (
+      !parsed ||
+      typeof parsed.summary !== "string" ||
+      !Array.isArray(parsed.lineByLine)
+    ) {
+      return null;
+    }
+
+    const sourceLines = rawCode.split(/\r?\n/);
+    const lineByLine: LineExplanationItem[] = parsed.lineByLine
+      .filter(
+        (item: unknown): item is { lineNumber?: unknown; code?: unknown; explanation?: unknown } =>
+          Boolean(item && typeof item === "object")
+      )
+      .map((item: { lineNumber?: unknown; code?: unknown; explanation?: unknown }, idx: number) => {
+        const lineNum =
+          typeof item.lineNumber === "number" && item.lineNumber >= 1
+            ? item.lineNumber
+            : idx + 1;
+        const actualCode =
+          typeof item.code === "string" && item.code.length > 0
+            ? item.code
+            : sourceLines[lineNum - 1] ?? "";
+        return {
+          lineNumber: lineNum,
+          code: actualCode,
+          explanation:
+            typeof item.explanation === "string" && item.explanation.trim().length > 0
+              ? item.explanation.trim()
+              : explainSingleLine(actualCode, lineNum, language),
+        };
+      });
+
+    if (lineByLine.length === 0) {
+      return null;
+    }
+
+    const keyConcepts = Array.isArray(parsed.keyConcepts)
+      ? parsed.keyConcepts.filter((c: unknown): c is string => typeof c === "string" && c.trim().length > 0)
+      : [];
+    const stepByStepFlow = Array.isArray(parsed.stepByStepFlow)
+      ? parsed.stepByStepFlow.filter((s: unknown): s is string => typeof s === "string" && s.trim().length > 0)
+      : [];
+    const potentialPitfalls = Array.isArray(parsed.potentialPitfalls)
+      ? parsed.potentialPitfalls.filter((p: unknown): p is string => typeof p === "string" && p.trim().length > 0)
+      : [];
+
+    return {
+      language,
+      summary: parsed.summary.trim(),
+      lineByLine,
+      keyConcepts:
+        keyConcepts.length > 0
+          ? keyConcepts
+          : [isEn ? `${langLabel} Fundamentals` : `พื้นฐานภาษา ${langLabel}`],
+      stepByStepFlow:
+        stepByStepFlow.length > 0
+          ? stepByStepFlow
+          : [isEn ? "1. Executes statements sequentially." : "1. ประมวลผลคำสั่งตามลำดับ"],
+      potentialPitfalls:
+        potentialPitfalls.length > 0
+          ? potentialPitfalls
+          : [
+              isEn
+                ? "Test with edge-case inputs such as empty or boundary values."
+                : "ควรทดสอบด้วยข้อมูลขอบเขต (Edge Cases) เช่น ค่าว่าง หรือค่าขอบเขต",
+            ],
+      provider: "ai-api",
+    };
+  } catch (err) {
+    console.warn("Gemini API explain fallback triggered:", err);
+    return null;
+  }
+}
+
+/**
  * ฟังก์ชัน Service เดียวสำหรับอธิบายโค้ด
- * ปัจจุบันใช้ Smart Mock Analyzer และสามารถเปิดใช้งาน AI API จริงผ่าน Server Env ได้ทันที
+ * ใช้ Gemini API ผ่าน Server Env (GEMINI_API_KEY) พร้อม Fallback กลับไปยัง Smart Mock Analyzer
  */
 export async function explainCodeSnippet(
   input: ExplainCodeInput
 ): Promise<ExplainCodeResult> {
   const rawCode = (input.code || "").trim();
   const language = (input.language || "javascript").toLowerCase();
+  const uiLang: "th" | "en" = input.uiLang === "en" ? "en" : "th";
   const langLabel = LANGUAGE_LABELS[language] || language;
 
   if (!rawCode) {
     throw new Error("กรุณาวางโค้ดที่ต้องการให้อธิบาย");
   }
 
-  // หมายเหตุ: จุดเชื่อมต่อ AI API ฝั่ง Server เท่านั้น (ห้ามส่ง API Key ไปฝั่ง Client)
-  // const serverAiKey = process.env.EXPLAIN_AI_API_KEY || process.env.GEMINI_API_KEY;
-  // ตอนนี้ใช้ระบบ Mock Analyzer ตามที่กำหนด เพื่อให้พร้อมต่อยอดกับ AI API ภายหลัง
+  const serverAiKey = process.env.GEMINI_API_KEY || process.env.EXPLAIN_AI_API_KEY;
+  if (serverAiKey) {
+    const aiResult = await explainWithGemini(
+      rawCode,
+      language,
+      langLabel,
+      uiLang,
+      serverAiKey
+    );
+    if (aiResult) {
+      return aiResult;
+    }
+  }
 
   const lines = rawCode.split(/\r?\n/);
   const lineByLine: LineExplanationItem[] = [];

@@ -44,6 +44,8 @@ function checkRateLimit(ip: string): { allowed: boolean; retryAfterSec: number }
   return { allowed: true, retryAfterSec: 0 };
 }
 
+export const maxDuration = 30;
+
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -65,6 +67,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const code = String(body.code || "");
     const language = String(body.language || "javascript");
+    const uiLang: "th" | "en" = body.uiLang === "en" ? "en" : "th";
 
     if (!code.trim()) {
       return NextResponse.json(
@@ -117,7 +120,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. เรียกฟังก์ชัน Service เดียวจาก app/lib/explain-code.ts
-    const result = await explainCodeSnippet({ code, language });
+    const result = await explainCodeSnippet({ code, language, uiLang });
 
     // 5. หากผู้ใช้ล็อกอินอยู่ ให้บันทึกประวัติลงตาราง code_explanations ใน Supabase
     let savedHistoryItem: any = null;

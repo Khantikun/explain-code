@@ -111,7 +111,7 @@ ORDER BY avg_score DESC;`,
 };
 
 export default function ExplainCodePage() {
-  const { t } = useUiLanguage();
+  const { t, uiLang } = useUiLanguage();
   const [session, setSession] = useState<ClientAuthSession | null>(null);
   const [language, setLanguage] = useState<string>("javascript");
   const [code, setCode] = useState<string>(SAMPLE_SNIPPETS.javascript);
@@ -164,6 +164,7 @@ export default function ExplainCodePage() {
         body: JSON.stringify({
           code,
           language,
+          uiLang,
           userId: session?.userId || null,
         }),
       });
