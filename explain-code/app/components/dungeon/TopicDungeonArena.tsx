@@ -608,27 +608,12 @@ export function TopicDungeonArena({
               )}
             </div>
 
-            {/* Compact Action Bar below canvas (no redundant control guide text) */}
-            <div className="rounded-xl border border-[#2f2d45] bg-[#1c1b2b] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
-              <div className="font-bold text-[#ffe27a]">
-                {room.isDoorUnlocked
-                  ? t("🚪 ประตูเปิดแล้ว!", "🚪 Door Unlocked!")
-                  : t(
-                      `⚔️ ${currentMonster.name} (${phaseQuestions.length} เฟส)`,
-                      `⚔️ ${currentMonster.name} (${phaseQuestions.length} phases)`
-                    )}
-              </div>
-
-              {!room.isDoorUnlocked ? (
-                <button
-                  type="button"
-                  onClick={handleEncounterEntity}
-                  className="retro-button px-4 py-2 rounded-xl bg-[#f6c945] hover:bg-[#ffe27a] text-[#120f1c] font-black pixel-font text-xs flex items-center gap-1.5 cursor-pointer shrink-0"
-                >
-                  <Icon name="sword" size={14} />
-                  <span>{t("ท้าประลองเลย", "ENGAGE BATTLE")}</span>
-                </button>
-              ) : (
+            {/* Door Unlocked Action Bar (shown only after monster is defeated) */}
+            {room.isDoorUnlocked && (
+              <div className="rounded-xl border border-[#2f2d45] bg-[#1c1b2b] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="font-bold text-[#ffe27a]">
+                  {t("🚪 ประตูเปิดแล้ว!", "🚪 Door Unlocked!")}
+                </div>
                 <button
                   type="button"
                   onClick={handleCompleteFloor}
@@ -637,8 +622,8 @@ export function TopicDungeonArena({
                   <Icon name="trophy" size={14} />
                   <span>{t("ผ่านด่าน →", "COMPLETE FLOOR →")}</span>
                 </button>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Mobile D-Pad */}
             <div className="sm:hidden">
