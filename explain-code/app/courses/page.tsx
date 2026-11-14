@@ -24,6 +24,7 @@ import {
 import { dungeonSound } from "../lib/dungeon/sound";
 import {
   TOPICS,
+  SECRET_BADGES,
   BLOCK_MODEL_CELLS,
   BlockCellId,
   INITIAL_STUDENTS,
@@ -618,6 +619,7 @@ function CoursesContent() {
     earnedXp: number;
     updatedCellScores: Partial<Record<BlockCellId, number>>;
     badgeId: string;
+    extraBadgeIds?: string[];
     scorePercent: number;
     answers?: {
       questionId: string;
@@ -645,9 +647,14 @@ function CoursesContent() {
       ? currentStudentSnapshot.completedTopics
       : [...currentStudentSnapshot.completedTopics, result.topicId];
 
-    const nextBadges = currentStudentSnapshot.badges.includes(result.badgeId)
-      ? currentStudentSnapshot.badges
-      : [...currentStudentSnapshot.badges, result.badgeId];
+    const earnedBadgeIds = [
+      result.badgeId,
+      ...(Array.isArray(result.extraBadgeIds) ? result.extraBadgeIds : []),
+    ].filter(Boolean);
+
+    const nextBadges = Array.from(
+      new Set([...currentStudentSnapshot.badges, ...earnedBadgeIds])
+    );
 
     const nextCells = { ...currentStudentSnapshot.cellScores };
     Object.entries(result.updatedCellScores).forEach(([cellKey, val]) => {
@@ -733,6 +740,7 @@ function CoursesContent() {
             earnedXp: result.earnedXp,
             updatedCellScores: result.updatedCellScores,
             badgeId: result.badgeId,
+            extraBadgeIds: result.extraBadgeIds,
             answers: result.answers,
             aiEvaluation: result.aiEvaluation,
           }),
@@ -1891,12 +1899,13 @@ function CoursesContent() {
                         <Icon name="shield" size={17} className="text-[#f6c945]" />
                         <span>
                           {t("ตราความสำเร็จ", "Badges")} (
-                          {
-                            currentLanguageTopics.filter((tp) =>
-                              currentStudent.badges.includes(tp.badgeReward.id)
-                            ).length
-                          }
-                          /{currentLanguageTopics.length})
+                          {currentLanguageTopics.filter((tp) =>
+                            currentStudent.badges.includes(tp.badgeReward.id)
+                          ).length +
+                            SECRET_BADGES.filter((sb) =>
+                              currentStudent.badges.includes(sb.id)
+                            ).length}
+                          /{currentLanguageTopics.length + SECRET_BADGES.length})
                         </span>
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1926,6 +1935,42 @@ function CoursesContent() {
                             </div>
                           );
                         })}
+                      </div>
+
+                      <div className="pt-2 border-t border-[#2f2d45] space-y-2">
+                        <div className="text-xs font-extrabold text-[#ffe27a] flex items-center gap-1.5">
+                          <Icon name="sparkles" size={14} className="text-[#f6c945]" />
+                          <span>{t("ตราความสำเร็จลับ (Secret Badges)", "Secret Badges")}</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {SECRET_BADGES.map((sb) => {
+                            const unlocked = currentStudent.badges.includes(sb.id);
+                            return (
+                              <div
+                                key={sb.id}
+                                className={`p-2.5 rounded-xl border flex items-center gap-2.5 ${
+                                  unlocked
+                                    ? "bg-[#2a1f12] border-[#f6c945] text-[#ffe27a]"
+                                    : "bg-[#0d0b14] border-[#2f2d45] text-[#9a93ad] opacity-65"
+                                }`}
+                              >
+                                <StatusCircle
+                                  variant={unlocked ? "badge" : "locked"}
+                                  size="sm"
+                                  label={unlocked ? sb.name : "Secret Badge"}
+                                />
+                                <div className="min-w-0">
+                                  <div className="text-xs font-extrabold truncate">
+                                    {unlocked ? sb.name : "??? (ความลับ)"}
+                                  </div>
+                                  <div className="text-[11px] truncate text-[#9a93ad]">
+                                    {sb.description}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
 

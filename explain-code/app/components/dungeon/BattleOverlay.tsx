@@ -402,10 +402,10 @@ export function BattleOverlay({
           coins = data.coinsAwarded ?? coins;
           isLessonDone = Boolean(data.lessonCompleted);
         } else {
-          correct = selectedChoice === activeQuestion.correctIndex;
+          correct = chosenIndex === activeQuestion.correctIndex;
         }
       } catch {
-        correct = selectedChoice === activeQuestion.correctIndex;
+        correct = chosenIndex === activeQuestion.correctIndex;
       }
     }
 

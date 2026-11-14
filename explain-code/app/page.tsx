@@ -2173,8 +2173,14 @@ export default function ExplainCodeApp() {
                 <h3 className="text-[17px] font-extrabold text-[#f4efe6] flex items-center gap-2">
                   <Icon name="shield" size={20} className="text-[#f6c945]" />
                   <span>
-                    ตราความสำเร็จที่ได้รับ ({currentStudent.badges.length}/
-                    {TOPICS.length + SECRET_BADGES.length})
+                    ตราความสำเร็จที่ได้รับ (
+                    {TOPICS.filter((tp) =>
+                      currentStudent.badges.includes(tp.badgeReward.id)
+                    ).length +
+                      SECRET_BADGES.filter((sb) =>
+                        currentStudent.badges.includes(sb.id)
+                      ).length}
+                    /{TOPICS.length + SECRET_BADGES.length})
                   </span>
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">

@@ -201,6 +201,7 @@ export function TopicDungeonArena({
   const [isInBattle, setIsInBattle] = useState<boolean>(false);
   const [isChestOpen, setIsChestOpen] = useState<boolean>(false);
   const [chestBonusXp, setChestBonusXp] = useState<number>(0);
+  const [chestBonusCoins, setChestBonusCoins] = useState<number>(0);
   const [floorShieldBonus, setFloorShieldBonus] = useState<number>(0);
   const [floorRewardMultiplier, setFloorRewardMultiplier] = useState<number>(1);
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
@@ -223,6 +224,7 @@ export function TopicDungeonArena({
     setIsInBattle(false);
     setIsChestOpen(false);
     setChestBonusXp(0);
+    setChestBonusCoins(0);
     setFloorShieldBonus(0);
     setFloorRewardMultiplier(1);
     setIsGameOver(false);
@@ -305,6 +307,7 @@ export function TopicDungeonArena({
   const handleChestSolved = useCallback(
     (reward: { xpAwarded: number; coinsAwarded: number }) => {
       setChestBonusXp((prev) => prev + reward.xpAwarded);
+      setChestBonusCoins((prev) => prev + reward.coinsAwarded);
       setXp((prev) => prev + reward.xpAwarded);
       setCoins((prev) => prev + reward.coinsAwarded);
       setRoom((prev) =>
@@ -359,7 +362,7 @@ export function TopicDungeonArena({
           (modifyBonusClaimed ? 25 : 0) +
           chestBonusXp
       );
-      setCoins((prev) => prev + summary.totalCoins);
+      setCoins(summary.totalCoins + chestBonusCoins);
       dungeonSound.playDoorOpen();
 
       setRoom((prev) => ({
@@ -368,25 +371,16 @@ export function TopicDungeonArena({
         isDoorUnlocked: true,
       }));
     },
-    [modifyBonusClaimed, chestBonusXp]
+    [modifyBonusClaimed, chestBonusXp, chestBonusCoins]
   );
 
-  const handleCorrectAnswer = useCallback(
-    (xpAwarded?: number, coinsAwarded?: number) => {
-      if (xpAwarded !== undefined) {
-        setXp((prev) => Math.max(prev, xpAwarded));
-      }
-      if (coinsAwarded !== undefined) {
-        setCoins((prev) => Math.max(prev, coinsAwarded));
-      }
-      setRoom((prev) => ({
-        ...prev,
-        entity: prev.entity ? { ...prev.entity, hp: 0, isCompleted: true } : null,
-        isDoorUnlocked: true,
-      }));
-    },
-    []
-  );
+  const handleCorrectAnswer = useCallback(() => {
+    setRoom((prev) => ({
+      ...prev,
+      entity: prev.entity ? { ...prev.entity, hp: 0, isCompleted: true } : null,
+      isDoorUnlocked: true,
+    }));
+  }, []);
 
   const handleWrongAnswer = useCallback(() => {
     setScreenShake(1);
@@ -413,6 +407,7 @@ export function TopicDungeonArena({
     setIsInBattle(false);
     setIsChestOpen(false);
     setChestBonusXp(0);
+    setChestBonusCoins(0);
     setFloorShieldBonus(0);
     setFloorRewardMultiplier(1);
     setBattleSummary(null);
