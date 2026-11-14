@@ -409,10 +409,7 @@ function LoginFormContent() {
                 className="h-full w-full object-contain"
               />
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#3d395a] bg-[#1c1b2b] px-3 py-1 text-xs font-bold text-[#f6c945]">
-              <Icon name="shield" className="h-3.5 w-3.5" />
-              คุ้มครองข้อมูลส่วนบุคคลตาม PDPA พ.ศ. 2562 · SHA-256 Auth
-            </span>
+            
             <h1 className="mt-3 text-2xl font-extrabold text-[#f4efe6]">
               {mode === "login" ? "เข้าสู่ระบบ" : "สมัครสมาชิกใหม่"}
             </h1>
@@ -801,7 +798,7 @@ function LoginFormContent() {
               className="w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-[#f6c945]/75 bg-[#1c1b2b] px-4 py-3 text-sm font-extrabold text-[#ffe27a] shadow-md hover:border-[#f6c945] hover:bg-[#281d08] transition-all"
             >
               <Icon name="home" className="h-4 w-4 text-[#f6c945]" />
-              <span>← กลับไปหน้าแรก (ใช้งานได้โดยไม่ต้องล็อกอิน)</span>
+              <span>กลับไปหน้าแรก</span>
             </Link>
           </div>
         </div>
