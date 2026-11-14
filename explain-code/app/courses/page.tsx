@@ -46,7 +46,7 @@ import {
   saveLocalLessons,
 } from "../lib/lms-data";
 
-type LearningTab = "quest" | "practice" | "custom" | "learn";
+type LearningTab = "quest" | "hero-select" | "practice" | "custom" | "learn";
 
 const GUEST_CELL_SCORES: Record<BlockCellId, number> = {
   T1: 0,
@@ -283,6 +283,17 @@ function CoursesContent() {
   const handleStartTopic = (topicId: number) => {
     setGuestNotice(null);
     setSelectedTopicId(topicId);
+    setActiveTab("hero-select");
+  };
+
+  const handleConfirmHeroAndPlay = (key?: AvatarKey) => {
+    const chosen = key || selectedAvatarKey;
+    setSelectedAvatarKey(chosen);
+    try {
+      localStorage.setItem(STORAGE_AVATAR_KEY, chosen);
+    } catch {
+      // ignore
+    }
     setPlayAttemptNonce((n) => n + 1);
     setActiveTab("practice");
   };
@@ -1315,6 +1326,215 @@ function CoursesContent() {
             </div>
           )}
 
+          {/* ==================== HERO SELECTION SCREEN ==================== */}
+          {activeTab === "hero-select" && activeTopic && (
+            <div className="flex flex-col gap-6 animate-in fade-in duration-200">
+              {/* Top Navigation Bar: Back button + Floor target info */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#2f2d45]">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("quest")}
+                  className="retro-button px-3.5 py-2 rounded-xl border border-[#2f2d45] bg-[#0d0b14] hover:bg-[#1c1b2b] text-xs font-bold text-[#f4efe6] flex items-center gap-2 cursor-pointer transition-colors"
+                >
+                  <span>← {t("กลับแผนที่ดันเจี้ยน", "Back to Dungeon Map")}</span>
+                </button>
+
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span
+                    className={`pixel-font text-[10px] px-2.5 py-1 rounded-lg font-bold border ${
+                      activeTopic.isBoss
+                        ? "bg-[#5a2d91] text-[#ffe27a] border-[#9b5de5]"
+                        : "bg-[#0d0b14] text-[#ffe27a] border-[#2f2d45]"
+                    }`}
+                  >
+                    {activeTopic.isBoss
+                      ? "BOSS FLOOR"
+                      : `FLOOR ${activeTopicIndex + 1}/${currentLanguageTopics.length}`}
+                  </span>
+                  <span className="text-xs sm:text-sm font-extrabold text-[#f4efe6] max-w-[280px] sm:max-w-md truncate">
+                    {activeTopic.title}
+                  </span>
+                </div>
+              </div>
+
+              {/* Floor Challenge Brief & Target Monster Info */}
+              {(() => {
+                const floorMonster = getMonsterDef(
+                  getFloorMonsterType(activeTopicIndex, Boolean(activeTopic.isBoss))
+                );
+                return (
+                  <div className="rounded-2xl border border-[#2f2d45] bg-[#1c1b2b] p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      <div className="p-2.5 rounded-xl bg-[#0d0b14] border border-[#2f2d45] shrink-0">
+                        <PixelSpriteView
+                          sprite={floorMonster.sprite}
+                          size={46}
+                          animateBounce
+                        />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="pixel-font text-[10px] text-[#ffe27a] uppercase bg-[#0d0b14] px-2 py-0.5 rounded border border-[#2f2d45]">
+                            {t("ผู้พิทักษ์ประจำชั้น", "Floor Guardian")}
+                          </span>
+                          <span className="text-[10px] bg-[#2fbf71]/20 text-[#2fbf71] px-2 py-0.5 rounded border border-[#2fbf71]/40 font-bold">
+                            +{floorMonster.xpReward} XP
+                          </span>
+                          <span className="text-[10px] bg-[#f6c945]/20 text-[#f6c945] px-2 py-0.5 rounded border border-[#f6c945]/40 font-bold">
+                            +{floorMonster.coinReward} G
+                          </span>
+                        </div>
+                        <h3 className="text-sm sm:text-base font-extrabold text-[#f4efe6] mt-1">
+                          {floorMonster.name}
+                        </h3>
+                        <p className="text-xs text-[#9a93ad] mt-0.5">
+                          {activeTopic.subtitle}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs text-[#ffe27a] font-bold bg-[#0d0b14] px-3 py-2 rounded-xl border border-[#2f2d45] shrink-0">
+                      <Icon name="shield" size={15} />
+                      <span>{t("รางวัลเมื่อพิชิต:", "Badge Reward:")} {activeTopic.badgeReward.name}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Title Section */}
+              <div className="space-y-1 pt-1">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <h3 className="text-base sm:text-lg font-black text-[#f4efe6] flex items-center gap-2">
+                    <Icon name="user" className="h-5 w-5 text-[#f6c945]" />
+                    <span>{t("เลือกตัวละครของคุณก่อนลุยชั้นนี้", "Choose Your Hero Before Entering Floor")}</span>
+                  </h3>
+                  <span className="text-xs text-[#9a93ad]">
+                    {t("คลิกที่การ์ดเพื่อเลือกตัวละคร", "Click a hero card to select")}
+                  </span>
+                </div>
+                <p className="text-xs text-[#9a93ad] leading-relaxed">
+                  {t(
+                    "ตัวละครพิกเซลแต่ละตัวมีบุคลิกและความถนัดเฉพาะตัว เลือกผู้กล้าที่คุณมั่นใจเพื่อลงสู่สนามประลองโค้ด",
+                    "Each pixel hero possesses distinct attributes. Choose the adventurer you wish to send into battle."
+                  )}
+                </p>
+              </div>
+
+              {/* 4 Hero Selection Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {AVATARS.map((av) => {
+                  const isSelected = av.key === selectedAvatarKey;
+                  return (
+                    <button
+                      key={av.key}
+                      type="button"
+                      onClick={() => {
+                        setSelectedAvatarKey(av.key);
+                        try {
+                          localStorage.setItem(STORAGE_AVATAR_KEY, av.key);
+                        } catch {}
+                      }}
+                      className={`retro-card p-4 sm:p-5 rounded-2xl text-left cursor-pointer flex flex-col justify-between gap-4 transition-all relative ${
+                        isSelected
+                          ? "border-[#f6c945] bg-gradient-to-b from-[#2a1746] to-[#1c1b2b] shadow-[0_0_20px_rgba(246,201,69,0.3)] ring-2 ring-[#f6c945]"
+                          : "border-[#2f2d45] bg-[#141220] hover:bg-[#1c1b2b] hover:border-[#3d395a]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`p-2.5 rounded-xl border flex items-center justify-center shrink-0 ${
+                            isSelected
+                              ? "bg-[#0d0b14] border-[#f6c945]"
+                              : "bg-[#0d0b14] border-[#2f2d45]"
+                          }`}
+                        >
+                          <PixelSpriteView
+                            sprite={av.sprite}
+                            size={44}
+                            animateBounce={isSelected}
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-extrabold text-[#f4efe6] text-sm truncate">
+                            {av.name}
+                          </h4>
+                          <span className="pixel-font text-[10px] text-[#ffe27a] uppercase block mt-0.5">
+                            CLASS: {av.key}
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-[#9a93ad] leading-relaxed line-clamp-3">
+                        {av.description}
+                      </p>
+
+                      <div className="pt-3 border-t border-[#2f2d45] flex items-center justify-between text-xs">
+                        <span
+                          className={`text-[11px] font-bold ${
+                            isSelected ? "text-[#f6c945]" : "text-[#9a93ad]"
+                          }`}
+                        >
+                          {isSelected
+                            ? t("✓ เลือกตัวนี้แล้ว", "✓ Selected")
+                            : t("กดเพื่อเลือก", "Click to select")}
+                        </span>
+                        {isSelected && (
+                          <span className="pixel-font text-[9px] bg-[#f6c945] text-[#120f1c] px-2 py-0.5 rounded font-black">
+                            READY
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Bottom Confirm Bar */}
+              <div className="pt-4 border-t border-[#2f2d45] flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3 text-xs">
+                  <div className="p-1 rounded bg-[#0d0b14] border border-[#2f2d45]">
+                    <PixelSpriteView
+                      sprite={getAvatar(selectedAvatarKey).sprite}
+                      size={26}
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[#9a93ad] block text-[11px]">
+                      {t("ตัวละครที่เตรียมออกศึก:", "Chosen Hero:")}
+                    </span>
+                    <strong className="text-[#f6c945] font-extrabold text-xs sm:text-sm">
+                      {getAvatar(selectedAvatarKey).name}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("quest")}
+                    className="retro-button flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border border-[#2f2d45] bg-[#0d0b14] hover:bg-[#1c1b2b] text-xs font-bold text-[#f4efe6] cursor-pointer"
+                  >
+                    {t("← เลือกด่านอื่น", "← Pick Another Floor")}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleConfirmHeroAndPlay()}
+                    className="retro-button flex-1 sm:flex-initial px-6 py-2.5 rounded-xl bg-[#f6c945] hover:bg-[#ffe27a] text-[#120f1c] text-xs sm:text-sm font-black pixel-font flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-transform hover:scale-[1.02]"
+                  >
+                    <Icon name="gamepad" size={16} />
+                    <span>
+                      {t(
+                        `ยืนยัน & เริ่มลุยชั้นนี้ (${getAvatar(selectedAvatarKey).name}) →`,
+                        `Confirm & Enter Floor (${getAvatar(selectedAvatarKey).name}) →`
+                      )}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ==================== TAB 2: PLAY FLOOR ==================== */}
           {activeTab === "practice" && activeTopic && (
             <TopicDungeonArena
@@ -1325,6 +1545,8 @@ function CoursesContent() {
               totalTopics={currentLanguageTopics.length}
               currentStudent={currentStudent}
               studentId={currentStudent?.id}
+              avatarKey={selectedAvatarKey}
+              onChangeHero={() => setActiveTab("hero-select")}
               embedded
               onBackToMap={() => setActiveTab("quest")}
               onCompleteTopic={handleCompleteTopic}
@@ -1553,8 +1775,7 @@ function CoursesContent() {
                                     currentLanguageTopics.find(
                                       (tp) => tp.id === c.relatedTopicId
                                     ) || currentLanguageTopics[0];
-                                  setSelectedTopicId(target.id);
-                                  setActiveTab("practice");
+                                  handleStartTopic(target.id);
                                 }}
                                 className="px-2.5 py-1 rounded-lg bg-[#c0283a] hover:bg-[#ff4d6d] text-white text-[11px] font-extrabold cursor-pointer"
                               >

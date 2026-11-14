@@ -71,6 +71,8 @@ export interface TopicDungeonArenaProps {
   studentId?: string;
   defaultMode?: "dungeon" | "classic";
   embedded?: boolean;
+  avatarKey?: AvatarKey;
+  onChangeHero?: () => void;
 }
 
 export function TopicDungeonArena({
@@ -84,6 +86,8 @@ export function TopicDungeonArena({
   studentId,
   defaultMode = "dungeon",
   embedded = false,
+  avatarKey: propsAvatarKey,
+  onChangeHero,
 }: TopicDungeonArenaProps) {
   const { t } = useUiLanguage();
   const hasSession = Boolean(getClientSession());
@@ -114,11 +118,17 @@ export function TopicDungeonArena({
   );
 
   // Avatar & Sound preferences
-  const [avatarKey, setAvatarKey] = useState<AvatarKey>(DEFAULT_AVATAR);
+  const [avatarKey, setAvatarKey] = useState<AvatarKey>(
+    propsAvatarKey || DEFAULT_AVATAR
+  );
   const [showAvatarMenu, setShowAvatarMenu] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
 
   useEffect(() => {
+    if (propsAvatarKey && AVATARS.some((a) => a.key === propsAvatarKey)) {
+      setAvatarKey(propsAvatarKey);
+      return;
+    }
     try {
       const savedAvatar = localStorage.getItem("explain_code_dungeon_avatar") as AvatarKey;
       if (savedAvatar && AVATARS.some((a) => a.key === savedAvatar)) {
@@ -133,7 +143,7 @@ export function TopicDungeonArena({
     } catch {
       // ignore storage errors
     }
-  }, []);
+  }, [propsAvatarKey]);
 
   const avatar = useMemo(() => getAvatar(avatarKey), [avatarKey]);
 
@@ -440,7 +450,13 @@ export function TopicDungeonArena({
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setShowAvatarMenu((s) => !s)}
+                onClick={() => {
+                  if (onChangeHero) {
+                    onChangeHero();
+                  } else {
+                    setShowAvatarMenu((s) => !s);
+                  }
+                }}
                 className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-[#0d0b14] border border-[#2f2d45] hover:border-[#f6c945] text-xs cursor-pointer transition-colors"
                 title={t("เปลี่ยนตัวละครพิกเซล", "Switch Pixel Avatar")}
               >
