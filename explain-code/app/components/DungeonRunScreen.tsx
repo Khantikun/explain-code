@@ -134,12 +134,13 @@ export function DungeonRunScreen({
   };
 
   // Submit Answer in Current Encounter
-  const handleSubmitAnswer = () => {
-    if (!runState || !runState.currentRoomId || !selectedOptionId || encounterSolved) return;
+  const handleSubmitAnswer = (optionIdOverride?: string) => {
+    const targetOptionId = optionIdOverride ?? selectedOptionId;
+    if (!runState || !runState.currentRoomId || !targetOptionId || encounterSolved) return;
 
     const currentRoom = runState.rooms[runState.currentRoomId];
     const currentEncounter = currentRoom.encounters[runState.currentEncounterIndex];
-    const chosenOption = currentEncounter.options.find((o) => o.id === selectedOptionId);
+    const chosenOption = currentEncounter.options.find((o) => o.id === targetOptionId);
 
     if (!chosenOption) return;
 
@@ -999,7 +1000,7 @@ export function DungeonRunScreen({
                       "bg-[#1c1b2b] border-[#2f2d45] hover:border-[#9b5de5] hover:bg-[#252238] text-[#f4efe6] cursor-pointer";
 
                     if (isSelected && !encounterSolved) {
-                      optionStyle = "bg-[#5a2d91]/35 border-[#9b5de5] text-[#ffe27a] ring-1 ring-[#9b5de5] cursor-pointer";
+                      optionStyle = "bg-[#5a2d91]/35 hover:bg-[#5a2d91]/55 border-[#9b5de5] text-[#ffe27a] ring-1 ring-[#9b5de5] cursor-pointer";
                     }
 
                     if (encounterSolved) {
@@ -1021,7 +1022,14 @@ export function DungeonRunScreen({
                         key={opt.id}
                         type="button"
                         disabled={encounterSolved || isEliminated || isAttemptedWrong}
-                        onClick={() => setSelectedOptionId(opt.id)}
+                        onClick={() => {
+                          if (encounterSolved || isEliminated || isAttemptedWrong) return;
+                          if (selectedOptionId === opt.id) {
+                            handleSubmitAnswer(opt.id);
+                            return;
+                          }
+                          setSelectedOptionId(opt.id);
+                        }}
                         className={`w-full p-3.5 rounded-xl border text-left text-xs transition leading-relaxed flex items-start gap-3 ${optionStyle}`}
                       >
                         <div
@@ -1100,7 +1108,7 @@ export function DungeonRunScreen({
                   <button
                     type="button"
                     disabled={!selectedOptionId}
-                    onClick={handleSubmitAnswer}
+                    onClick={() => handleSubmitAnswer()}
                     className={`w-full py-3.5 rounded-xl font-bold text-sm shadow-lg transition ${
                       selectedOptionId
                         ? "bg-[#9b5de5] hover:bg-[#b07af0] text-[#f4efe6] cursor-pointer"

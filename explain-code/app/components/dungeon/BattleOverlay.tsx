@@ -231,6 +231,10 @@ export function BattleOverlay({
 
   const handleSelectChoice = (index: number) => {
     if (isSubmitted || isSubmitting || eliminatedChoices.includes(index)) return;
+    if (selectedChoice === index) {
+      void handleSubmit(index);
+      return;
+    }
     setSelectedChoice(index);
   };
 
@@ -350,8 +354,9 @@ export function BattleOverlay({
     );
   };
 
-  const handleSubmit = useCallback(async () => {
-    if (!activeQuestion || selectedChoice === null || isSubmitted || isSubmitting) return;
+  const handleSubmit = useCallback(async (choiceOverride?: number) => {
+    const chosenIndex = choiceOverride ?? selectedChoice;
+    if (!activeQuestion || chosenIndex === null || isSubmitted || isSubmitting) return;
 
     setIsSubmitting(true);
     let correct = false;
@@ -363,7 +368,7 @@ export function BattleOverlay({
     const useLocalOnly = localValidation || isMultiPhase;
 
     if (useLocalOnly) {
-      correct = selectedChoice === activeQuestion.correctIndex;
+      correct = chosenIndex === activeQuestion.correctIndex;
     } else {
       try {
         const res = await fetch("/api/dungeon/answer", {
@@ -372,7 +377,7 @@ export function BattleOverlay({
           body: JSON.stringify({
             runId: runId || "trial",
             questionId: activeQuestion.id,
-            selectedIndex: selectedChoice,
+            selectedIndex: chosenIndex,
             courseId,
             lessonId,
           }),
@@ -925,7 +930,7 @@ export function BattleOverlay({
                 btnClass = "bg-[#120f1c] border-[#2f2d45] text-[#9a93ad] opacity-60";
               }
             } else if (isSelected) {
-              btnClass = "bg-[#5a2d91] border-[#f6c945] text-[#ffe27a] shadow-[0_0_10px_rgba(246,201,69,0.3)]";
+              btnClass = "bg-[#5a2d91] hover:bg-[#6b36ab] border-[#f6c945] text-[#ffe27a] shadow-[0_0_10px_rgba(246,201,69,0.3)]";
             }
 
             return (
@@ -941,7 +946,7 @@ export function BattleOverlay({
                 <span className="pixel-font font-black text-xs px-1.5 py-0.5 rounded bg-[#120f1c] border border-white/20 shrink-0">
                   {idx + 1}
                 </span>
-                <span className="leading-snug">{choice}</span>
+                <span className="leading-snug flex-1">{choice}</span>
               </button>
             );
           })}
