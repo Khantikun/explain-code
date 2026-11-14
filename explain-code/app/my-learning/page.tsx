@@ -181,15 +181,21 @@ export default function MyLearningPage() {
                           <p className="text-[11px] font-bold text-[#9a93ad]">
                             ประวัติการเล่นล่าสุด:
                           </p>
-                          {save.history.slice(0, 2).map((h, i) => (
+                          {save.history.slice(0, 3).map((h, i) => (
                             <div
                               key={`${h.topicId}-${i}`}
                               className="flex items-center justify-between text-[11px] text-[#e8e1cf]"
                             >
                               <span className="truncate pr-2">{h.topicTitle}</span>
-                              <span className="shrink-0 font-bold text-[#86efac]">
-                                {h.scorePercent}% (+{h.xpEarned} XP)
-                              </span>
+                              {h.topicTitle.includes("(จุดเซฟเกม)") ? (
+                                <span className="shrink-0 font-bold text-[#ffe27a]">
+                                  {h.timestamp}
+                                </span>
+                              ) : (
+                                <span className="shrink-0 font-bold text-[#86efac]">
+                                  {h.scorePercent}% (+{h.xpEarned} XP)
+                                </span>
+                              )}
                             </div>
                           ))}
                         </div>

@@ -307,7 +307,12 @@ function CoursesContent() {
         const matchedTopic = Number.isFinite(topicIdParam)
           ? langTopics.find((tp) => tp.id === topicIdParam)
           : undefined;
-        setSelectedTopicId(matchedTopic ? matchedTopic.id : langTopics[0].id);
+        if (matchedTopic) {
+          setSelectedTopicId(matchedTopic.id);
+          setActiveTab("practice");
+        } else {
+          setSelectedTopicId(langTopics[0].id);
+        }
       }
     } else {
       setSelectedLanguage(null);
@@ -676,38 +681,53 @@ function CoursesContent() {
   };
 
   const handleSaveDungeonGame = () => {
-    if (!session) return;
-    const updatedStudents = students.some((stu) => stu.id === currentStudent.id)
-      ? students.map((stu) =>
-          stu.id === currentStudent.id ? currentStudent : stu
+    if (!session || activeTab !== "practice" || !activeTopic) return;
+
+    const savedTimeLabel = new Date().toLocaleTimeString("th-TH", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    const saveHistoryItem = {
+      topicId: activeTopic.id,
+      topicTitle: `${currentTrackMeta.name} · ${activeTopic.title} (จุดเซฟเกม)`,
+      scorePercent: currentStudent.completedTopics.includes(activeTopic.id)
+        ? 100
+        : 0,
+      xpEarned: 0,
+      timestamp: `เซฟเมื่อ ${savedTimeLabel}`,
+    };
+
+    const dedupedHistory = currentStudent.history.filter(
+      (item) =>
+        !(
+          item.topicId === activeTopic.id &&
+          item.topicTitle.includes("(จุดเซฟเกม)")
         )
-      : [...students, currentStudent];
+    );
+
+    const studentToSave: StudentRecord = {
+      ...currentStudent,
+      history: [saveHistoryItem, ...dedupedHistory].slice(0, 20),
+    };
+
+    const updatedStudents = students.some((stu) => stu.id === studentToSave.id)
+      ? students.map((stu) =>
+          stu.id === studentToSave.id ? studentToSave : stu
+        )
+      : [...students, studentToSave];
     saveStudentsToStorage(updatedStudents);
 
-    const nextPlayableTopic =
-      currentLanguageTopics.find(
-        (tp, idx) =>
-          isTopicUnlocked(tp.id, idx) &&
-          !currentStudent.completedTopics.includes(tp.id)
-      ) ||
-      activeTopic ||
-      currentLanguageTopics[0];
-
-    const targetId =
-      activeTab === "practice" && activeTopic
-        ? activeTopic.id
-        : nextPlayableTopic.id;
-
-    persistDungeonSave(currentStudent, targetId);
+    persistDungeonSave(studentToSave, activeTopic.id);
     setSaveGameNotice(
       t(
-        "✓ เซฟเกมเรียบร้อยแล้ว! ดูความคืบหน้าได้ที่เมนู 'การเรียนของฉัน'",
-        "✓ Game saved! Check your progress in 'My Learning'."
+        "✓ เซฟเกมและประวัติการเล่นล่าสุดเรียบร้อยแล้ว! ดูหรือกลับมาเล่นต่อได้ที่ 'การเรียนของฉัน'",
+        "✓ Game & latest history saved! Resume anytime in 'My Learning'."
       )
     );
     window.setTimeout(() => {
       setSaveGameNotice(null);
-    }, 4000);
+    }, 4500);
   };
 
   const handleCompleteTopic = (result: {
@@ -1151,16 +1171,7 @@ function CoursesContent() {
                   </h2>
 
                   <div className="flex items-center gap-2 flex-wrap">
-                    {session ? (
-                      <button
-                        type="button"
-                        onClick={handleSaveDungeonGame}
-                        className="px-3.5 py-1.5 rounded-xl text-xs font-extrabold border border-[#2fbf71]/70 bg-[#102a1e] text-[#86efac] hover:bg-[#153827] transition cursor-pointer flex items-center gap-1.5"
-                      >
-                        <span>💾</span>
-                        <span>{t("เซฟเกม", "Save Game")}</span>
-                      </button>
-                    ) : (
+                    {!session && (
                       <span className="px-3 py-1.5 rounded-xl text-[11px] font-bold border border-[#2f2d45] bg-[#1c1b2b] text-[#9a93ad]">
                         {t(
                           "โหมดทดลอง (ไม่บันทึกประวัติ)",
@@ -1184,18 +1195,6 @@ function CoursesContent() {
                     </button>
                   </div>
                 </div>
-
-                {saveGameNotice && (
-                  <div className="rounded-xl border border-[#2fbf71]/70 bg-[#102a1e] px-4 py-2.5 text-xs font-bold text-[#86efac] flex items-center justify-between gap-2">
-                    <span>{saveGameNotice}</span>
-                    <Link
-                      href="/my-learning"
-                      className="underline font-extrabold text-[#ffe27a] hover:text-white whitespace-nowrap"
-                    >
-                      {t("ไปหน้าการเรียนของฉัน →", "Go to My Learning →")}
-                    </Link>
-                  </div>
-                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {currentLanguageTopics.map((topic, idx) => {
