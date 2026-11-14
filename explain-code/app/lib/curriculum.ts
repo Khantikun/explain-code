@@ -1491,56 +1491,150 @@ export const INITIAL_STUDENTS: StudentRecord[] = [
   },
 ];
 
-export const AI_USAGE_LOGS = [
+export interface AiUsageLogItem {
+  id: number;
+  category: "architecture" | "code" | "security" | "ui" | "asset";
+  categoryLabel: string;
+  aiTool: string;
+  promptTitle: string;
+  promptText: string;
+  problemFound: string;
+  solutionApplied: string;
+  codeExplanation: string;
+  relatedFiles: string[];
+}
+
+export const AI_USAGE_LOGS: AiUsageLogItem[] = [
   {
     id: 1,
+    category: "architecture",
+    categoryLabel: "สถาปัตยกรรมการเรียนรู้ (Pedagogy & Data Model)",
+    aiTool: "Google Gemini 2.5 Pro (ผ่าน Antigravity IDE)",
     promptTitle: "Prompt 1 · ออกแบบชุดคำถามตามกรอบ Block Model 12 ช่อง",
     promptText:
       "ช่วยออกแบบโครงสร้างคำถามวัดความเข้าใจโค้ด JavaScript ระดับมัธยมตามกรอบ Block Model (Schulte, 2008) ทั้ง 12 ช่อง (ระดับ Atom, Block, Relation, Macro × มิติ Text Surface, Execution, Function) โดยให้มีคำใบ้เมื่อตอบผิดครั้งที่ 1 และเฉลยละเอียดเมื่อตอบผิดครั้งที่ 2",
     problemFound:
       "AI เจนคำถามที่เน้นแต่การถามผลลัพธ์สุดท้าย (ช่อง E4) ซ้ำกันหลายข้อ และขาดคำถามระดับความสัมพันธ์ระหว่างบล็อก (T3, E3, F3)",
     solutionApplied:
-      "ทีมปรับตาราง Mapping คำถามใหม่ด้วยตัวเองให้ครบทั้ง 12 ช่องอย่างชัดเจน พร้อมติดป้ายรหัสช่อง (T1–F4) กำกับทุกข้อ",
+      "ทีมปรับตาราง Mapping คำถามใหม่ด้วยตัวเองให้ครบทั้ง 12 ช่องอย่างชัดเจน พร้อมติดป้ายรหัสช่อง (T1–F4) กำกับทุกข้อ และเชื่อมเข้ากับกระบวนการเรียน 4 ขั้น (PRIMM)",
+    codeExplanation:
+      "กำหนดโครงสร้างข้อมูล BLOCK_MODEL_CELLS (12 ช่อง: T1–T4, E1–E4, F1–F4) และ TOPICS ทั้ง 7 เรื่องในไฟล์ curriculum.ts โดยแต่ละคำถามระบุ cellId และ targetLine ชัดเจน เพื่อคำนวณคะแนนความเข้าใจรายช่องแบบถ่วงน้ำหนัก",
+    relatedFiles: ["app/lib/curriculum.ts", "app/components/BlockModelGrid.tsx"],
   },
   {
     id: 2,
+    category: "code",
+    categoryLabel: "เอนจินรันโค้ดและตรวจคำตอบ (Execution Engine)",
+    aiTool: "Google Gemini 2.5 Pro (ผ่าน Antigravity IDE)",
     promptTitle: "Prompt 2 · สร้างตัวรันโค้ดจริงสำหรับตรวจคำตอบข้อทำนายผล (PRIMM)",
     promptText:
-      "เขียนฟังก์ชันรันโค้ด JavaScript ในฝั่งเว็บแอปที่ดักจับค่าจาก console.log เพื่อนำผลรันจริงมาตรวจคำตอบในขั้น Predict และ Modify ของกระบวนการ PRIMM",
+      "เขียนฟังก์ชันรันโค้ด JavaScript ในฝั่งเว็บแอปที่ดักจับค่าจาก console.log เพื่อนำผลรันจริงมาตรวจคำตอบในขั้น Predict และ Modify ของกระบวนการ PRIMM พร้อมป้องกัน Infinite Loop",
     problemFound:
-      "ตอนแรก AI แนะนำให้ส่งโค้ดไปถาม LLM ว่าโค้ดนี้พิมพ์อะไร ซึ่งเสี่ยงที่ AI จะเดาคำตอบผิดและต้องพึ่งพาอินเทอร์เน็ต",
+      "ตอนแรก AI แนะนำให้ส่งโค้ดไปถาม LLM ว่าโค้ดนี้พิมพ์อะไร ซึ่งเสี่ยงที่ AI จะเดาคำตอบผิด (Hallucination) และต้องพึ่งพาอินเทอร์เน็ตตลอดเวลา",
     solutionApplied:
-      "เปลี่ยนมาใช้ Sandbox Function Runner รันโค้ด JavaScript จริงในระบบ เพื่อให้ผลลัพธ์แม่นยำ 100% จากการรันจริงตามหลักการที่กำหนด",
+      "เปลี่ยนมาใช้ Sandbox Function Runner รันโค้ด JavaScript จริงในระบบ พร้อมตัวตรวจจับรูปแบบโค้ดที่ไม่ปลอดภัยและจำกัดจำนวนบรรทัดแสดงผล เพื่อให้ผลลัพธ์แม่นยำ 100% จากการรันจริง",
+    codeExplanation:
+      "ฟังก์ชัน runJavaScriptReal ในไฟล์ codeAnalyzer.ts สร้าง customConsole ที่ดักจับอาร์กิวเมนต์จาก console.log เก็บลงแอเรย์ logs แล้วประมวลผลผ่าน new Function('console', code) ภายในบล็อก try/catch คืนค่าทั้งสถานะความสำเร็จและข้อความเอาต์พุตจริง",
+    relatedFiles: ["app/lib/codeAnalyzer.ts", "app/components/PracticeArena.tsx"],
   },
   {
     id: 3,
-    promptTitle: "Prompt 3 · พัฒนา API หลังบ้านตรวจคำอธิบายอิสระของนักเรียน",
+    category: "security",
+    categoryLabel: "ระบบ AI หลังบ้านและความปลอดภัยของ API Key (Backend & AI API)",
+    aiTool: "Google Gemini 2.5 Flash API + Antigravity IDE",
+    promptTitle: "Prompt 3 · พัฒนา API หลังบ้านอธิบายโค้ด 6 ภาษาและแปลงโค้ดเป็นดันเจี้ยน 3 เฟส",
     promptText:
-      "สร้าง Next.js Route Handler (/api/interrogate) สำหรับส่งคำอธิบายโค้ดของนักเรียนไปให้ Gemini ตรวจตามเกณฑ์ Block Model โดยเก็บ API Key ไว้ที่ฝั่งเซิร์ฟเวอร์เท่านั้น",
+      "สร้าง Next.js Route Handlers (/api/explain, /api/explain/to-dungeon และ /api/interrogate) สำหรับส่งโค้ดไปวิเคราะห์ทีละบรรทัดและสร้างโจทย์ดันเจี้ยน 3 เฟส (Predict, Trace, Modify) ด้วย Gemini API โดยเก็บ GEMINI_API_KEY ไว้ที่ฝั่งเซิร์ฟเวอร์เท่านั้น พร้อมทำ Rate Limit ป้องกันการยิงสแปม",
     problemFound:
-      "เมื่อไม่มีการตั้งค่า API Key หรืออินเทอร์เน็ตขัดข้อง หน้าเว็บเกิด Error และตรวจคำตอบไม่ได้",
+      "เมื่อไม่มีการตั้งค่า API Key ในเครื่องทดสอบ หรือเมื่ออินเทอร์เน็ตขัดข้อง/ติดโควตา หน้าเว็บเกิด Error และไม่สามารถใช้งานฟีเจอร์อธิบายโค้ดหรือสร้างดันเจี้ยนต่อได้",
     solutionApplied:
-      "เพิ่มระบบ Fallback Heuristic Evaluator ที่ตรวจคีย์เวิร์ดแนวคิดและโครงสร้างเหตุผลได้ทันทีแม้ไม่มี API Key",
+      "เพิ่มระบบ Hybrid Fallback Engine (Deterministic Code Analyzer & Heuristic Evaluator) ที่สลับมาวิเคราะห์โครงสร้างโค้ดและสร้างโจทย์ดันเจี้ยน 3 เฟสได้อัตโนมัติภายในเสี้ยววินาทีแม้ไม่มี API Key พร้อมระบบจำกัดอัตราเรียกใช้ (Rate Limiting ต่อ IP และโควตา Guest)",
+    codeExplanation:
+      "Route Handlers ฝั่งเซิร์ฟเวอร์อ่านค่า process.env.GEMINI_API_KEY เฉพาะใน Node.js runtime (ไม่ส่งออกไปที่ฝั่ง Client เด็ดขาดตามกติกาหน้า 4) เรียก Gemini 2.5 Flash แบบกำหนด JSON Schema และหากเกิดข้อผิดพลาดจะสลับไปใช้ฟังก์ชันวิเคราะห์โครงสร้างโค้ดใน explain-code.ts และ to-dungeon-questions.ts ทันที",
+    relatedFiles: [
+      "app/api/explain/route.ts",
+      "app/api/explain/to-dungeon/route.ts",
+      "app/api/interrogate/route.ts",
+      "app/lib/explain-code.ts",
+    ],
   },
   {
     id: 4,
-    promptTitle: "Prompt 4 · ออกแบบระบบล็อกอินด้วยชื่อเล่นสมมติและการแฮช PIN ตาม PDPA",
+    category: "security",
+    categoryLabel: "การคุ้มครองข้อมูลส่วนบุคคล (PDPA Compliance)",
+    aiTool: "Google Gemini 2.5 Pro (ผ่าน Antigravity IDE)",
+    promptTitle: "Prompt 4 · ออกแบบระบบล็อกอินด้วยชื่อเล่นสมมติและการแฮช PIN ตาม PDPA พ.ศ. 2562",
     promptText:
-      "สร้างระบบเข้าสู่ระบบสำหรับนักเรียนด้วยชื่อเล่นสมมติและรหัส PIN 4 หลัก ผูกกับรหัสห้องของครู โดยแฮช PIN ด้วย SHA-256 ที่ฝั่งหลังบ้านตามหลัก PDPA 2562",
+      "สร้างระบบเข้าสู่ระบบสำหรับนักเรียนด้วยชื่อเล่นสมมติและรหัส PIN 4 หลัก ผูกกับรหัสห้องของครู โดยแฮช PIN ด้วย SHA-256 ที่ฝั่งหลังบ้านตามหลัก พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA)",
     problemFound:
-      "AI สร้างฟอร์มที่มีช่องกรอกอีเมลและชื่อ-นามสกุลจริงมาให้ ซึ่งขัดต่อหลักการคุ้มครองข้อมูลส่วนบุคคลของนักเรียน",
+      "AI สร้างฟอร์มมาตรฐานที่มีช่องกรอกอีเมล ชื่อ-นามสกุลจริง และเบอร์โทรศัพท์มาให้ ซึ่งขัดต่อหลักการคุ้มครองข้อมูลส่วนบุคคลของนักเรียนในระดับโรงเรียน",
     solutionApplied:
-      "ตัดช่องข้อมูลส่วนบุคคลออกทั้งหมด เหลือเพียงชื่อเล่นสมมติและ PIN 4 หลักที่ผ่านการแฮช SHA-256 พร้อมข้อความเตือนห้ามใช้ชื่อจริง",
+      "ตัดช่องข้อมูลส่วนบุคคลที่ระบุตัวตนได้จริง (PII) ออกทั้งหมด เหลือเพียงชื่อเล่นสมมติ (Pseudonym) เช่น 'แมวส้ม' และ PIN 4 หลักที่ผ่านการแฮช SHA-256 พร้อมป้ายแจ้งเตือนห้ามใช้ชื่อจริงในทุกหน้าฟอร์ม",
+    codeExplanation:
+      "ระบบตรวจสอบสิทธิ์ใน /api/auth/route.ts ใช้ Web Crypto API / Node crypto คำนวณค่าแฮช SHA-256 ของรหัส PIN และรหัสผ่านครูก่อนเปรียบเทียบหรือบันทึกลงฐานข้อมูล Supabase และจัดการ Session ผ่าน HttpOnly Cookie ร่วมกับสถานะฝั่ง Client",
+    relatedFiles: ["app/api/auth/route.ts", "app/login/page.tsx", "app/register/page.tsx"],
   },
   {
     id: 5,
+    category: "ui",
+    categoryLabel: "แดชบอร์ดครูและการเข้าถึงสำหรับทุกคน (Teacher Analytics & Accessibility)",
+    aiTool: "Google Gemini 2.5 Pro (ผ่าน Antigravity IDE)",
     promptTitle: "Prompt 5 · สร้างหน้าแดชบอร์ดครูและแผนที่ Block Model เฉลี่ยทั้งห้อง",
     promptText:
-      "สร้างหน้าวิเคราะห์ผลสำหรับครูที่คำนวณค่าเฉลี่ยความเข้าใจทั้ง 12 ช่องของนักเรียนทุกคนในห้อง แยกสีและข้อความกำกับเก่ง/กลาง/ควรทบทวน และคัดลอกสรุปไปใช้ปรับการสอนได้",
+      "สร้างหน้าวิเคราะห์ผลสำหรับครูที่คำนวณค่าเฉลี่ยความเข้าใจทั้ง 12 ช่องของนักเรียนทุกคนในห้อง แยกสีและข้อความกำกับเก่ง/กลาง/ควรทบทวน ปักหมุดเรื่องที่ต้องทบทวน และคัดลอกสรุปไปใช้ปรับการสอนได้",
     problemFound:
-      "ต้นแบบแรกแสดงผลเฉพาะสีเขียว/เหลือง/แดงโดยไม่มีข้อความกำกับ ทำให้ผู้ที่มีภาวะตาบอดสีแยกสถานะได้ยาก",
+      "ต้นแบบแรกแสดงผลเฉพาะสีเขียว/เหลือง/แดงโดยไม่มีข้อความกำกับ ทำให้ผู้ที่มีภาวะตาบอดสีแยกสถานะได้ยาก และคอนทราสต์สีไม่ผ่านเกณฑ์มาตรฐาน",
     solutionApplied:
-      "ปรับใช้ Design System ที่แสดงข้อความกำกับคู่กับสีเสมอ ('เก่ง 80% ขึ้นไป', 'กลาง 50–79%', 'ควรทบทวน ต่ำกว่า 50%') และผ่านเกณฑ์ความต่างสี 4.5:1",
+      "ปรับใช้ฟังก์ชัน getMasteryStatus ที่แสดงข้อความกำกับคู่กับสีเสมอ ('เก่ง 80% ขึ้นไป', 'กลาง 50–79%', 'ควรทบทวน ต่ำกว่า 50%') ด้วยคู่สีที่ผ่านเกณฑ์ความต่างสี WCAG AA (> 4.5:1) พร้อมฟีเจอร์ปักหมุดบทเรียนส่งตรงไปยังหน้าเควสต์ของนักเรียน",
+    codeExplanation:
+      "คอมโพเนนต์ TeacherDashboard.tsx และ /teacher/page.tsx ดึงข้อมูลคะแนนรายช่องของนักเรียนในห้องมาคำนวณค่าเฉลี่ยทั้ง 12 ช่อง จัดลำดับช่องที่ห้องอ่อนที่สุด และซิงค์รหัสเรื่องที่ครูปักหมุด (pinnedReviewTopicId) ผ่าน API ห้องเรียน",
+    relatedFiles: [
+      "app/components/TeacherDashboard.tsx",
+      "app/teacher/page.tsx",
+      "app/api/teacher/classrooms/route.ts",
+    ],
+  },
+  {
+    id: 6,
+    category: "code",
+    categoryLabel: "เกมดันเจี้ยน 2D Pixel RPG และสไปรต์โค้ด CC0 (Gamification Engine)",
+    aiTool: "Google Gemini 2.5 Pro (ผ่าน Antigravity IDE)",
+    promptTitle: "Prompt 6 · สร้างเอนจินเกม 2D Pixel RPG Dungeon และสไปรต์พิกเซลในโค้ด",
+    promptText:
+      "พัฒนาเอนจินเกม 2D Pixel RPG บน HTML5 Canvas สำหรับดันเจี้ยนฝึกอ่านโค้ด 6 ภาษา มีฮีโร่ 4 คลาส มอนสเตอร์ประจำบทเรียน ระบบต่อสู้ 3 เฟส (Predict, Trace, Modify) และวาดสไปรต์พิกเซลด้วยเมทริกซ์ในโค้ดเพื่อไม่ให้ติดลิขสิทธิ์ภาพภายนอก",
+    problemFound:
+      "การเรนเดอร์ Canvas ซ้ำทุกเฟรมเมื่อเปิดหน้าต่างคำถามทำให้กินทรัพยากรเครื่องบนมือถือ และสไปรต์ขนาดเล็กไม่คมชัดหากไม่ตั้งค่าการขยายพิกเซลให้ถูกต้อง",
+    solutionApplied:
+      "ปรับแต่ง GameCanvas ให้ใช้ imageSmoothingEnabled = false เพื่อความคมชัดระดับพิกเซลเรโทร แยกเลเยอร์ BattleOverlay ออกมาทำงานร่วมกับสถานะเกม และออกแบบเมทริกซ์สี 26 สีใน palette.ts และ sprites.ts แบบปลอดลิขสิทธิ์ 100% (CC0)",
+    codeExplanation:
+      "ใช้เมทริกซ์พิกเซล 2 มิติใน sprites.ts วาดลงบน HTML5 Canvas ผ่าน GameCanvas.tsx และควบคุมตรรกะการเดินสำรวจห้อง หีบสมบัติ และฉากต่อสู้มอนสเตอร์ด้วย State Machine ใน DungeonRunScreen.tsx และ TacticalDungeonScreen.tsx",
+    relatedFiles: [
+      "app/components/dungeon/GameCanvas.tsx",
+      "app/lib/dungeon/sprites.ts",
+      "app/lib/dungeon/mapgen.ts",
+      "app/components/DungeonRunScreen.tsx",
+    ],
+  },
+  {
+    id: 7,
+    category: "asset",
+    categoryLabel: "การสร้างภาพประกอบ โลโก้ และไอคอนด้วย AI (Generative AI Visual Assets)",
+    aiTool: "Generative AI Image Generator + Python Pillow Script (ผ่าน Antigravity IDE)",
+    promptTitle: "Prompt 7 · ออกแบบโลโก้หลัก (logo.png) และสร้างชุด Favicon / App Icons",
+    promptText:
+      "ออกแบบโลโก้ 'โค้ดนี้ฉันอธิบายได้ (ExplainCode)' สไตล์ Pixel RPG ผสานสัญลักษณ์โค้ดโปรแกรมมิงโทนสีทอง-ม่วงเข้มสำหรับพื้นหลังโหมดมืด แล้วนำไฟล์ logo.png ไปสร้างชุดไอคอนมาตรฐาน favicon.ico (หลายขนาด 16x16 ถึง 64x64), icon.png และ apple-icon.png พร้อมเชื่อมต่อใน Navbar และทุกหน้าของระบบ",
+    problemFound:
+      "ภาพโลโก้ต้นฉบับมีความละเอียดสูง (1472×704 พิกเซล ทรงแนวนอน) หากรัดสัดส่วนลงในกรอบจัตุรัสหรือทำเป็น Favicon ขนาด 16×16 พิกเซลโดยตรงจะทำให้ภาพบิดเบี้ยว (Aspect Ratio เพี้ยน) และมองเห็นรายละเอียดไม่ชัดบนแท็บเบราว์เซอร์",
+    solutionApplied:
+      "ใช้สคริปต์จัดวางภาพโลโก้ให้อยู่กึ่งกลางจัตุรัสแบบรักษาสัดส่วนเดิม (Square Padding with Transparent/Dark Canvas) และใช้การย่อขนาดแบบ LANCZOS Resampling สร้างไฟล์ favicon.ico แบบ Multi-resolution (16, 32, 48, 64px) รวมถึงกำหนดคลาส object-contain ในคอมโพเนนต์ Image ทุกจุด",
+    codeExplanation:
+      "จัดเก็บไฟล์โลโก้หลักไว้ที่ public/logo.png และสร้างไฟล์ไอคอนมาตรฐานของ Next.js App Router ได้แก่ app/favicon.ico, app/icon.png (192×192) และ app/apple-icon.png (180×180) พร้อมตั้งค่า Metadata icons ใน app/layout.tsx และแสดงผลใน SiteHeader.tsx, TeacherDashboard.tsx และหน้าดันเจี้ยนทั้งหมด",
+    relatedFiles: [
+      "public/logo.png",
+      "app/favicon.ico",
+      "app/layout.tsx",
+      "app/components/SiteHeader.tsx",
+    ],
   },
 ];
 

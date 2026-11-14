@@ -66,6 +66,18 @@ export default function DungeonCreditsPage() {
             เสียงเอฟเฟกต์สร้างผ่าน HTML5 Web Audio API ด้วยคลื่นเสียงสังเคราะห์ (Square / Triangle wave chiptune) ในโค้ดโดยตรง ไม่ใช้ไฟล์เสียง MP3/WAV ภายนอก และเริ่มต้นปิดเสียง (Muted) ตามมาตรฐานความพึงพอใจของผู้ใช้
           </p>
         </section>
+
+        <section className="space-y-2 border-t border-[#2f2d45] pt-4">
+          <h2 className="text-sm font-bold text-[#ffe27a] pixel-font">
+            5. GENERATIVE AI VISUAL ASSETS &amp; AI USAGE LOG
+          </h2>
+          <p className="text-xs text-[#f4efe6] leading-relaxed">
+            โลโก้หลักของระบบ (<code className="text-[#ffe27a]">public/logo.png</code>) และชุดไอคอนเว็บไซต์ (<code className="text-[#ffe27a]">app/favicon.ico</code>, <code className="text-[#ffe27a]">app/icon.png</code>, <code className="text-[#ffe27a]">app/apple-icon.png</code>) สร้างและปรับแต่งด้วย Generative AI ร่วมกับสคริปต์จัดสัดส่วนภาพตามกติกาข้อ 2.2 (หน้า 4) โดยสามารถดูรายละเอียดคำสั่ง Prompt ปัญหาที่พบ และวิธีปรับปรุงแก้ไขทั้งหมดได้ที่หน้า{" "}
+            <Link href="/ai-log" className="text-[#ffe27a] font-bold underline">
+              บันทึกการใช้ AI (AI Usage Log)
+            </Link>
+          </p>
+        </section>
       </div>
     </div>
   );
