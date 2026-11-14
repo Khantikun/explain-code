@@ -658,7 +658,7 @@ export function BattleOverlay({
                 flashDamage === "player" ? "scale-105 bg-[#c0283a]/60 ring-4 ring-[#ff4d6d]" : ""
               }`}
             >
-              <PixelSpriteView sprite={heroDef.sprite} size={44} />
+              <PixelSpriteView sprite={heroDef.sprite} size={44} animateBounce />
             </div>
             <div className="min-w-0 flex-1 space-y-1.5">
               <div className="flex items-center justify-between gap-2">
