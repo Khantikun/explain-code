@@ -19,6 +19,7 @@ export interface BattlePhaseResult {
 }
 
 interface BattleOverlayProps {
+  isOpen?: boolean;
   runId?: string;
   monster: MonsterDef;
   question?: DungeonQuestion;
@@ -121,6 +122,7 @@ function deriveTraceSteps(q: DungeonQuestion, isEn: boolean): DungeonTraceStep[]
 }
 
 export function BattleOverlay({
+  isOpen = true,
   runId,
   monster,
   question,
@@ -541,13 +543,20 @@ export function BattleOverlay({
     setFlashDamage(null);
   }, [selectedChoice]);
 
+  const handleCloseOverlay = useCallback(() => {
+    if (isSubmitted && isCorrect && phaseIndex < totalPhases - 1) {
+      handleNextPhase();
+    }
+    onClose();
+  }, [isSubmitted, isCorrect, phaseIndex, totalPhases, handleNextPhase, onClose]);
+
   // Keyboard shortcut listener for Escape, numbers 1-4, and Enter
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!activeQuestion) return;
+      if (!isOpen || !activeQuestion) return;
       if (e.key === "Escape" && !isSubmitting) {
         e.preventDefault();
-        onClose();
+        handleCloseOverlay();
         return;
       }
       if (isSubmitted) {
@@ -562,7 +571,7 @@ export function BattleOverlay({
           } else if (isMultiPhase && playerHearts > 0) {
             handleRetryPhase();
           } else {
-            onClose();
+            handleCloseOverlay();
           }
         }
         return;
@@ -583,6 +592,7 @@ export function BattleOverlay({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
+    isOpen,
     activeQuestion,
     selectedChoice,
     isSubmitted,
@@ -597,10 +607,11 @@ export function BattleOverlay({
     handleSubmit,
     handleNextPhase,
     handleRetryPhase,
+    handleCloseOverlay,
     onClose,
   ]);
 
-  if (!activeQuestion) return null;
+  if (!isOpen || !activeQuestion) return null;
 
   const displayMaxMonsterHp = isMultiPhase ? totalPhases : maxMonsterHp;
   const displayCurrentMonsterHp = isMultiPhase
@@ -624,7 +635,7 @@ export function BattleOverlay({
           </span>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleCloseOverlay}
             className="w-8 h-8 rounded-lg bg-[#252238] hover:bg-[#c0283a]/85 border border-[#4a4766] hover:border-[#ff4d6d] text-sm font-black text-[#f4efe6] flex items-center justify-center leading-none transition-colors cursor-pointer shrink-0"
             title={t("ออกจากการต่อสู้", "Exit battle")}
             aria-label={t("ออกจากการต่อสู้", "Exit battle")}

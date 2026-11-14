@@ -191,6 +191,7 @@ export function TopicDungeonArena({
   const [xp, setXp] = useState<number>(0);
   const [screenShake, setScreenShake] = useState<number>(0);
   const [isInBattle, setIsInBattle] = useState<boolean>(false);
+  const [battleResetNonce, setBattleResetNonce] = useState<number>(0);
   const [isChestOpen, setIsChestOpen] = useState<boolean>(false);
   const [chestBonusXp, setChestBonusXp] = useState<number>(0);
   const [chestBonusCoins, setChestBonusCoins] = useState<number>(0);
@@ -214,6 +215,7 @@ export function TopicDungeonArena({
     setCoins(0);
     setXp(0);
     setIsInBattle(false);
+    setBattleResetNonce((n) => n + 1);
     setIsChestOpen(false);
     setChestBonusXp(0);
     setChestBonusCoins(0);
@@ -400,6 +402,7 @@ export function TopicDungeonArena({
     setXp(0);
     setIsGameOver(false);
     setIsInBattle(false);
+    setBattleResetNonce((n) => n + 1);
     setIsChestOpen(false);
     setChestBonusXp(0);
     setChestBonusCoins(0);
@@ -937,29 +940,29 @@ export function TopicDungeonArena({
         />
       )}
 
-      {/* Multi-Phase Code Battle Overlay */}
-      {isInBattle && (
-        <BattleOverlay
-          runId={`topic-${activeTopic.id}`}
-          monster={currentMonster}
-          questions={phaseQuestions}
-          monsterHp={room.entity?.isCompleted ? 0 : phaseQuestions.length}
-          maxMonsterHp={phaseQuestions.length}
-          playerHearts={hearts}
-          maxPlayerHearts={maxHearts}
-          avatarKey={avatarKey}
-          initialFocus={initialFocusDisplay}
-          maxFocus={maxFocusDisplay}
-          extraShield={floorShieldBonus}
-          rewardMultiplier={floorRewardMultiplier}
-          localValidation={true}
-          onCorrectAnswer={handleCorrectAnswer}
-          onWrongAnswer={handleWrongAnswer}
-          onHealPlayer={() => setHearts((h) => Math.min(maxHearts, h + 1))}
-          onBattleComplete={handleBattleComplete}
-          onClose={() => setIsInBattle(false)}
-        />
-      )}
+      {/* Multi-Phase Code Battle Overlay (keep mounted across close/reopen so current question progress is preserved) */}
+      <BattleOverlay
+        key={`battle-${activeTopic.id}-${activeLanguage}-${battleResetNonce}`}
+        isOpen={isInBattle}
+        runId={`topic-${activeTopic.id}`}
+        monster={currentMonster}
+        questions={phaseQuestions}
+        monsterHp={room.entity?.isCompleted ? 0 : phaseQuestions.length}
+        maxMonsterHp={phaseQuestions.length}
+        playerHearts={hearts}
+        maxPlayerHearts={maxHearts}
+        avatarKey={avatarKey}
+        initialFocus={initialFocusDisplay}
+        maxFocus={maxFocusDisplay}
+        extraShield={floorShieldBonus}
+        rewardMultiplier={floorRewardMultiplier}
+        localValidation={true}
+        onCorrectAnswer={handleCorrectAnswer}
+        onWrongAnswer={handleWrongAnswer}
+        onHealPlayer={() => setHearts((h) => Math.min(maxHearts, h + 1))}
+        onBattleComplete={handleBattleComplete}
+        onClose={() => setIsInBattle(false)}
+      />
     </div>
   );
 }
