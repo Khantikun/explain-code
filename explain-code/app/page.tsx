@@ -5,6 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { SiteHeader } from "./components/SiteHeader";
 import { LandingHeroPreview } from "./components/LandingHeroEffects";
+import { PixelSpriteView } from "./components/dungeon/PixelSpriteView";
+import { AVATARS, BOSS_SPRITE, SLIME_SPRITE } from "./lib/dungeon/sprites";
 import { useUiLanguage } from "./components/LanguageProvider";
 import {
   TOPICS,
@@ -1128,22 +1130,32 @@ export default function ExplainCodeApp() {
         <SiteHeader onOpenClassicPortal={openClassicPortal} />
 
         <main className="relative overflow-hidden mx-auto flex-1 max-w-5xl w-full px-4 py-10 sm:px-6 sm:py-16">
-          {/* Ambient Hero Glow & Floating Code Tokens */}
+          {/* Ambient Hero Glow & Floating Character / Monster Models */}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-72 w-[560px] rounded-full bg-[#9b5de5]/20 blur-3xl"
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none hidden sm:block absolute top-14 left-6 font-mono text-xs font-bold text-[#9b5de5]/35 ambient-float select-none"
+            className="pointer-events-none hidden sm:flex flex-col items-center gap-3 absolute top-14 left-3 lg:left-8 opacity-50 lg:opacity-80 select-none"
           >
-            {"{ code => mastery }"}
+            <div className="relative ambient-float drop-shadow-[0_10px_18px_rgba(246,201,69,0.22)]">
+              <PixelSpriteView sprite={AVATARS[0].sprite} size={68} />
+            </div>
+            <div className="relative -ml-6 ambient-float [animation-delay:1.5s] opacity-85 drop-shadow-[0_8px_16px_rgba(155,93,229,0.25)]">
+              <PixelSpriteView sprite={AVATARS[1].sprite} size={50} />
+            </div>
           </div>
           <div
             aria-hidden="true"
-            className="pointer-events-none hidden sm:block absolute top-24 right-8 font-mono text-xs font-bold text-[#f6c945]/30 ambient-float select-none"
+            className="pointer-events-none hidden sm:flex flex-col items-center gap-3 absolute top-16 right-3 lg:right-8 opacity-50 lg:opacity-80 select-none"
           >
-            {"if (understand) levelUp();"}
+            <div className="relative ambient-float [animation-delay:0.8s] -scale-x-100 drop-shadow-[0_10px_18px_rgba(192,40,58,0.28)]">
+              <PixelSpriteView sprite={BOSS_SPRITE} size={72} />
+            </div>
+            <div className="relative -mr-6 ambient-float [animation-delay:2.1s] opacity-85 drop-shadow-[0_8px_16px_rgba(47,191,113,0.25)]">
+              <PixelSpriteView sprite={SLIME_SPRITE} size={46} />
+            </div>
           </div>
 
           {/* Hero Section */}
