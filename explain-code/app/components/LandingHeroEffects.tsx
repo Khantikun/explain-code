@@ -108,10 +108,10 @@ export function LandingDungeonBackdrop({ torchActive }: LandingDungeonBackdropPr
 
   return (
     <>
-      {/* Dungeon Stone Brick Wall Background */}
+      {/* Dungeon Stone Brick Wall Background (Top Hero Area Only) */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-45"
+        className="pointer-events-none absolute top-0 inset-x-0 h-[540px] sm:h-[600px] opacity-45"
       >
         <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -139,20 +139,20 @@ export function LandingDungeonBackdrop({ torchActive }: LandingDungeonBackdropPr
           </defs>
           <rect width="100%" height="100%" fill="url(#dungeon-wall-bricks)" />
         </svg>
-        {/* Soft vignette so bricks blend smoothly into #0d0b14 */}
+        {/* Soft fade at edges and bottom so lower sections remain clean */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse at center, transparent 35%, #0d0b14 92%)",
+              "linear-gradient(to bottom, transparent 50%, #0d0b14 100%), radial-gradient(ellipse at 50% 40%, transparent 45%, #0d0b14 95%)",
           }}
         />
       </div>
 
-      {/* Torch-lit Stone Brick Highlight */}
+      {/* Torch-lit Stone Brick Highlight (Top Hero Area Only) */}
       <div
         aria-hidden="true"
-        className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${
+        className={`pointer-events-none absolute top-0 inset-x-0 h-[540px] sm:h-[600px] transition-opacity duration-300 ${
           torchActive ? "opacity-80" : "opacity-0"
         }`}
         style={{
