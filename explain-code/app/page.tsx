@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { SiteHeader } from "./components/SiteHeader";
-import { LandingHeroPreview } from "./components/LandingHeroEffects";
-import { PixelSpriteView } from "./components/dungeon/PixelSpriteView";
-import { AVATARS, BOSS_SPRITE, SLIME_SPRITE } from "./lib/dungeon/sprites";
+import {
+  LandingDungeonBackdrop,
+  LandingHeroPreview,
+} from "./components/LandingHeroEffects";
 import { useUiLanguage } from "./components/LanguageProvider";
 import {
   TOPICS,
@@ -71,6 +72,17 @@ export default function ExplainCodeApp() {
   const [appMode, setAppMode] = useState<AppMode>("landing");
   const [studentTab, setStudentTab] = useState<StudentTab>("quest");
   const [authSession, setAuthSession] = useState<AuthSession | null>(null);
+  const [torchActive, setTorchActive] = useState<boolean>(false);
+  const landingMainRef = useRef<HTMLElement | null>(null);
+
+  const updateLandingTorch = (e: React.PointerEvent<HTMLElement>) => {
+    const el = landingMainRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    el.style.setProperty("--torch-x", `${e.clientX - rect.left}px`);
+    el.style.setProperty("--torch-y", `${e.clientY - rect.top}px`);
+    if (!torchActive) setTorchActive(true);
+  };
 
   // ข้อมูลห้องเรียน นักเรียน และครู
   const [classrooms, setClassrooms] =
@@ -1129,37 +1141,17 @@ export default function ExplainCodeApp() {
       <div className="min-h-screen bg-[#0d0b14] text-[#f4efe6] flex flex-col">
         <SiteHeader onOpenClassicPortal={openClassicPortal} />
 
-        <main className="relative overflow-hidden mx-auto flex-1 max-w-5xl w-full px-4 py-10 sm:px-6 sm:py-16">
-          {/* Ambient Hero Glow & Floating Character / Monster Models */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-72 w-[560px] rounded-full bg-[#9b5de5]/20 blur-3xl"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none hidden sm:flex flex-col items-center gap-3 absolute top-14 left-3 lg:left-8 opacity-50 lg:opacity-80 select-none"
-          >
-            <div className="relative ambient-float drop-shadow-[0_10px_18px_rgba(246,201,69,0.22)]">
-              <PixelSpriteView sprite={AVATARS[0].sprite} size={68} />
-            </div>
-            <div className="relative -ml-6 ambient-float [animation-delay:1.5s] opacity-85 drop-shadow-[0_8px_16px_rgba(155,93,229,0.25)]">
-              <PixelSpriteView sprite={AVATARS[1].sprite} size={50} />
-            </div>
-          </div>
-          <div
-            aria-hidden="true"
-            className="pointer-events-none hidden sm:flex flex-col items-center gap-3 absolute top-16 right-3 lg:right-8 opacity-50 lg:opacity-80 select-none"
-          >
-            <div className="relative ambient-float [animation-delay:0.8s] -scale-x-100 drop-shadow-[0_10px_18px_rgba(192,40,58,0.28)]">
-              <PixelSpriteView sprite={BOSS_SPRITE} size={72} />
-            </div>
-            <div className="relative -mr-6 ambient-float [animation-delay:2.1s] opacity-85 drop-shadow-[0_8px_16px_rgba(47,191,113,0.25)]">
-              <PixelSpriteView sprite={SLIME_SPRITE} size={46} />
-            </div>
-          </div>
+        <main
+          ref={landingMainRef}
+          onPointerMove={updateLandingTorch}
+          onPointerDown={updateLandingTorch}
+          onPointerLeave={() => setTorchActive(false)}
+          className="relative overflow-hidden mx-auto flex-1 max-w-5xl w-full px-4 py-10 sm:px-6 sm:py-16"
+        >
+          <LandingDungeonBackdrop torchActive={torchActive} />
 
           {/* Hero Section */}
-          <section className="relative text-center max-w-2xl mx-auto mb-12 hero-fade-in">
+          <section className="relative z-10 text-center max-w-2xl mx-auto mb-12 hero-fade-in">
             <h1 className="mt-4 text-3xl sm:text-5xl font-extrabold tracking-tight text-[#f4efe6] leading-tight">
               <span>{t("เขียนโค้ดได้แล้ว ", "You Can Write Code — ")}</span>
               <span className="mt-2 block text-[#f6c945] underline decoration-[#9b5de5] underline-offset-8">

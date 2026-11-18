@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "./Icons";
 import { useUiLanguage } from "./LanguageProvider";
+import { PixelSpriteView } from "./dungeon/PixelSpriteView";
+import { AVATARS, BOSS_SPRITE, SLIME_SPRITE } from "../lib/dungeon/sprites";
 
 const PREVIEW_LINES = [
   {
@@ -88,5 +90,115 @@ export function LandingHeroPreview() {
         </span>
       </div>
     </div>
+  );
+}
+
+interface LandingDungeonBackdropProps {
+  torchActive: boolean;
+}
+
+/**
+ * พื้นหลังดันเจี้ยนพร้อมลูกเล่นส่องไฟ (Spotlight):
+ * ตัวละครและมอนสเตอร์จะซ่อนอยู่ในเงามืด และสว่างขึ้นมาเมื่อนำเมาส์ไปชี้หรือคลิก/แตะ
+ */
+export function LandingDungeonBackdrop({ torchActive }: LandingDungeonBackdropProps) {
+  const { t } = useUiLanguage();
+  const [litHero, setLitHero] = useState(false);
+  const [litMonster, setLitMonster] = useState(false);
+
+  return (
+    <>
+      {/* Ambient Hero Glow */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-72 w-[560px] rounded-full bg-[#9b5de5]/20 blur-3xl"
+      />
+
+      {/* Cursor-following Dungeon Torchlight */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${
+          torchActive ? "opacity-100" : "opacity-0"
+        }`}
+        style={{
+          background:
+            "radial-gradient(240px circle at var(--torch-x, 50%) var(--torch-y, 30%), rgba(246, 201, 69, 0.13), rgba(155, 93, 229, 0.06) 45%, transparent 72%)",
+        }}
+      />
+
+      {/* Left Side: Hero Characters (Hover or Click to Illuminate) */}
+      <button
+        type="button"
+        onClick={() => setLitHero((prev) => !prev)}
+        title={t("ชี้หรือคลิกเพื่อส่องไฟดูตัวละคร", "Hover or click to illuminate heroes")}
+        aria-label={t("ส่องไฟดูตัวละคร", "Illuminate hero characters")}
+        aria-pressed={litHero}
+        className="group hidden sm:flex flex-col items-center gap-3 absolute top-14 left-2 lg:left-6 z-10 p-4 rounded-full cursor-pointer select-none focus:outline-hidden"
+      >
+        <span
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-0 rounded-full blur-2xl transition-all duration-300 ${
+            litHero
+              ? "opacity-100 scale-110 bg-[radial-gradient(circle,rgba(246,201,69,0.45)_0%,rgba(155,93,229,0.22)_55%,transparent_75%)]"
+              : "opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-110 bg-[radial-gradient(circle,rgba(246,201,69,0.42)_0%,rgba(155,93,229,0.2)_55%,transparent_75%)]"
+          }`}
+        />
+        <div
+          className={`relative ambient-float transition-all duration-300 ${
+            litHero
+              ? "opacity-100 brightness-105 grayscale-0 scale-105 drop-shadow-[0_10px_22px_rgba(246,201,69,0.45)]"
+              : "opacity-10 brightness-[0.12] grayscale scale-95 group-hover:opacity-100 group-hover:brightness-105 group-hover:grayscale-0 group-hover:scale-105 group-hover:drop-shadow-[0_10px_22px_rgba(246,201,69,0.45)]"
+          }`}
+        >
+          <PixelSpriteView sprite={AVATARS[0].sprite} size={68} />
+        </div>
+        <div
+          className={`relative -ml-6 ambient-float [animation-delay:1.5s] transition-all duration-300 ${
+            litHero
+              ? "opacity-95 brightness-105 grayscale-0 scale-105 drop-shadow-[0_8px_18px_rgba(155,93,229,0.45)]"
+              : "opacity-10 brightness-[0.12] grayscale scale-95 group-hover:opacity-95 group-hover:brightness-105 group-hover:grayscale-0 group-hover:scale-105 group-hover:drop-shadow-[0_8px_18px_rgba(155,93,229,0.45)]"
+          }`}
+        >
+          <PixelSpriteView sprite={AVATARS[1].sprite} size={50} />
+        </div>
+      </button>
+
+      {/* Right Side: Monsters (Hover or Click to Illuminate) */}
+      <button
+        type="button"
+        onClick={() => setLitMonster((prev) => !prev)}
+        title={t("ชี้หรือคลิกเพื่อส่องไฟดูมอนสเตอร์", "Hover or click to illuminate monsters")}
+        aria-label={t("ส่องไฟดูมอนสเตอร์", "Illuminate monsters")}
+        aria-pressed={litMonster}
+        className="group hidden sm:flex flex-col items-center gap-3 absolute top-16 right-2 lg:right-6 z-10 p-4 rounded-full cursor-pointer select-none focus:outline-hidden"
+      >
+        <span
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-0 rounded-full blur-2xl transition-all duration-300 ${
+            litMonster
+              ? "opacity-100 scale-110 bg-[radial-gradient(circle,rgba(255,77,109,0.42)_0%,rgba(47,191,113,0.18)_55%,transparent_75%)]"
+              : "opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-110 bg-[radial-gradient(circle,rgba(255,77,109,0.4)_0%,rgba(47,191,113,0.18)_55%,transparent_75%)]"
+          }`}
+        />
+        <div
+          className={`relative ambient-float [animation-delay:0.8s] -scale-x-100 transition-all duration-300 ${
+            litMonster
+              ? "opacity-100 brightness-105 grayscale-0 scale-105 drop-shadow-[0_10px_22px_rgba(255,77,109,0.45)]"
+              : "opacity-10 brightness-[0.12] grayscale scale-95 group-hover:opacity-100 group-hover:brightness-105 group-hover:grayscale-0 group-hover:scale-105 group-hover:drop-shadow-[0_10px_22px_rgba(255,77,109,0.45)]"
+          }`}
+        >
+          <PixelSpriteView sprite={BOSS_SPRITE} size={72} />
+        </div>
+        <div
+          className={`relative -mr-6 ambient-float [animation-delay:2.1s] transition-all duration-300 ${
+            litMonster
+              ? "opacity-95 brightness-105 grayscale-0 scale-105 drop-shadow-[0_8px_18px_rgba(47,191,113,0.45)]"
+              : "opacity-10 brightness-[0.12] grayscale scale-95 group-hover:opacity-95 group-hover:brightness-105 group-hover:grayscale-0 group-hover:scale-105 group-hover:drop-shadow-[0_8px_18px_rgba(47,191,113,0.45)]"
+          }`}
+        >
+          <PixelSpriteView sprite={SLIME_SPRITE} size={46} />
+        </div>
+      </button>
+    </>
   );
 }
