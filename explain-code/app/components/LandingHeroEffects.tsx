@@ -126,6 +126,32 @@ export function LandingDungeonBackdrop({ torchActive }: LandingDungeonBackdropPr
         }}
       />
 
+      {/* Ambient Floating Code Tokens */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none hidden md:block absolute top-8 left-12 lg:left-24 font-mono text-[11px] font-bold text-[#9b5de5]/30 ambient-float select-none"
+      >
+        {"{ code => mastery }"}
+      </div>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none hidden md:block absolute top-10 right-12 lg:right-24 font-mono text-[11px] font-bold text-[#f6c945]/25 ambient-float [animation-delay:1.1s] select-none"
+      >
+        {"if (understand) levelUp();"}
+      </div>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none hidden lg:block absolute top-64 left-6 font-mono text-[11px] font-bold text-[#2fbf71]/25 ambient-float [animation-delay:1.8s] select-none"
+      >
+        {"for (const line of code)"}
+      </div>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none hidden lg:block absolute top-72 right-6 font-mono text-[11px] font-bold text-[#c084fc]/25 ambient-float [animation-delay:2.4s] select-none"
+      >
+        {"return insight;"}
+      </div>
+
       {/* Left Side: Hero Characters (Hover or Click to Illuminate) */}
       <button
         type="button"
@@ -146,8 +172,8 @@ export function LandingDungeonBackdrop({ torchActive }: LandingDungeonBackdropPr
         <div
           className={`relative ambient-float transition-all duration-300 ${
             litHero
-              ? "opacity-100 blur-0 brightness-105 scale-105 drop-shadow-[0_10px_22px_rgba(246,201,69,0.45)]"
-              : "opacity-45 blur-[4px] brightness-75 scale-95 group-hover:opacity-100 group-hover:blur-0 group-hover:brightness-105 group-hover:scale-105 group-hover:drop-shadow-[0_10px_22px_rgba(246,201,69,0.45)]"
+              ? "opacity-100 brightness-105 grayscale-0 scale-105 drop-shadow-[0_10px_22px_rgba(246,201,69,0.45)]"
+              : "opacity-10 brightness-[0.12] grayscale scale-95 group-hover:opacity-100 group-hover:brightness-105 group-hover:grayscale-0 group-hover:scale-105 group-hover:drop-shadow-[0_10px_22px_rgba(246,201,69,0.45)]"
           }`}
         >
           <PixelSpriteView sprite={AVATARS[0].sprite} size={68} />
@@ -155,12 +181,21 @@ export function LandingDungeonBackdrop({ torchActive }: LandingDungeonBackdropPr
         <div
           className={`relative -ml-6 ambient-float [animation-delay:1.5s] transition-all duration-300 ${
             litHero
-              ? "opacity-95 blur-0 brightness-105 scale-105 drop-shadow-[0_8px_18px_rgba(155,93,229,0.45)]"
-              : "opacity-40 blur-[4px] brightness-75 scale-95 group-hover:opacity-95 group-hover:blur-0 group-hover:brightness-105 group-hover:scale-105 group-hover:drop-shadow-[0_8px_18px_rgba(155,93,229,0.45)]"
+              ? "opacity-95 brightness-105 grayscale-0 scale-105 drop-shadow-[0_8px_18px_rgba(155,93,229,0.45)]"
+              : "opacity-10 brightness-[0.12] grayscale scale-95 group-hover:opacity-95 group-hover:brightness-105 group-hover:grayscale-0 group-hover:scale-105 group-hover:drop-shadow-[0_8px_18px_rgba(155,93,229,0.45)]"
           }`}
         >
           <PixelSpriteView sprite={AVATARS[1].sprite} size={50} />
         </div>
+        <span
+          className={`relative mt-1 rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold transition-all duration-300 ${
+            litHero
+              ? "opacity-100 border-[#f6c945]/60 bg-[#1c1b2b]/90 text-[#ffe27a]"
+              : "opacity-20 border-[#3d395a]/40 bg-[#141220]/60 text-[#9a93ad] group-hover:opacity-100 group-hover:border-[#f6c945]/60 group-hover:bg-[#1c1b2b]/90 group-hover:text-[#ffe27a]"
+          }`}
+        >
+          {"hero.explain()"}
+        </span>
       </button>
 
       {/* Right Side: Monsters (Hover or Click to Illuminate) */}
@@ -183,8 +218,8 @@ export function LandingDungeonBackdrop({ torchActive }: LandingDungeonBackdropPr
         <div
           className={`relative ambient-float [animation-delay:0.8s] -scale-x-100 transition-all duration-300 ${
             litMonster
-              ? "opacity-100 blur-0 brightness-105 scale-105 drop-shadow-[0_10px_22px_rgba(255,77,109,0.45)]"
-              : "opacity-45 blur-[4px] brightness-75 scale-95 group-hover:opacity-100 group-hover:blur-0 group-hover:brightness-105 group-hover:scale-105 group-hover:drop-shadow-[0_10px_22px_rgba(255,77,109,0.45)]"
+              ? "opacity-100 brightness-105 grayscale-0 scale-105 drop-shadow-[0_10px_22px_rgba(255,77,109,0.45)]"
+              : "opacity-10 brightness-[0.12] grayscale scale-95 group-hover:opacity-100 group-hover:brightness-105 group-hover:grayscale-0 group-hover:scale-105 group-hover:drop-shadow-[0_10px_22px_rgba(255,77,109,0.45)]"
           }`}
         >
           <PixelSpriteView sprite={BOSS_SPRITE} size={72} />
@@ -192,12 +227,21 @@ export function LandingDungeonBackdrop({ torchActive }: LandingDungeonBackdropPr
         <div
           className={`relative -mr-6 ambient-float [animation-delay:2.1s] transition-all duration-300 ${
             litMonster
-              ? "opacity-95 blur-0 brightness-105 scale-105 drop-shadow-[0_8px_18px_rgba(47,191,113,0.45)]"
-              : "opacity-40 blur-[4px] brightness-75 scale-95 group-hover:opacity-95 group-hover:blur-0 group-hover:brightness-105 group-hover:scale-105 group-hover:drop-shadow-[0_8px_18px_rgba(47,191,113,0.45)]"
+              ? "opacity-95 brightness-105 grayscale-0 scale-105 drop-shadow-[0_8px_18px_rgba(47,191,113,0.45)]"
+              : "opacity-10 brightness-[0.12] grayscale scale-95 group-hover:opacity-95 group-hover:brightness-105 group-hover:grayscale-0 group-hover:scale-105 group-hover:drop-shadow-[0_8px_18px_rgba(47,191,113,0.45)]"
           }`}
         >
           <PixelSpriteView sprite={SLIME_SPRITE} size={46} />
         </div>
+        <span
+          className={`relative mt-1 rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold transition-all duration-300 ${
+            litMonster
+              ? "opacity-100 border-[#ff4d6d]/60 bg-[#2d141c]/90 text-[#fca5a5]"
+              : "opacity-20 border-[#3d395a]/40 bg-[#141220]/60 text-[#9a93ad] group-hover:opacity-100 group-hover:border-[#ff4d6d]/60 group-hover:bg-[#2d141c]/90 group-hover:text-[#fca5a5]"
+          }`}
+        >
+          {"while (bug) {}"}
+        </span>
       </button>
     </>
   );
