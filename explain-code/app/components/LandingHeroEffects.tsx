@@ -146,8 +146,8 @@ export function LandingDungeonBackdrop({ torchActive }: LandingDungeonBackdropPr
         <div
           className={`relative ambient-float transition-all duration-300 ${
             litHero
-              ? "opacity-100 brightness-105 grayscale-0 scale-105 drop-shadow-[0_10px_22px_rgba(246,201,69,0.45)]"
-              : "opacity-10 brightness-[0.12] grayscale scale-95 group-hover:opacity-100 group-hover:brightness-105 group-hover:grayscale-0 group-hover:scale-105 group-hover:drop-shadow-[0_10px_22px_rgba(246,201,69,0.45)]"
+              ? "opacity-100 blur-0 brightness-105 scale-105 drop-shadow-[0_10px_22px_rgba(246,201,69,0.45)]"
+              : "opacity-45 blur-[4px] brightness-75 scale-95 group-hover:opacity-100 group-hover:blur-0 group-hover:brightness-105 group-hover:scale-105 group-hover:drop-shadow-[0_10px_22px_rgba(246,201,69,0.45)]"
           }`}
         >
           <PixelSpriteView sprite={AVATARS[0].sprite} size={68} />
@@ -155,8 +155,8 @@ export function LandingDungeonBackdrop({ torchActive }: LandingDungeonBackdropPr
         <div
           className={`relative -ml-6 ambient-float [animation-delay:1.5s] transition-all duration-300 ${
             litHero
-              ? "opacity-95 brightness-105 grayscale-0 scale-105 drop-shadow-[0_8px_18px_rgba(155,93,229,0.45)]"
-              : "opacity-10 brightness-[0.12] grayscale scale-95 group-hover:opacity-95 group-hover:brightness-105 group-hover:grayscale-0 group-hover:scale-105 group-hover:drop-shadow-[0_8px_18px_rgba(155,93,229,0.45)]"
+              ? "opacity-95 blur-0 brightness-105 scale-105 drop-shadow-[0_8px_18px_rgba(155,93,229,0.45)]"
+              : "opacity-40 blur-[4px] brightness-75 scale-95 group-hover:opacity-95 group-hover:blur-0 group-hover:brightness-105 group-hover:scale-105 group-hover:drop-shadow-[0_8px_18px_rgba(155,93,229,0.45)]"
           }`}
         >
           <PixelSpriteView sprite={AVATARS[1].sprite} size={50} />
@@ -183,8 +183,8 @@ export function LandingDungeonBackdrop({ torchActive }: LandingDungeonBackdropPr
         <div
           className={`relative ambient-float [animation-delay:0.8s] -scale-x-100 transition-all duration-300 ${
             litMonster
-              ? "opacity-100 brightness-105 grayscale-0 scale-105 drop-shadow-[0_10px_22px_rgba(255,77,109,0.45)]"
-              : "opacity-10 brightness-[0.12] grayscale scale-95 group-hover:opacity-100 group-hover:brightness-105 group-hover:grayscale-0 group-hover:scale-105 group-hover:drop-shadow-[0_10px_22px_rgba(255,77,109,0.45)]"
+              ? "opacity-100 blur-0 brightness-105 scale-105 drop-shadow-[0_10px_22px_rgba(255,77,109,0.45)]"
+              : "opacity-45 blur-[4px] brightness-75 scale-95 group-hover:opacity-100 group-hover:blur-0 group-hover:brightness-105 group-hover:scale-105 group-hover:drop-shadow-[0_10px_22px_rgba(255,77,109,0.45)]"
           }`}
         >
           <PixelSpriteView sprite={BOSS_SPRITE} size={72} />
@@ -192,8 +192,8 @@ export function LandingDungeonBackdrop({ torchActive }: LandingDungeonBackdropPr
         <div
           className={`relative -mr-6 ambient-float [animation-delay:2.1s] transition-all duration-300 ${
             litMonster
-              ? "opacity-95 brightness-105 grayscale-0 scale-105 drop-shadow-[0_8px_18px_rgba(47,191,113,0.45)]"
-              : "opacity-10 brightness-[0.12] grayscale scale-95 group-hover:opacity-95 group-hover:brightness-105 group-hover:grayscale-0 group-hover:scale-105 group-hover:drop-shadow-[0_8px_18px_rgba(47,191,113,0.45)]"
+              ? "opacity-95 blur-0 brightness-105 scale-105 drop-shadow-[0_8px_18px_rgba(47,191,113,0.45)]"
+              : "opacity-40 blur-[4px] brightness-75 scale-95 group-hover:opacity-95 group-hover:blur-0 group-hover:brightness-105 group-hover:scale-105 group-hover:drop-shadow-[0_8px_18px_rgba(47,191,113,0.45)]"
           }`}
         >
           <PixelSpriteView sprite={SLIME_SPRITE} size={46} />
