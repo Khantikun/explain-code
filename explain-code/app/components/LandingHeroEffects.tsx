@@ -108,6 +108,65 @@ export function LandingDungeonBackdrop({ torchActive }: LandingDungeonBackdropPr
 
   return (
     <>
+      {/* Dungeon Stone Brick Wall Background */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-45"
+      >
+        <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern
+              id="dungeon-wall-bricks"
+              width="96"
+              height="48"
+              patternUnits="userSpaceOnUse"
+            >
+              {/* Mortar base */}
+              <rect width="96" height="48" fill="#0d0b14" />
+              {/* Row 1 bricks */}
+              <rect x="2" y="2" width="44" height="20" rx="2" fill="#1c1b2b" />
+              <rect x="2" y="2" width="44" height="2" fill="#2f2d45" opacity="0.7" />
+              <rect x="50" y="2" width="44" height="20" rx="2" fill="#171526" />
+              <rect x="50" y="2" width="44" height="2" fill="#2f2d45" opacity="0.55" />
+              {/* Row 2 staggered bricks */}
+              <rect x="-22" y="26" width="44" height="20" rx="2" fill="#171526" />
+              <rect x="-22" y="26" width="44" height="2" fill="#2f2d45" opacity="0.55" />
+              <rect x="26" y="26" width="44" height="20" rx="2" fill="#201e33" />
+              <rect x="26" y="26" width="44" height="2" fill="#3d395a" opacity="0.65" />
+              <rect x="74" y="26" width="44" height="20" rx="2" fill="#1c1b2b" />
+              <rect x="74" y="26" width="44" height="2" fill="#2f2d45" opacity="0.7" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#dungeon-wall-bricks)" />
+        </svg>
+        {/* Soft vignette so bricks blend smoothly into #0d0b14 */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at center, transparent 35%, #0d0b14 92%)",
+          }}
+        />
+      </div>
+
+      {/* Torch-lit Stone Brick Highlight */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${
+          torchActive ? "opacity-80" : "opacity-0"
+        }`}
+        style={{
+          maskImage:
+            "radial-gradient(220px circle at var(--torch-x, 50%) var(--torch-y, 30%), black 0%, transparent 75%)",
+          WebkitMaskImage:
+            "radial-gradient(220px circle at var(--torch-x, 50%) var(--torch-y, 30%), black 0%, transparent 75%)",
+        }}
+      >
+        <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100%" height="100%" fill="url(#dungeon-wall-bricks)" />
+        </svg>
+      </div>
+
       {/* Ambient Hero Glow */}
       <div
         aria-hidden="true"
